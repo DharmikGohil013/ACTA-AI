@@ -6,6 +6,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 const API_URL = 'http://localhost:3000';
 
+const getPlatformName = (link) => {
+    if (!link) return 'Meeting';
+    if (link.includes('zoom.us')) return 'Zoom Meeting';
+    if (link.includes('meet.google.com')) return 'Google Meet';
+    if (link.includes('teams')) return 'Teams Meeting';
+    return 'Meeting';
+};
+
 const Dashboard = () => {
     const [meetings, setMeetings] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -237,7 +245,7 @@ const Dashboard = () => {
                         {getActiveMeetings().map((meeting) => {
                             const statusInfo = getStatusInfo(meeting);
                             const liveData = liveStatus[meeting._id] || {};
-                            
+
                             return (
                                 <motion.div
                                     key={`live-${meeting._id}`}
@@ -255,16 +263,16 @@ const Dashboard = () => {
                                             <span className="text-xs text-gray-400">{liveData.size} MB</span>
                                         )}
                                     </div>
-                                    
+
                                     <div className="text-sm text-gray-300 mb-2 truncate">
                                         {meeting.meetingUrl || 'Meeting in progress...'}
                                     </div>
-                                    
+
                                     <div className="flex items-center gap-2 text-xs text-gray-500">
                                         <Clock size={12} />
                                         {new Date(meeting.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                     </div>
-                                    
+
                                     {liveTranscripts[meeting._id] && liveTranscripts[meeting._id].length > 0 && (
                                         <div className="mt-3 p-2 bg-purple-500/10 rounded-lg border border-purple-500/20">
                                             <p className="text-xs text-purple-300 line-clamp-2">
@@ -324,7 +332,7 @@ const Dashboard = () => {
                                 </div>
 
                                 <h3 className="text-lg font-semibold mb-2 text-white/90 truncate">
-                                    {meeting.topic || "Zoom Session"}
+                                    {meeting.topic || getPlatformName(meeting.meetingLink)}
                                 </h3>
 
                                 <div className="flex items-center gap-2 text-xs text-gray-500 mb-4 truncate bg-black/20 p-2 rounded-lg">
@@ -377,7 +385,7 @@ const Dashboard = () => {
                                                 <div className="h-full bg-gradient-to-r from-red-500 to-orange-500 animate-pulse" style={{ width: '60%' }} />
                                             </div>
                                         </div>
-                                        
+
                                         {/* Live Transcript Display */}
                                         {liveTranscripts[meeting._id] && liveTranscripts[meeting._id].length > 0 && (
                                             <div className="mt-3 p-4 bg-gradient-to-br from-purple-500/10 to-blue-500/10 rounded-lg border border-purple-500/20 max-h-48 overflow-y-auto">
@@ -463,22 +471,22 @@ const Dashboard = () => {
             {/* Live Meeting Overlay */}
             <AnimatePresence>
                 {liveOverlay && (
-                    <motion.div 
-                        initial={{ opacity: 0 }} 
-                        animate={{ opacity: 1 }} 
-                        exit={{ opacity: 0 }} 
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
                         className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
                         onClick={() => setLiveOverlay(null)}
                     >
-                        <motion.div 
-                            initial={{ scale: 0.95 }} 
-                            animate={{ scale: 1 }} 
-                            exit={{ scale: 0.95 }} 
+                        <motion.div
+                            initial={{ scale: 0.95 }}
+                            animate={{ scale: 1 }}
+                            exit={{ scale: 0.95 }}
                             className="bg-[#0f0b1e] border-2 border-red-500/30 rounded-2xl p-8 max-w-4xl w-full shadow-2xl relative max-h-[90vh] overflow-hidden flex flex-col"
                             onClick={(e) => e.stopPropagation()}
                         >
-                            <button 
-                                onClick={() => setLiveOverlay(null)} 
+                            <button
+                                onClick={() => setLiveOverlay(null)}
                                 className="absolute top-6 right-6 text-gray-500 hover:text-white z-10 transition-colors"
                             >
                                 <X size={24} />
@@ -510,9 +518,9 @@ const Dashboard = () => {
                                     <label className="text-xs text-gray-500 uppercase tracking-wide mb-1 block">Meeting URL</label>
                                     <div className="flex items-center gap-2">
                                         <ExternalLink size={16} className="text-purple-400" />
-                                        <a 
-                                            href={liveOverlay.meetingUrl} 
-                                            target="_blank" 
+                                        <a
+                                            href={liveOverlay.meetingUrl}
+                                            target="_blank"
                                             rel="noopener noreferrer"
                                             className="text-purple-400 hover:text-purple-300 truncate"
                                         >
@@ -555,7 +563,7 @@ const Dashboard = () => {
                                         </span>
                                     )}
                                 </h3>
-                                
+
                                 <div className="bg-black/30 rounded-xl p-4 flex-1 overflow-y-auto border border-white/5 custom-scrollbar">
                                     {liveTranscripts[liveOverlay._id] && liveTranscripts[liveOverlay._id].length > 0 ? (
                                         <div className="space-y-3">
@@ -595,13 +603,13 @@ const Dashboard = () => {
                                     Bot is actively recording and transcribing
                                 </div>
                                 <div className="flex gap-3">
-                                    <button 
-                                        onClick={() => setLiveOverlay(null)} 
+                                    <button
+                                        onClick={() => setLiveOverlay(null)}
                                         className="px-6 py-3 rounded-xl text-sm font-semibold hover:bg-white/5 transition-colors border border-white/10"
                                     >
                                         Close
                                     </button>
-                                    <button 
+                                    <button
                                         onClick={() => stopBot(liveOverlay._id)}
                                         disabled={endingBot}
                                         className="px-6 py-3 bg-red-500 hover:bg-red-600 disabled:bg-red-500/50 disabled:cursor-not-allowed text-white rounded-xl text-sm font-semibold transition-colors flex items-center gap-2"
@@ -680,14 +688,14 @@ const Dashboard = () => {
                                                 {transcript}
                                             </div>
                                         )}
-                                        
+
                                         {selectedMeeting?.totalSpeakers && selectedMeeting.totalSpeakers > 0 && (
                                             <div className="mt-6 pt-6 border-t border-white/5">
                                                 <h3 className="text-sm font-semibold text-gray-400 mb-4 flex items-center gap-2">
                                                     <Users size={16} />
                                                     Speaker Analysis ({selectedMeeting.totalSpeakers} speakers detected)
                                                 </h3>
-                                                
+
                                                 {selectedMeeting.speakerStats && (
                                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
                                                         {Object.entries(selectedMeeting.speakerStats).map(([speaker, stats]) => (
@@ -703,7 +711,7 @@ const Dashboard = () => {
                                                         ))}
                                                     </div>
                                                 )}
-                                                
+
                                                 {selectedMeeting.speakerSegments && selectedMeeting.speakerSegments.length > 0 && (
                                                     <details className="cursor-pointer group">
                                                         <summary className="text-sm font-medium text-gray-400 hover:text-gray-300 transition-colors">
@@ -715,7 +723,7 @@ const Dashboard = () => {
                                                                     <div className="flex items-center gap-3 mb-2">
                                                                         <span className="font-medium text-purple-400">{segment.speaker}</span>
                                                                         <span className="text-gray-500 font-mono text-xs">
-                                                                            {Math.floor(segment.start / 60)}:{String(Math.floor(segment.start % 60)).padStart(2, '0')} - 
+                                                                            {Math.floor(segment.start / 60)}:{String(Math.floor(segment.start % 60)).padStart(2, '0')} -
                                                                             {Math.floor(segment.end / 60)}:{String(Math.floor(segment.end % 60)).padStart(2, '0')}
                                                                         </span>
                                                                         <span className="text-gray-600 text-xs">({segment.duration.toFixed(1)}s)</span>

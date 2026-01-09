@@ -12,6 +12,7 @@ const Home = () => {
     const [loading, setLoading] = useState(false);
     const [status, setStatus] = useState({ type: null, message: '' });
     const [botConfigured, setBotConfigured] = useState(true);  // Default true to avoid flashing
+    const [setupLoading, setSetupLoading] = useState(false);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -32,6 +33,35 @@ const Home = () => {
             setBotConfigured(res.data.isConfigured || false);
         } catch (err) {
             console.error('Error checking bot setup:', err);
+        }
+    };
+
+    const setupBot = async () => {
+        try {
+            const token = localStorage.getItem('authToken');
+            if (!token) {
+                setStatus({ type: 'error', message: 'Please login first to setup Google Meet bot' });
+                return;
+            }
+
+            setSetupLoading(true);
+            setStatus({ type: 'info', message: 'Opening browser for Google account login...' });
+
+            const res = await axios.post(`${API_URL}/api/bot/setup/start`, {}, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            setStatus({ type: 'success', message: res.data.message });
+            setSetupLoading(false);
+
+            // Check setup status after a delay
+            setTimeout(() => {
+                checkBotSetup();
+            }, 3000);
+        } catch (err) {
+            console.error('Setup error:', err);
+            setStatus({ type: 'error', message: err.response?.data?.error || 'Failed to start bot setup' });
+            setSetupLoading(false);
         }
     };
 
@@ -139,15 +169,56 @@ const Home = () => {
                         <motion.div
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
-                            className="mb-8 inline-flex items-center gap-2 px-4 py-3 rounded-lg text-sm font-medium bg-yellow-500/10 text-yellow-400 border border-yellow-500/20"
+                            className="mb-8 max-w-md mx-auto"
                         >
-                            <AlertCircle size={16} />
-                            <span>Google Meet bot credentials not configured.</span>
+                            <div className="relative">
+                                <div className="absolute -inset-1 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-lg blur opacity-25"></div>
+                                <div className="relative bg-[#0B0E14] border border-yellow-500/30 rounded-lg p-6">
+                                    <div className="flex items-start gap-3 mb-4">
+                                        <AlertCircle size={20} className="text-yellow-400 mt-0.5 flex-shrink-0" />
+                                        <div>
+                                            <h3 className="text-white font-semibold mb-1">Google Meet Setup Required</h3>
+                                            <p className="text-sm text-slate-400">
+                                                To join Google Meet meetings, you need to authenticate your Google account.
+                                                A browser will open for you to log in.
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <button
+                                        onClick={setupBot}
+                                        disabled={setupLoading}
+                                        className="w-full px-4 py-2.5 bg-yellow-500 hover:bg-yellow-400 text-black font-medium rounded-md transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                    >
+                                        {setupLoading ? (
+                                            <>
+                                                <Loader size={16} className="animate-spin" />
+                                                <span>Opening Browser...</span>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <span>Setup Google Account</span>
+                                                <ArrowRight size={16} />
+                                            </>
+                                        )}
+                                    </button>
+                                </div>
+                            </div>
+                        </motion.div>
+                    )}
+
+                    {/* Bot Configured - Show Re-auth Option */}
+                    {botConfigured && localStorage.getItem('authToken') && (
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            className="mb-12"
+                        >
                             <button
-                                onClick={() => navigate('/bot-setup')}
-                                className="ml-2 underline hover:text-yellow-300 transition-colors"
+                                onClick={setupBot}
+                                disabled={setupLoading}
+                                className="text-xs text-slate-500 hover:text-slate-300 transition-colors underline decoration-dotted"
                             >
-                                Setup Now
+                                {setupLoading ? 'Opening browser...' : 'Re-authenticate Google Meet Bot'}
                             </button>
                         </motion.div>
                     )}

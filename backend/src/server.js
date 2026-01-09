@@ -553,15 +553,19 @@ app.post('/api/join', optionalAuth, async (req, res) => {
 
         runBot(link, newMeeting._id, userId).then(({ browser }) => {
             console.log(`[Server] Bot started for meeting ${newMeeting._id}`);
-            emitStatus(newMeeting._id.toString(), 'in-meeting', { message: 'Bot joined the meeting' });
 
-            // Only set up event listener if browser exists
+            // Only attach event listener if browser is not null
             if (browser) {
+                emitStatus(newMeeting._id.toString(), 'in-meeting', { message: 'Bot joined the meeting' });
+
                 browser.on('disconnected', async () => {
                     console.log(`[Server] Browser closed for meeting ${newMeeting._id}`);
                     await Meeting.findByIdAndUpdate(newMeeting._id, { status: 'completed' });
                     emitStatus(newMeeting._id.toString(), 'completed', { message: 'Meeting ended' });
                 });
+            } else {
+                console.log(`[Server] Bot failed to start - browser is null`);
+                emitStatus(newMeeting._id.toString(), 'failed', { message: 'Failed to join meeting' });
             }
 
         }).catch(async (err) => {

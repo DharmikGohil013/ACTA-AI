@@ -4,13 +4,18 @@ const cors = require('cors');
 const path = require('path');
 const dotenv = require('dotenv');
 const http = require('http');
+const session = require('express-session');
+
+// Load environment variables FIRST
+dotenv.config();
+
+// Import passport AFTER env vars are loaded
+const passport = require('./config/passport');
 const { Server } = require('socket.io');
 const { runBot, stopBot, activeBots } = require('./bot/bot');
 const Meeting = require('./models/Meeting');
 const zoomService = require('./services/zoomService');
 const transcriptionService = require('./services/transcriptionService');
-
-dotenv.config();
 
 const app = express();
 const server = http.createServer(app);
@@ -26,8 +31,26 @@ const io = new Server(server, {
 // Make io globally accessible for bot to emit events
 global.io = io;
 
-app.use(cors());
+app.use(cors({
+    origin: ["http://localhost:5173", "http://localhost:5174", "http://localhost:3000"],
+    credentials: true
+}));
 app.use(express.json());
+
+// Session configuration
+app.use(session({
+    secret: process.env.SESSION_SECRET || 'your-secret-key',
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+        secure: process.env.NODE_ENV === 'production',
+        maxAge: 24 * 60 * 60 * 1000 // 24 hours
+    }
+}));
+
+// Passport middleware
+app.use(passport.initialize());
+app.use(passport.session());
 
 // Connect to MongoDB
 mongoose.connect(process.env.MONGO_URI)
@@ -50,6 +73,36 @@ io.on('connection', (socket) => {
 const emitStatus = (meetingId, status, data = {}) => {
     io.emit('meetingUpdate', { meetingId, status, ...data });
 };
+
+// Authentication Routes
+app.get('/api/auth/google',
+    passport.authenticate('google', { scope: ['profile', 'email'] })
+);
+
+app.get('/api/auth/google/callback',
+    passport.authenticate('google', { failureRedirect: 'http://localhost:5173' }),
+    (req, res) => {
+        // Successful authentication, redirect to frontend
+        res.redirect('http://localhost:5173');
+    }
+);
+
+app.get('/api/auth/user', (req, res) => {
+    if (req.isAuthenticated()) {
+        res.json({ user: req.user });
+    } else {
+        res.status(401).json({ user: null });
+    }
+});
+
+app.get('/api/auth/logout', (req, res) => {
+    req.logout((err) => {
+        if (err) {
+            return res.status(500).json({ error: 'Logout failed' });
+        }
+        res.json({ success: true, message: 'Logged out successfully' });
+    });
+});
 
 // Routes
 

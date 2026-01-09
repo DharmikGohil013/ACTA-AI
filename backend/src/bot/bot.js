@@ -293,72 +293,36 @@ async function runBot(meetingLink, meetingIdMongo, userId = null) {
             return { browser: null, page: null };
         }
     } catch (e) {
-        console.log('[Bot] Navigation error:', e.message);
-        emitStatus(meetingIdMongo, 'failed', { message: 'Failed to load meeting page' });
-        await browser.close();
-        return { browser: null, page: null };
-    }
-
-    // Verify page is still attached
-    if (page.isClosed()) {
-        console.log('[Bot] Page was closed during navigation');
-        await browser.close();
-        return { browser: null, page: null };
+        console.log('[Bot] Navigation timeout, continuing...');
     }
 
     // --- JOIN FLOW ---
     try {
-        console.log('[Bot] Starting join flow...');
-        await delay(2000);
+        await delay(3000);
 
         // Cookie
         try {
-            await page.waitForSelector('#onetrust-accept-btn-handler', { timeout: 3000 }).catch(() => null);
             const cookieBtn = await page.$('#onetrust-accept-btn-handler');
-            if (cookieBtn) {
-                await cookieBtn.click();
-                console.log('[Bot] Accepted cookies');
-            }
-        } catch (e) {
-            console.log('[Bot] No cookie banner found');
-        }
+            if (cookieBtn) await cookieBtn.click();
+        } catch (e) { }
 
         // Name input
         emitStatus(meetingIdMongo, 'joining', { message: 'Entering meeting...' });
-        console.log('[Bot] Looking for name input...');
+        console.log('[Bot] Entering name...');
         await delay(2000);
 
         const nameSelectors = ['#inputname', 'input[id*="name"]', 'input[type="text"]'];
-        let nameEntered = false;
 
         for (const sel of nameSelectors) {
-            try {
-                await page.waitForSelector(sel, { timeout: 5000 }).catch(() => null);
-                const input = await page.$(sel);
-                if (input) {
-                    await page.evaluate((selector) => {
-                        const el = document.querySelector(selector);
-                        if (el) {
-                            el.value = '';
-                            el.focus();
-                        }
-                    }, sel);
-                    await delay(500);
-                    await input.type('AI Meeting Bot', { delay: 50 });
-                    console.log('[Bot] Name entered successfully');
-                    nameEntered = true;
-                    break;
-                }
-            } catch (e) {
-                console.log(`[Bot] Selector ${sel} not found:`, e.message);
+            const input = await page.$(sel);
+            if (input) {
+                await input.click({ clickCount: 3 });
+                await input.type('AI Meeting Bot', { delay: 30 });
+                break;
             }
         }
 
-        if (!nameEntered) {
-            console.log('[Bot] Warning: Could not find name input, continuing...');
-        }
-
-        await delay(1500);
+        await delay(1000);
 
         // Join button
         console.log('[Bot] Looking for join button...');
@@ -403,25 +367,24 @@ async function runBot(meetingLink, meetingIdMongo, userId = null) {
         if (!joinClicked) {
             console.log('[Bot] Warning: Join button not found, meeting may require manual join');
         }
+        await page.evaluate(() => {
+            const btn = [...document.querySelectorAll('button')].find(b =>
+                b.textContent?.toLowerCase().includes('join')
+            );
+            if (btn) btn.click();
+        });
 
         console.log('[Bot] Waiting to enter meeting...');
         emitStatus(meetingIdMongo, 'waiting', { message: 'Waiting to enter...' });
-        await delay(10000);
-
-        // Check if page is still valid
-        if (page.isClosed()) {
-            console.log('[Bot] Page closed unexpectedly');
-            await browser.close();
-            return { browser: null, page: null };
-        }
+        await delay(15000);
 
         // Join audio
-        console.log('[Bot] Looking for audio join button...');
+        console.log('[Bot] Joining audio...');
         try {
             const audioJoined = await page.evaluate(() => {
                 const btn = [...document.querySelectorAll('button')].find(b => {
                     const t = (b.textContent || '').toLowerCase();
-                    return t.includes('computer audio') || t.includes('join audio') || t.includes('join with computer audio');
+                    return t.includes('computer audio') || t.includes('join audio');
                 });
                 if (btn) {
                     btn.click();
@@ -473,13 +436,6 @@ async function runBot(meetingLink, meetingIdMongo, userId = null) {
         console.log('[Bot] ✅ Joined meeting!');
         emitStatus(meetingIdMongo, 'in-meeting', { message: 'Bot is in the meeting!' });
 
-        // Verify page is still valid before audio capture
-        if (page.isClosed()) {
-            console.log('[Bot] Page closed after joining, cannot capture audio');
-            await browser.close();
-            return { browser: null, page: null };
-        }
-
         // --- START AUDIO CAPTURE ---
         console.log('[Bot] 🎙️ Starting audio capture...');
 
@@ -518,187 +474,179 @@ async function runBot(meetingLink, meetingIdMongo, userId = null) {
         });
 
         // Start the actual recording - capture from nodes connected to speakers
-        let started = false;
-        try {
-            started = await page.evaluate(() => {
-                return new Promise((resolve) => {
-                    try {
-                        console.log('[Recording] Starting capture...');
-                        console.log('[Recording] Speaker nodes:', window.__speakerNodes?.length);
-                        console.log('[Recording] Audio nodes:', window.__audioNodes?.length);
-                        console.log('[Recording] Audio elements:', window.__audioElements?.length);
-                        console.log('[Recording] Video elements:', window.__videoElements?.length);
+        const started = await page.evaluate(() => {
+            return new Promise((resolve) => {
+                try {
+                    console.log('[Recording] Starting capture...');
+                    console.log('[Recording] Speaker nodes:', window.__speakerNodes?.length);
+                    console.log('[Recording] Audio nodes:', window.__audioNodes?.length);
+                    console.log('[Recording] Audio elements:', window.__audioElements?.length);
+                    console.log('[Recording] Video elements:', window.__videoElements?.length);
 
-                        window.onAudioDebug(`Nodes: speakers=${window.__speakerNodes?.length}, audio=${window.__audioNodes?.length}, elements=${window.__audioElements?.length + window.__videoElements?.length}`);
+                    window.onAudioDebug(`Nodes: speakers=${window.__speakerNodes?.length}, audio=${window.__audioNodes?.length}, elements=${window.__audioElements?.length + window.__videoElements?.length}`);
 
-                        // Get or create audio context
-                        const audioContext = window.__mainAudioContext || new (window.AudioContext || window.webkitAudioContext)();
-                        const destination = audioContext.createMediaStreamDestination();
-                        let sourcesConnected = 0;
+                    // Get or create audio context
+                    const audioContext = window.__mainAudioContext || new (window.AudioContext || window.webkitAudioContext)();
+                    const destination = audioContext.createMediaStreamDestination();
+                    let sourcesConnected = 0;
 
-                        // 1. Try to capture from nodes connected to speakers (best source)
-                        if (window.__speakerNodes && window.__speakerNodes.length > 0) {
-                            window.__speakerNodes.forEach((node, idx) => {
-                                try {
-                                    node.connect(destination);
-                                    sourcesConnected++;
-                                    console.log('[Recording] Connected speaker node', idx);
-                                } catch (e) {
-                                    console.log('[Recording] Failed speaker node', idx, e.message);
-                                }
-                            });
-                        }
-
-                        // 2. Try audio nodes with streams
-                        if (window.__audioNodes) {
-                            window.__audioNodes.forEach((item, idx) => {
-                                try {
-                                    if (item.node && !item.node._captured) {
-                                        item.node.connect(destination);
-                                        item.node._captured = true;
-                                        sourcesConnected++;
-                                        console.log('[Recording] Connected audio node', idx);
-                                    }
-                                } catch (e) {
-                                    console.log('[Recording] Failed audio node', idx, e.message);
-                                }
-                            });
-                        }
-
-                        // 3. Capture from audio/video elements (most reliable for Zoom)
-                        const captureElement = (el, type, idx) => {
+                    // 1. Try to capture from nodes connected to speakers (best source)
+                    if (window.__speakerNodes && window.__speakerNodes.length > 0) {
+                        window.__speakerNodes.forEach((node, idx) => {
                             try {
-                                // Method 1: Via srcObject (MediaStream)
-                                if (el.srcObject) {
-                                    const source = audioContext.createMediaStreamSource(el.srcObject);
-                                    source.connect(destination);
-                                    sourcesConnected++;
-                                    console.log(`[Recording] Connected ${type} element ${idx} via srcObject`);
-                                    return true;
-                                }
-
-                                // Method 2: Via captureStream (for src URLs)
-                                if (el.captureStream) {
-                                    const stream = el.captureStream();
-                                    if (stream.getAudioTracks().length > 0) {
-                                        const source = audioContext.createMediaStreamSource(stream);
-                                        source.connect(destination);
-                                        sourcesConnected++;
-                                        console.log(`[Recording] Connected ${type} element ${idx} via captureStream`);
-                                        return true;
-                                    }
-                                }
-
-                                // Method 3: createMediaElementSource
-                                if (!el._capturedElement) {
-                                    const source = audioContext.createMediaElementSource(el);
-                                    source.connect(destination);
-                                    source.connect(audioContext.destination); // Also play to speakers
-                                    el._capturedElement = true;
-                                    sourcesConnected++;
-                                    console.log(`[Recording] Connected ${type} element ${idx} via createMediaElementSource`);
-                                    return true;
-                                }
+                                node.connect(destination);
+                                sourcesConnected++;
+                                console.log('[Recording] Connected speaker node', idx);
                             } catch (e) {
-                                console.log(`[Recording] Failed ${type} element ${idx}:`, e.message);
-                            }
-                            return false;
-                        };
-
-                        // Capture tracked elements
-                        (window.__audioElements || []).forEach((el, idx) => captureElement(el, 'audio', idx));
-                        (window.__videoElements || []).forEach((el, idx) => captureElement(el, 'video', idx));
-
-                        // Also find all elements in DOM
-                        document.querySelectorAll('audio, video').forEach((el, idx) => {
-                            if (!el._capturedElement) {
-                                captureElement(el, 'dom-' + el.tagName.toLowerCase(), idx);
+                                console.log('[Recording] Failed speaker node', idx, e.message);
                             }
                         });
-
-                        window.onAudioDebug(`Connected ${sourcesConnected} sources`);
-
-                        if (sourcesConnected === 0) {
-                            // Last resort: try getDisplayMedia with tab audio
-                            window.onAudioDebug('No sources, trying getDisplayMedia...');
-
-                            navigator.mediaDevices.getDisplayMedia({
-                                audio: {
-                                    suppressLocalAudioPlayback: false,
-                                },
-                                video: true,
-                                preferCurrentTab: true,
-                                selfBrowserSurface: 'include',
-                                systemAudio: 'include',
-                            }).then(stream => {
-                                const audioTracks = stream.getAudioTracks();
-                                window.onAudioDebug(`getDisplayMedia got ${audioTracks.length} audio tracks`);
-
-                                if (audioTracks.length > 0) {
-                                    const audioStream = new MediaStream(audioTracks);
-                                    const source = audioContext.createMediaStreamSource(audioStream);
-                                    source.connect(destination);
-
-                                    // Stop video track (we don't need it)
-                                    stream.getVideoTracks().forEach(t => t.stop());
-
-                                    startRecorder(destination.stream, audioTracks.length);
-                                } else {
-                                    window.onAudioError('getDisplayMedia returned no audio');
-                                }
-                            }).catch(err => {
-                                window.onAudioError('getDisplayMedia failed: ' + err.message);
-                            });
-
-                            resolve(true);
-                            return;
-                        }
-
-                        // Start recorder with captured sources
-                        startRecorder(destination.stream, sourcesConnected);
-                        resolve(true);
-
-                        function startRecorder(stream, sourceCount) {
-                            const recorder = new MediaRecorder(stream, {
-                                mimeType: 'audio/webm;codecs=opus'
-                            });
-
-                            recorder.ondataavailable = (e) => {
-                                if (e.data.size > 0) {
-                                    const reader = new FileReader();
-                                    reader.onloadend = () => {
-                                        const base64 = reader.result.split(',')[1];
-                                        window.sendAudioChunk(base64);
-                                    };
-                                    reader.readAsDataURL(e.data);
-                                }
-                            };
-
-                            recorder.onerror = (e) => {
-                                window.onAudioError(e.error?.message || 'Recorder error');
-                            };
-
-                            recorder.start(2000);
-                            window.__mediaRecorder = recorder;
-                            window.onAudioStarted({ sources: sourceCount });
-                        }
-
-                    } catch (error) {
-                        console.error('[Recording] Setup error:', error);
-                        window.onAudioError(error.message);
-                        resolve(false);
                     }
-                });
+
+                    // 2. Try audio nodes with streams
+                    if (window.__audioNodes) {
+                        window.__audioNodes.forEach((item, idx) => {
+                            try {
+                                if (item.node && !item.node._captured) {
+                                    item.node.connect(destination);
+                                    item.node._captured = true;
+                                    sourcesConnected++;
+                                    console.log('[Recording] Connected audio node', idx);
+                                }
+                            } catch (e) {
+                                console.log('[Recording] Failed audio node', idx, e.message);
+                            }
+                        });
+                    }
+
+                    // 3. Capture from audio/video elements (most reliable for Zoom)
+                    const captureElement = (el, type, idx) => {
+                        try {
+                            // Method 1: Via srcObject (MediaStream)
+                            if (el.srcObject) {
+                                const source = audioContext.createMediaStreamSource(el.srcObject);
+                                source.connect(destination);
+                                sourcesConnected++;
+                                console.log(`[Recording] Connected ${type} element ${idx} via srcObject`);
+                                return true;
+                            }
+
+                            // Method 2: Via captureStream (for src URLs)
+                            if (el.captureStream) {
+                                const stream = el.captureStream();
+                                if (stream.getAudioTracks().length > 0) {
+                                    const source = audioContext.createMediaStreamSource(stream);
+                                    source.connect(destination);
+                                    sourcesConnected++;
+                                    console.log(`[Recording] Connected ${type} element ${idx} via captureStream`);
+                                    return true;
+                                }
+                            }
+
+                            // Method 3: createMediaElementSource
+                            if (!el._capturedElement) {
+                                const source = audioContext.createMediaElementSource(el);
+                                source.connect(destination);
+                                source.connect(audioContext.destination); // Also play to speakers
+                                el._capturedElement = true;
+                                sourcesConnected++;
+                                console.log(`[Recording] Connected ${type} element ${idx} via createMediaElementSource`);
+                                return true;
+                            }
+                        } catch (e) {
+                            console.log(`[Recording] Failed ${type} element ${idx}:`, e.message);
+                        }
+                        return false;
+                    };
+
+                    // Capture tracked elements
+                    (window.__audioElements || []).forEach((el, idx) => captureElement(el, 'audio', idx));
+                    (window.__videoElements || []).forEach((el, idx) => captureElement(el, 'video', idx));
+
+                    // Also find all elements in DOM
+                    document.querySelectorAll('audio, video').forEach((el, idx) => {
+                        if (!el._capturedElement) {
+                            captureElement(el, 'dom-' + el.tagName.toLowerCase(), idx);
+                        }
+                    });
+
+                    window.onAudioDebug(`Connected ${sourcesConnected} sources`);
+
+                    if (sourcesConnected === 0) {
+                        // Last resort: try getDisplayMedia with tab audio
+                        window.onAudioDebug('No sources, trying getDisplayMedia...');
+
+                        navigator.mediaDevices.getDisplayMedia({
+                            audio: {
+                                suppressLocalAudioPlayback: false,
+                            },
+                            video: true,
+                            preferCurrentTab: true,
+                            selfBrowserSurface: 'include',
+                            systemAudio: 'include',
+                        }).then(stream => {
+                            const audioTracks = stream.getAudioTracks();
+                            window.onAudioDebug(`getDisplayMedia got ${audioTracks.length} audio tracks`);
+
+                            if (audioTracks.length > 0) {
+                                const audioStream = new MediaStream(audioTracks);
+                                const source = audioContext.createMediaStreamSource(audioStream);
+                                source.connect(destination);
+
+                                // Stop video track (we don't need it)
+                                stream.getVideoTracks().forEach(t => t.stop());
+
+                                startRecorder(destination.stream, audioTracks.length);
+                            } else {
+                                window.onAudioError('getDisplayMedia returned no audio');
+                            }
+                        }).catch(err => {
+                            window.onAudioError('getDisplayMedia failed: ' + err.message);
+                        });
+
+                        resolve(true);
+                        return;
+                    }
+
+                    // Start recorder with captured sources
+                    startRecorder(destination.stream, sourcesConnected);
+                    resolve(true);
+
+                    function startRecorder(stream, sourceCount) {
+                        const recorder = new MediaRecorder(stream, {
+                            mimeType: 'audio/webm;codecs=opus'
+                        });
+
+                        recorder.ondataavailable = (e) => {
+                            if (e.data.size > 0) {
+                                const reader = new FileReader();
+                                reader.onloadend = () => {
+                                    const base64 = reader.result.split(',')[1];
+                                    window.sendAudioChunk(base64);
+                                };
+                                reader.readAsDataURL(e.data);
+                            }
+                        };
+
+                        recorder.onerror = (e) => {
+                            window.onAudioError(e.error?.message || 'Recorder error');
+                        };
+
+                        recorder.start(2000);
+                        window.__mediaRecorder = recorder;
+                        window.onAudioStarted({ sources: sourceCount });
+                    }
+
+                } catch (error) {
+                    console.error('[Recording] Setup error:', error);
+                    window.onAudioError(error.message);
+                    resolve(false);
+                }
             });
-        } catch (evalErr) {
-            console.error('[Bot] Error evaluating audio capture:', evalErr.message);
-            started = false;
-        }
+        });
 
         if (!started) {
-            console.log('[Bot] ⚠️ Recording setup failed, but meeting will continue');
-        } else {
-            console.log('[Bot] ✅ Recording started successfully');
+            console.log('[Bot] ⚠️ Recording setup failed');
         }
 
         await updateMeetingStatus(meetingIdMongo, 'recording');

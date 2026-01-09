@@ -15,7 +15,7 @@
 @theme {
   --font-sans: 'Outfit', sans-serif;
   --color-bg-dots: radial-gradient(#333 1px, transparent 1px);
-  --color-bg-spotlight: radial-gradient(circle at 50% 0%, rgba(59, 130, 246, 0.15) 0%, transparent 60%);
+  --color-bg-spotlight: radial-gradient(circle at 50% 30%, rgba(59, 130, 246, 0.12) 0%, transparent 70%);
 }
 
 body {
@@ -66,4 +66,23 @@ body {
 /* Text Gradients */
 .text-gradient {
   @apply bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400;
+}
+
+/* Custom Scrollbar for specific elements */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(139, 92, 246, 0.3);
+  border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(139, 92, 246, 0.5);
 }

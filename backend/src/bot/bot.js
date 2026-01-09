@@ -181,205 +181,78 @@ async function runBot(meetingLink, meetingIdMongo) {
     });
 
     try {
-        await page.goto(targetUrl, { waitUntil: 'domcontentloaded', timeout: 60000 });
-        console.log('[Bot] Page loaded successfully');
-        await delay(5000); // Wait for page to fully render
-        
-        // Check if page shows an error (invalid meeting)
-        const pageContent = await page.content();
-        if (pageContent.includes('invalid') || pageContent.includes('not found') || pageContent.includes('3,001')) {
-            console.log('[Bot] Meeting link is invalid or expired');
-            emitStatus(meetingIdMongo, 'failed', { message: 'Invalid or expired meeting link' });
-            await browser.close();
-            return { browser: null, page: null };
-        }
+        await page.goto(targetUrl, { waitUntil: 'networkidle2', timeout: 60000 });
     } catch (e) {
-        console.log('[Bot] Navigation error:', e.message);
-        emitStatus(meetingIdMongo, 'failed', { message: 'Failed to load meeting page' });
-        await browser.close();
-        return { browser: null, page: null };
-    }
-
-    // Verify page is still attached
-    if (page.isClosed()) {
-        console.log('[Bot] Page was closed during navigation');
-        await browser.close();
-        return { browser: null, page: null };
+        console.log('[Bot] Navigation timeout, continuing...');
     }
 
     // --- JOIN FLOW ---
     try {
-        console.log('[Bot] Starting join flow...');
-        await delay(2000);
+        await delay(3000);
 
         // Cookie
         try {
-            await page.waitForSelector('#onetrust-accept-btn-handler', { timeout: 3000 }).catch(() => null);
             const cookieBtn = await page.$('#onetrust-accept-btn-handler');
-            if (cookieBtn) {
-                await cookieBtn.click();
-                console.log('[Bot] Accepted cookies');
-            }
-        } catch (e) {
-            console.log('[Bot] No cookie banner found');
-        }
+            if (cookieBtn) await cookieBtn.click();
+        } catch (e) { }
 
         // Name input
         emitStatus(meetingIdMongo, 'joining', { message: 'Entering meeting...' });
-        console.log('[Bot] Looking for name input...');
+        console.log('[Bot] Entering name...');
         await delay(2000);
 
         const nameSelectors = ['#inputname', 'input[id*="name"]', 'input[type="text"]'];
-        let nameEntered = false;
-        
         for (const sel of nameSelectors) {
-            try {
-                await page.waitForSelector(sel, { timeout: 5000 }).catch(() => null);
-                const input = await page.$(sel);
-                if (input) {
-                    await page.evaluate((selector) => {
-                        const el = document.querySelector(selector);
-                        if (el) {
-                            el.value = '';
-                            el.focus();
-                        }
-                    }, sel);
-                    await delay(500);
-                    await input.type('AI Meeting Bot', { delay: 50 });
-                    console.log('[Bot] Name entered successfully');
-                    nameEntered = true;
-                    break;
-                }
-            } catch (e) {
-                console.log(`[Bot] Selector ${sel} not found:`, e.message);
+            const input = await page.$(sel);
+            if (input) {
+                await input.click({ clickCount: 3 });
+                await input.type('AI Meeting Bot', { delay: 30 });
+                break;
             }
         }
 
-        if (!nameEntered) {
-            console.log('[Bot] Warning: Could not find name input, continuing...');
-        }
-
-        await delay(1500);
+        await delay(1000);
 
         // Join button
-        console.log('[Bot] Looking for join button...');
-        let joinClicked = false;
-        
+        console.log('[Bot] Clicking join...');
         const joinSelectors = ['.preview-join-button', '#joinBtn', 'button.btn-join'];
         for (const sel of joinSelectors) {
-            try {
-                await page.waitForSelector(sel, { timeout: 3000 }).catch(() => null);
-                const btn = await page.$(sel);
-                if (btn) {
-                    await btn.click();
-                    console.log(`[Bot] Clicked join button: ${sel}`);
-                    joinClicked = true;
-                    break;
-                }
-            } catch (e) {
-                console.log(`[Bot] Join selector ${sel} not found`);
-            }
+            const btn = await page.$(sel);
+            if (btn) { await btn.click(); break; }
         }
-        
-        // Fallback: try finding by text
-        if (!joinClicked) {
-            try {
-                await page.evaluate(() => {
-                    const btn = [...document.querySelectorAll('button')].find(b =>
-                        b.textContent?.toLowerCase().includes('join')
-                    );
-                    if (btn) {
-                        btn.click();
-                        return true;
-                    }
-                    return false;
-                });
-                console.log('[Bot] Clicked join button by text content');
-                joinClicked = true;
-            } catch (e) {
-                console.log('[Bot] Could not find join button by text:', e.message);
-            }
-        }
-
-        if (!joinClicked) {
-            console.log('[Bot] Warning: Join button not found, meeting may require manual join');
-        }
+        await page.evaluate(() => {
+            const btn = [...document.querySelectorAll('button')].find(b =>
+                b.textContent?.toLowerCase().includes('join')
+            );
+            if (btn) btn.click();
+        });
 
         console.log('[Bot] Waiting to enter meeting...');
         emitStatus(meetingIdMongo, 'waiting', { message: 'Waiting to enter...' });
-        await delay(10000);
-
-        // Check if page is still valid
-        if (page.isClosed()) {
-            console.log('[Bot] Page closed unexpectedly');
-            await browser.close();
-            return { browser: null, page: null };
-        }
+        await delay(15000);
 
         // Join audio
-        console.log('[Bot] Looking for audio join button...');
-        try {
-            const audioJoined = await page.evaluate(() => {
-                const btn = [...document.querySelectorAll('button')].find(b => {
-                    const t = (b.textContent || '').toLowerCase();
-                    return t.includes('computer audio') || t.includes('join audio') || t.includes('join with computer audio');
-                });
-                if (btn) {
-                    btn.click();
-                    return true;
-                }
-                return false;
+        console.log('[Bot] Joining audio...');
+        await page.evaluate(() => {
+            const btn = [...document.querySelectorAll('button')].find(b => {
+                const t = (b.textContent || '').toLowerCase();
+                return t.includes('computer audio') || t.includes('join audio');
             });
-            
-            if (audioJoined) {
-                console.log('[Bot] Audio join button clicked');
-            } else {
-                console.log('[Bot] Audio join button not found, may already be in meeting');
-            }
-        } catch (e) {
-            console.log('[Bot] Error joining audio:', e.message);
-        }
-        
+            if (btn) btn.click();
+        });
         await delay(3000);
 
         // Mute our mic
-        console.log('[Bot] Attempting to mute microphone...');
-        try {
-            // Check if page is still attached before evaluating
-            if (!page.isClosed()) {
-                const muted = await page.evaluate(() => {
-                    const btn = [...document.querySelectorAll('button')].find(b => {
-                        const l = (b.getAttribute('aria-label') || '').toLowerCase();
-                        return l.includes('mute') && !l.includes('unmute');
-                    });
-                    if (btn) {
-                        btn.click();
-                        return true;
-                    }
-                    return false;
-                });
-                
-                if (muted) {
-                    console.log('[Bot] Microphone muted');
-                } else {
-                    console.log('[Bot] Mute button not found, may already be muted');
-                }
-            } else {
-                console.log('[Bot] Page closed, cannot mute');
-            }
-        } catch (e) {
-            console.log('[Bot] Error muting (non-critical):', e.message);
-        }
+        await page.evaluate(() => {
+            const btn = [...document.querySelectorAll('button')].find(b => {
+                const l = (b.getAttribute('aria-label') || '').toLowerCase();
+                return l.includes('mute') && !l.includes('unmute');
+            });
+            if (btn) btn.click();
+        });
 
         console.log('[Bot] ✅ Joined meeting!');
         emitStatus(meetingIdMongo, 'in-meeting', { message: 'Bot is in the meeting!' });
-
-        // Verify page is still valid before audio capture
-        if (page.isClosed()) {
-            console.log('[Bot] Page closed after joining, cannot capture audio');
-            await browser.close();
-            return { browser: null, page: null };
-        }
 
         // --- START AUDIO CAPTURE ---
         console.log('[Bot] 🎙️ Starting audio capture...');
@@ -419,16 +292,14 @@ async function runBot(meetingLink, meetingIdMongo) {
         });
 
         // Start the actual recording - capture from nodes connected to speakers
-        let started = false;
-        try {
-            started = await page.evaluate(() => {
-                return new Promise((resolve) => {
-                    try {
-                        console.log('[Recording] Starting capture...');
-                        console.log('[Recording] Speaker nodes:', window.__speakerNodes?.length);
-                        console.log('[Recording] Audio nodes:', window.__audioNodes?.length);
-                        console.log('[Recording] Audio elements:', window.__audioElements?.length);
-                        console.log('[Recording] Video elements:', window.__videoElements?.length);
+        const started = await page.evaluate(() => {
+            return new Promise((resolve) => {
+                try {
+                    console.log('[Recording] Starting capture...');
+                    console.log('[Recording] Speaker nodes:', window.__speakerNodes?.length);
+                    console.log('[Recording] Audio nodes:', window.__audioNodes?.length);
+                    console.log('[Recording] Audio elements:', window.__audioElements?.length);
+                    console.log('[Recording] Video elements:', window.__videoElements?.length);
 
                     window.onAudioDebug(`Nodes: speakers=${window.__speakerNodes?.length}, audio=${window.__audioNodes?.length}, elements=${window.__audioElements?.length + window.__videoElements?.length}`);
 
@@ -591,15 +462,9 @@ async function runBot(meetingLink, meetingIdMongo) {
                 }
             });
         });
-        } catch (evalErr) {
-            console.error('[Bot] Error evaluating audio capture:', evalErr.message);
-            started = false;
-        }
 
         if (!started) {
-            console.log('[Bot] ⚠️ Recording setup failed, but meeting will continue');
-        } else {
-            console.log('[Bot] ✅ Recording started successfully');
+            console.log('[Bot] ⚠️ Recording setup failed');
         }
 
         await updateMeetingStatus(meetingIdMongo, 'recording');
@@ -611,20 +476,7 @@ async function runBot(meetingLink, meetingIdMongo) {
 
     } catch (err) {
         console.error('[Bot] Error:', err.message);
-        console.error('[Bot] Stack trace:', err.stack);
-        emitStatus(meetingIdMongo, 'failed', { message: `Error: ${err.message}` });
-        
-        // Clean up on error
-        try {
-            if (browser) {
-                await browser.close();
-            }
-        } catch (closeErr) {
-            console.error('[Bot] Error closing browser:', closeErr.message);
-        }
-        
-        activeBots.delete(meetingIdMongo.toString());
-        return { browser: null, page: null };
+        emitStatus(meetingIdMongo, 'error', { message: err.message });
     }
 
     return { browser, page };

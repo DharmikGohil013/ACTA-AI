@@ -16,6 +16,8 @@ const Dashboard = () => {
     const [connected, setConnected] = useState(false);
     const [liveStatus, setLiveStatus] = useState({});
     const [liveTranscripts, setLiveTranscripts] = useState({});
+    const [liveOverlay, setLiveOverlay] = useState(null); // For live meeting overlay
+    const [endingBot, setEndingBot] = useState(false);
     const audioRefs = useRef({});
     const socketRef = useRef(null);
 
@@ -163,8 +165,29 @@ const Dashboard = () => {
     };
 
     const stopBot = async (id) => {
-        await axios.post(`${API_URL}/api/meetings/${id}/stop`);
-        fetchMeetings();
+        setEndingBot(true);
+        try {
+            await axios.post(`${API_URL}/api/meetings/${id}/stop`);
+            fetchMeetings();
+            if (liveOverlay?._id === id) {
+                setLiveOverlay(null);
+            }
+        } catch (err) {
+            console.error('Stop bot error:', err);
+        } finally {
+            setEndingBot(false);
+        }
+    };
+
+    const openLiveOverlay = (meeting) => {
+        setLiveOverlay(meeting);
+    };
+
+    const getActiveMeetings = () => {
+        return meetings.filter(meeting => {
+            const status = liveStatus[meeting._id]?.status || meeting.status;
+            return ['starting', 'navigating', 'joining', 'waiting', 'in-meeting', 'recording'].includes(status);
+        });
     };
 
     const getStatusInfo = (meeting) => {
@@ -202,6 +225,59 @@ const Dashboard = () => {
                     {connected ? 'Live' : 'Offline'}
                 </div>
             </header>
+
+            {/* Active Live Meetings Section */}
+            {getActiveMeetings().length > 0 && (
+                <div className="mb-8">
+                    <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+                        <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+                        Live Meetings ({getActiveMeetings().length})
+                    </h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {getActiveMeetings().map((meeting) => {
+                            const statusInfo = getStatusInfo(meeting);
+                            const liveData = liveStatus[meeting._id] || {};
+                            
+                            return (
+                                <motion.div
+                                    key={`live-${meeting._id}`}
+                                    initial={{ opacity: 0, scale: 0.95 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    className="glass rounded-xl p-5 border-2 border-red-500/30 shadow-lg shadow-red-500/20 cursor-pointer hover:border-red-500/50 transition-all hover:scale-[1.02]"
+                                    onClick={() => openLiveOverlay(meeting)}
+                                >
+                                    <div className="flex items-center justify-between mb-3">
+                                        <div className="flex items-center gap-2">
+                                            <span className={`w-3 h-3 rounded-full ${statusInfo.color} animate-pulse`} />
+                                            <span className="font-bold text-white">{statusInfo.text}</span>
+                                        </div>
+                                        {liveData.size && (
+                                            <span className="text-xs text-gray-400">{liveData.size} MB</span>
+                                        )}
+                                    </div>
+                                    
+                                    <div className="text-sm text-gray-300 mb-2 truncate">
+                                        {meeting.meetingUrl || 'Meeting in progress...'}
+                                    </div>
+                                    
+                                    <div className="flex items-center gap-2 text-xs text-gray-500">
+                                        <Clock size={12} />
+                                        {new Date(meeting.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                    </div>
+                                    
+                                    {liveTranscripts[meeting._id] && liveTranscripts[meeting._id].length > 0 && (
+                                        <div className="mt-3 p-2 bg-purple-500/10 rounded-lg border border-purple-500/20">
+                                            <p className="text-xs text-purple-300 line-clamp-2">
+                                                {liveTranscripts[meeting._id][liveTranscripts[meeting._id].length - 1].text}
+                                            </p>
+                                        </div>
+                                    )}
+                                </motion.div>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
 
             {loading && meetings.length === 0 ? (
                 <div className="flex justify-center py-20 text-gray-500 animate-pulse">
@@ -383,6 +459,171 @@ const Dashboard = () => {
                     })}
                 </div>
             )}
+
+            {/* Live Meeting Overlay */}
+            <AnimatePresence>
+                {liveOverlay && (
+                    <motion.div 
+                        initial={{ opacity: 0 }} 
+                        animate={{ opacity: 1 }} 
+                        exit={{ opacity: 0 }} 
+                        className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+                        onClick={() => setLiveOverlay(null)}
+                    >
+                        <motion.div 
+                            initial={{ scale: 0.95 }} 
+                            animate={{ scale: 1 }} 
+                            exit={{ scale: 0.95 }} 
+                            className="bg-[#0f0b1e] border-2 border-red-500/30 rounded-2xl p-8 max-w-4xl w-full shadow-2xl relative max-h-[90vh] overflow-hidden flex flex-col"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <button 
+                                onClick={() => setLiveOverlay(null)} 
+                                className="absolute top-6 right-6 text-gray-500 hover:text-white z-10 transition-colors"
+                            >
+                                <X size={24} />
+                            </button>
+
+                            <div className="flex items-center gap-4 mb-6">
+                                <div className="p-3 rounded-full bg-red-500/20 text-red-400">
+                                    <div className="relative">
+                                        <Mic size={24} className="animate-pulse" />
+                                        <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full animate-ping" />
+                                    </div>
+                                </div>
+                                <div>
+                                    <h2 className="text-2xl font-bold flex items-center gap-2">
+                                        Live Meeting
+                                        <span className="text-base font-normal text-gray-500">
+                                            {getStatusInfo(liveOverlay).text}
+                                        </span>
+                                    </h2>
+                                    <p className="text-sm text-gray-400 mt-1">
+                                        Recording started at {new Date(liveOverlay.createdAt).toLocaleTimeString()}
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* Meeting Information */}
+                            <div className="bg-white/5 rounded-xl p-6 mb-6 space-y-4 border border-white/10">
+                                <div>
+                                    <label className="text-xs text-gray-500 uppercase tracking-wide mb-1 block">Meeting URL</label>
+                                    <div className="flex items-center gap-2">
+                                        <ExternalLink size={16} className="text-purple-400" />
+                                        <a 
+                                            href={liveOverlay.meetingUrl} 
+                                            target="_blank" 
+                                            rel="noopener noreferrer"
+                                            className="text-purple-400 hover:text-purple-300 truncate"
+                                        >
+                                            {liveOverlay.meetingUrl}
+                                        </a>
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="text-xs text-gray-500 uppercase tracking-wide mb-1 block">Status</label>
+                                        <div className="flex items-center gap-2">
+                                            <span className={`w-2 h-2 rounded-full ${getStatusInfo(liveOverlay).color} animate-pulse`} />
+                                            <span className="text-white font-medium">{getStatusInfo(liveOverlay).text}</span>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="text-xs text-gray-500 uppercase tracking-wide mb-1 block">Recording Size</label>
+                                        <span className="text-white font-medium">
+                                            {liveStatus[liveOverlay._id]?.size || '0'} MB
+                                        </span>
+                                    </div>
+                                </div>
+
+                                {getStatusInfo(liveOverlay).message && (
+                                    <div className="p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
+                                        <p className="text-sm text-yellow-300">{getStatusInfo(liveOverlay).message}</p>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Live Transcript Section */}
+                            <div className="flex-1 overflow-hidden flex flex-col">
+                                <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                                    <FileText size={20} className="text-purple-400" />
+                                    Live Transcript
+                                    {liveTranscripts[liveOverlay._id] && (
+                                        <span className="text-xs text-gray-500">
+                                            ({liveTranscripts[liveOverlay._id].length} segments)
+                                        </span>
+                                    )}
+                                </h3>
+                                
+                                <div className="bg-black/30 rounded-xl p-4 flex-1 overflow-y-auto border border-white/5 custom-scrollbar">
+                                    {liveTranscripts[liveOverlay._id] && liveTranscripts[liveOverlay._id].length > 0 ? (
+                                        <div className="space-y-3">
+                                            {liveTranscripts[liveOverlay._id].map((item, idx) => (
+                                                <motion.div
+                                                    key={idx}
+                                                    initial={{ opacity: 0, y: 10 }}
+                                                    animate={{ opacity: 1, y: 0 }}
+                                                    className="p-3 bg-white/5 rounded-lg hover:bg-white/10 transition-colors"
+                                                >
+                                                    <div className="flex items-center gap-2 mb-1 text-xs text-gray-500">
+                                                        <Clock size={12} />
+                                                        {new Date(item.timestamp).toLocaleTimeString()}
+                                                        {item.language && (
+                                                            <span className="px-2 py-0.5 bg-purple-500/20 text-purple-400 rounded">
+                                                                {item.language}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <p className="text-gray-300 leading-relaxed">{item.text}</p>
+                                                </motion.div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div className="h-full flex flex-col items-center justify-center text-gray-600">
+                                            <Loader2 size={40} className="animate-spin mb-4 text-purple-400" />
+                                            <p>Waiting for transcript data...</p>
+                                            <p className="text-xs text-gray-700 mt-2">Live transcription will appear here</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Actions */}
+                            <div className="flex justify-between items-center gap-4 pt-6 border-t border-white/10 mt-6">
+                                <div className="text-sm text-gray-500">
+                                    Bot is actively recording and transcribing
+                                </div>
+                                <div className="flex gap-3">
+                                    <button 
+                                        onClick={() => setLiveOverlay(null)} 
+                                        className="px-6 py-3 rounded-xl text-sm font-semibold hover:bg-white/5 transition-colors border border-white/10"
+                                    >
+                                        Close
+                                    </button>
+                                    <button 
+                                        onClick={() => stopBot(liveOverlay._id)}
+                                        disabled={endingBot}
+                                        className="px-6 py-3 bg-red-500 hover:bg-red-600 disabled:bg-red-500/50 disabled:cursor-not-allowed text-white rounded-xl text-sm font-semibold transition-colors flex items-center gap-2"
+                                    >
+                                        {endingBot ? (
+                                            <>
+                                                <Loader2 size={16} className="animate-spin" />
+                                                Ending...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <StopCircle size={16} />
+                                                End Meeting & Generate Transcript
+                                            </>
+                                        )}
+                                    </button>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
             {/* Transcription Modal */}
             <AnimatePresence>

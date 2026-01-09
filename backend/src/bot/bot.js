@@ -536,17 +536,46 @@ async function runBot(meetingLink, meetingIdMongo, userId = null) {
         }
 
         return { browser, page };
+    } else {
+        // Generic / Teams fallback
+        console.log(`[Bot] ${platform === 'teams' ? 'Microsoft Teams' : 'Unknown Platform'} detected. Using generic flow.`);
+
+        try {
+            emitStatus(meetingIdMongo, 'navigating', { message: `Opening ${platform === 'teams' ? 'Teams' : 'Link'}...` });
+            await page.goto(meetingLink, { waitUntil: 'domcontentloaded', timeout: 60000 });
+            await delay(5000);
+
+            console.log('[Bot] Setting up generic audio capture...');
+            await setupAudioCapture(page, meetingIdMongo, audioChunks);
+
+            await updateMeetingStatus(meetingIdMongo, 'in-meeting');
+            activeBots.set(meetingIdMongo.toString(), { browser, page, audioChunks });
+
+            emitStatus(meetingIdMongo, 'in-meeting', {
+                message: platform === 'teams' ? 'Bot loaded Teams. Please join manually if needed.' : 'Bot loaded page.'
+            });
+
+            monitorMeetingEnd(page, meetingIdMongo, audioChunks, audioPath);
+            return { browser, page };
+
+        } catch (e) {
+            console.error('[Bot] Generic flow failed:', e);
+            emitStatus(meetingIdMongo, 'failed', { message: `Failed to load: ${e.message}` });
+            try { await browser.close(); } catch (err) { }
+            activeBots.delete(meetingIdMongo.toString());
+            return { browser: null, page: null };
+        }
     }
 }
 
 async function saveAudioFile(audioChunks, audioPath, meetingIdMongo) {
     console.log(`[Bot] saveAudioFile called - chunks: ${audioChunks.length}, meetingId: ${meetingIdMongo}`);
-    
+
     if (audioChunks.length > 0) {
         const fullBuffer = Buffer.concat(audioChunks);
         const size = (fullBuffer.length / 1024 / 1024).toFixed(2);
         console.log(`[Bot] Audio buffer size: ${size} MB (${fullBuffer.length} bytes)`);
-        
+
         if (fullBuffer.length > 1000) {
             try {
                 fs.writeFileSync(audioPath, fullBuffer);
@@ -557,7 +586,7 @@ async function saveAudioFile(audioChunks, audioPath, meetingIdMongo) {
                     audioPath: `/recordings/${meetingIdMongo}.webm`,
                     status: 'completed'
                 });
-                
+
                 console.log(`[Bot] Database updated for meeting: ${meetingIdMongo}`);
                 console.log(`[Bot] Update result:`, result ? 'Success' : 'Meeting not found');
 

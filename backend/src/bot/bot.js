@@ -1,7 +1,7 @@
 const puppeteer = require('puppeteer');
 const path = require('path');
 const fs = require('fs');
-const { createLiveTranscriber } = require('../services/liveTranscriptionService');
+const { createLiveTranscriber } = require('../services/liveTranscriptionServiceDeepgram');
 
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 const activeBots = new Map();
@@ -57,12 +57,13 @@ async function runBot(meetingLink, meetingIdMongo) {
     // Audio chunk collection  
     let audioChunks = [];
     
-    // Initialize live transcription
-    const liveTranscriber = createLiveTranscriber(meetingIdMongo, emitStatus, {
-        modelSize: 'tiny',  // Use tiny for lowest latency, or 'base' for better quality
-        chunkDuration: 10,  // Transcribe every 10 seconds (better for catching speech)
-        enableSpeakerID: true
-    });
+    // Initialize live transcription (DISABLED - using post-meeting transcription only)
+    // const liveTranscriber = createLiveTranscriber(meetingIdMongo, emitStatus, {
+    //     modelSize: 'tiny',  // Use tiny for lowest latency, or 'base' for better quality
+    //     chunkDuration: 10,  // Transcribe every 10 seconds (better for catching speech)
+    //     enableSpeakerID: true
+    // });
+    const liveTranscriber = null;  // Disabled
 
     // Store bot reference with transcriber
     activeBots.set(meetingIdMongo.toString(), { browser, page, audioChunks, liveTranscriber });
@@ -261,10 +262,10 @@ async function runBot(meetingLink, meetingIdMongo) {
             const buffer = Buffer.from(base64, 'base64');
             audioChunks.push(buffer);
             
-            // Send to live transcriber
-            if (liveTranscriber) {
-                liveTranscriber.addChunk(buffer);
-            }
+            // Send to live transcriber (DISABLED)
+            // if (liveTranscriber) {
+            //     liveTranscriber.addChunk(buffer);
+            // }
             
             if (audioChunks.length % 10 === 0) {
                 const size = (Buffer.concat(audioChunks).length / 1024 / 1024).toFixed(2);

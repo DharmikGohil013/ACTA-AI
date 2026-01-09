@@ -23,6 +23,7 @@ const User = require('./models/User');
 const zoomService = require('./services/zoomService');
 const meetService = require('./services/meetService');
 const transcriptionService = require('./services/transcriptionService');
+const taskExtractionService = require('./services/taskExtractionService');
 
 const app = express();
 const server = http.createServer(app);
@@ -838,6 +839,139 @@ app.post('/api/meetings/:id/transcribe', async (req, res) => {
     } catch (err) {
         console.error('[Server] Transcription error:', err.message);
         emitStatus(req.params.id, 'error', { message: `Transcription failed: ${err.message}` });
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// 12. Extract Tasks from Transcript
+app.post('/api/meetings/:id/extract-tasks', optionalAuth, async (req, res) => {
+    try {
+        const meeting = await Meeting.findById(req.params.id);
+        if (!meeting) {
+            return res.status(404).json({ error: 'Meeting not found' });
+        }
+
+        // Verify ownership if user is authenticated
+        if (req.user && meeting.userId && meeting.userId.toString() !== req.user._id.toString()) {
+            return res.status(403).json({ error: 'Access denied' });
+        }
+
+        if (!meeting.transcription || meeting.transcription.length === 0) {
+            return res.status(400).json({ error: 'No transcription available' });
+        }
+
+        console.log(`[Server] Extracting tasks for meeting ${req.params.id}...`);
+
+        // Extract tasks using OpenAI
+        const tasks = await taskExtractionService.extractTasksFromTranscript(meeting.transcription);
+
+        // Save tasks to meeting
+        const updatedMeeting = await Meeting.findByIdAndUpdate(
+            req.params.id,
+            { extractedTasks: tasks },
+            { new: true }
+        );
+
+        console.log(`[Server] Successfully extracted ${tasks.length} tasks`);
+
+        res.json({
+            success: true,
+            tasks,
+            count: tasks.length,
+            meeting: updatedMeeting
+        });
+
+    } catch (err) {
+        console.error('[Server] Task extraction error:', err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Test endpoint to create a sample meeting with transcript
+app.post('/api/test/create-sample-meeting', optionalAuth, async (req, res) => {
+    try {
+        const userId = req.user?._id || null;
+        const userEmail = req.user?.email || 'test@example.com';
+
+        const sampleTranscript = `Meeting Summary - Project Alpha Review
+
+John: Good morning everyone. Let's start with the project updates. Sarah, can you give us a status on the frontend development?
+
+Sarah: Sure! The new dashboard is almost complete. I've finished the UI components, but we still need to integrate the API endpoints. I'm targeting to complete that by Friday this week.
+
+John: Great. Mike, what about the backend API?
+
+Mike: The API is ready and deployed to staging. However, we found some performance issues with the database queries. I'll need to optimize those. I think we should also implement caching to improve response times.
+
+John: Okay, that's important. Can you prioritize the optimization? We need this resolved before the client demo next Tuesday.
+
+Mike: Absolutely. I'll have it done by Monday.
+
+John: Perfect. Now, let's discuss the documentation. Lisa, have you started working on the user guide?
+
+Lisa: Yes, I've outlined the main sections. But I need Sarah to review the UI screenshots before I can finalize it. Also, we need to decide on the deployment strategy for the documentation site.
+
+Sarah: I can review the screenshots tomorrow. Just send them over.
+
+John: Good. For deployment, let's go with GitHub Pages. It's simple and free. Mike, can you help Lisa set that up?
+
+Mike: Sure, I'll help with that.
+
+John: Excellent. One more thing - we need to schedule a follow-up meeting with the client to show them the progress. Emily, can you coordinate that?
+
+Emily: Of course. I'll send out a meeting invite for next Wednesday. Should I invite the whole team or just the leads?
+
+John: Just the leads for now - you, me, Sarah, and Mike. We don't want to overwhelm them.
+
+Emily: Got it. I'll also prepare a demo script to make sure we cover all the key features.
+
+John: That would be great. One last decision - the client asked about mobile support. After discussion, we've decided to postpone mobile development to Phase 2. We need to focus on getting the web version perfect first.
+
+Sarah: That makes sense. I'll update the roadmap accordingly.
+
+John: Alright, let's wrap up. To summarize our action items: Sarah completes API integration by Friday, Mike optimizes database by Monday, Lisa finalizes documentation with Sarah's review, Mike helps set up GitHub Pages, Emily schedules client meeting for next Wednesday, and Sarah updates the project roadmap. Any questions?
+
+Mike: No questions from me.
+
+Sarah: All clear!
+
+Lisa: Sounds good.
+
+Emily: I'm good.
+
+John: Great! Thanks everyone. Let's make this a successful sprint.`;
+
+        // Create sample meeting
+        const meeting = new Meeting({
+            meetingLink: 'https://zoom.us/j/test-meeting-12345',
+            zoomMeetingId: 'test-12345',
+            meetingUrl: 'Test Meeting - Project Alpha Review',
+            status: 'completed',
+            transcription: sampleTranscript,
+            audioPath: '/recordings/sample-meeting.mp3',
+            userId: userId,
+            userEmail: userEmail,
+            createdAt: new Date(),
+            completedAt: new Date()
+        });
+
+        await meeting.save();
+        console.log('[Server] Sample meeting created:', meeting._id);
+
+        res.json({
+            success: true,
+            message: 'Sample meeting created successfully',
+            meeting: {
+                _id: meeting._id,
+                meetingLink: meeting.meetingLink,
+                status: meeting.status,
+                hasTranscription: true,
+                transcriptPreview: sampleTranscript.substring(0, 200) + '...'
+            }
+        });
+
+    } catch (err) {
+        console.error('[Server] Error creating sample meeting:', err.message);
         res.status(500).json({ error: err.message });
     }
 });

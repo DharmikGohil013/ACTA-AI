@@ -104,6 +104,55 @@ app.get('/api/auth/logout', (req, res) => {
     });
 });
 
+// User Settings Routes
+app.get('/api/user/settings', async (req, res) => {
+    if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    try {
+        const User = require('./models/User');
+        const user = await User.findById(req.user._id);
+        res.json({
+            jiraConfig: user.jiraConfig || {},
+            trelloConfig: user.trelloConfig || {}
+        });
+    } catch (err) {
+        console.error('[Server] Get settings error:', err.message);
+        res.status(500).json({ error: 'Failed to fetch settings' });
+    }
+});
+
+app.put('/api/user/settings', async (req, res) => {
+    if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    try {
+        const { jiraConfig, trelloConfig } = req.body;
+        const User = require('./models/User');
+        
+        const updateData = {};
+        if (jiraConfig) updateData.jiraConfig = jiraConfig;
+        if (trelloConfig) updateData.trelloConfig = trelloConfig;
+
+        const user = await User.findByIdAndUpdate(
+            req.user._id,
+            updateData,
+            { new: true }
+        );
+
+        res.json({
+            success: true,
+            message: 'Settings updated successfully',
+            user
+        });
+    } catch (err) {
+        console.error('[Server] Update settings error:', err.message);
+        res.status(500).json({ error: 'Failed to update settings' });
+    }
+});
+
 // Routes
 
 // 1. Join Meeting

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
 import Home from './pages/Home';
 import Dashboard from './pages/Dashboard';
+import Settings from './pages/Settings';
 import axios from 'axios';
 
 const API_URL = 'http://localhost:3000';
@@ -60,6 +61,7 @@ const Navigation = () => {
     const navItems = [
         { path: '/', label: 'Summon Bot' },
         { path: '/dashboard', label: 'Archives' },
+        { path: '/settings', label: 'Settings' },
     ];
 
     return (
@@ -147,6 +149,7 @@ function App() {
                 <Routes>
                     <Route path="/" element={<Home />} />
                     <Route path="/dashboard" element={<Dashboard />} />
+                    <Route path="/settings" element={<Settings />} />
                 </Routes>
             </div>
         </Router>

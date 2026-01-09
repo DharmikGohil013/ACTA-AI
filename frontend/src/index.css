@@ -14,14 +14,15 @@
 
 @theme {
   --font-sans: 'Outfit', sans-serif;
-  --color-bg-dots: radial-gradient(#333 1px, transparent 1px);
-  --color-bg-spotlight: radial-gradient(circle at 50% 30%, rgba(59, 130, 246, 0.12) 0%, transparent 70%);
+  --color-bg-dots: radial-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1px);
+  /* Central soft focus light */
+  --color-bg-spotlight: radial-gradient(circle at 50% 50%, rgba(59, 130, 246, 0.15) 0%, rgba(59, 130, 246, 0.05) 40%, transparent 80%);
 }
 
 body {
   @apply bg-[#050505] text-slate-200 overflow-x-hidden min-h-screen font-sans antialiased;
   background-image: var(--color-bg-spotlight), var(--color-bg-dots);
-  background-size: 100% 100%, 32px 32px;
+  background-size: 100% 100%, 20px 20px;
   background-attachment: fixed;
 }
 

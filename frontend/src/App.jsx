@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react
 import Home from './pages/Home';
 import Dashboard from './pages/Dashboard';
 import Settings from './pages/Settings';
+import Profile from './pages/Profile';
 import axios from 'axios';
 
 const API_URL = 'http://localhost:3000';
@@ -79,16 +80,6 @@ const Navigation = () => {
         window.location.href = `${API_URL}/api/auth/google`;
     };
 
-    const handleLogout = async () => {
-        try {
-            await axios.get(`${API_URL}/api/auth/logout`);
-            localStorage.removeItem('authToken');
-            setUser(null);
-        } catch (err) {
-            console.error('Logout failed:', err);
-        }
-    };
-
     const navItems = [
         { path: '/', label: 'Home' },
         { path: '/analysis', label: 'Analysis' },
@@ -144,7 +135,7 @@ const Navigation = () => {
                     {!loading && (
                         user ? (
                             <div className="flex items-center gap-3">
-                                <button onClick={handleLogout} className="group relative">
+                                <Link to="/profile" className="group relative block">
                                     {user.picture ? (
                                         <img
                                             src={user.picture}
@@ -156,7 +147,7 @@ const Navigation = () => {
                                             {user.name[0]}
                                         </div>
                                     )}
-                                </button>
+                                </Link>
                             </div>
                         ) : (
                             <button
@@ -182,6 +173,7 @@ function App() {
                     <Route path="/" element={<Home />} />
                     <Route path="/dashboard" element={<Dashboard />} />
                     <Route path="/settings" element={<Settings />} />
+                    <Route path="/profile" element={<Profile />} />
                 </Routes>
             </div>
         </Router>

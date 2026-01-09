@@ -144,6 +144,46 @@ async function runBot(meetingLink, meetingIdMongo, userId = null) {
     if (platform === 'google-meet') {
         console.log('[Bot] Starting Google Meet flow with saved session...');
 
+        // Install audio hooks BEFORE navigating to the page
+        await page.evaluateOnNewDocument(() => {
+            console.log('[Hook] Installing Google Meet audio hooks...');
+            
+            // Track all audio nodes
+            window.__audioNodes = [];
+            window.__speakerNodes = [];
+            window.__mainAudioContext = null;
+
+            // Hook AudioContext
+            const OriginalAudioContext = window.AudioContext || window.webkitAudioContext;
+            function AudioContextProxy(...args) {
+                const ctx = new OriginalAudioContext(...args);
+                if (!window.__mainAudioContext) window.__mainAudioContext = ctx;
+                
+                const origCreateMediaStreamSource = ctx.createMediaStreamSource;
+                ctx.createMediaStreamSource = function(stream) {
+                    const node = origCreateMediaStreamSource.call(ctx, stream);
+                    window.__audioNodes.push({ node, stream, type: 'stream' });
+                    console.log('[Hook] MediaStreamSource created:', stream.id);
+                    return node;
+                };
+                
+                const origCreateMediaElementSource = ctx.createMediaElementSource;
+                ctx.createMediaElementSource = function(element) {
+                    const node = origCreateMediaElementSource.call(ctx, element);
+                    window.__audioNodes.push({ node, element, type: 'element' });
+                    console.log('[Hook] MediaElementSource created');
+                    return node;
+                };
+                
+                return ctx;
+            }
+            AudioContextProxy.prototype = OriginalAudioContext.prototype;
+            window.AudioContext = AudioContextProxy;
+            if (window.webkitAudioContext) window.webkitAudioContext = AudioContextProxy;
+            
+            console.log('[Hook] Google Meet audio hooks installed');
+        });
+
         try {
             await page.goto(meetingLink, { waitUntil: 'domcontentloaded', timeout: 60000 });
             console.log('[GoogleMeet] Page loaded');
@@ -173,18 +213,41 @@ async function runBot(meetingLink, meetingIdMongo, userId = null) {
                 return { browser: null, page: null };
             }
 
-            // Disable camera/mic
+            // Disable camera/mic before joining
             console.log('[GoogleMeet] Disabling camera and mic...');
+            await delay(2000); // Wait for controls to load
+            
+            // Method 1: Click toggle buttons by aria-label
             await page.evaluate(() => {
                 const buttons = Array.from(document.querySelectorAll('div[role="button"], button'));
                 buttons.forEach(btn => {
                     const label = (btn.getAttribute('aria-label') || '').toLowerCase();
-                    if ((label.includes('camera') || label.includes('video') || label.includes('microphone'))
-                        && !label.includes('off')) {
+                    const dataTooltip = (btn.getAttribute('data-tooltip') || '').toLowerCase();
+                    const combinedLabel = label + ' ' + dataTooltip;
+                    
+                    // Turn off camera if it's on
+                    if ((combinedLabel.includes('camera') || combinedLabel.includes('video')) 
+                        && (combinedLabel.includes('turn off') || combinedLabel.includes('stop'))) {
+                        console.log('[GoogleMeet] Clicking camera off button');
+                        btn.click();
+                    }
+                    
+                    // Turn off microphone if it's on
+                    if ((combinedLabel.includes('microphone') || combinedLabel.includes('mic')) 
+                        && (combinedLabel.includes('turn off') || combinedLabel.includes('mute'))) {
+                        console.log('[GoogleMeet] Clicking mic off button');
                         btn.click();
                     }
                 });
             });
+            
+            // Method 2: Use keyboard shortcuts (more reliable)
+            await page.keyboard.press('KeyD'); // Toggle camera off (Ctrl+E in Meet)
+            await delay(500);
+            await page.keyboard.press('KeyE'); // Toggle mic off (Ctrl+D in Meet)
+            await delay(500);
+            
+            console.log('[GoogleMeet] Camera and mic should now be disabled');
             await delay(1000);
 
             // Join meeting
@@ -230,7 +293,7 @@ async function runBot(meetingLink, meetingIdMongo, userId = null) {
 
         // Google Meet joined successfully
         await updateMeetingStatus(meetingIdMongo, 'in-meeting');
-        activeBots.set(meetingIdMongo.toString(), { browser, page, audioChunks: [] });
+        activeBots.set(meetingIdMongo.toString(), { browser, page, audioChunks, liveTranscriber });
 
         console.log('[GoogleMeet] Bot is in meeting, setting up audio...');
         await setupAudioCapture(page, meetingIdMongo, audioChunks);

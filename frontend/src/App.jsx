@@ -96,73 +96,78 @@ const Navigation = () => {
     ];
 
     return (
-        <nav className="flex justify-between items-center p-6 max-w-7xl mx-auto w-full z-50 relative">
-            {/* Logo Section */}
-            <Link to="/" className="flex items-center gap-2 group">
-                <div className="flex items-center gap-1">
-                    <span className="font-bold text-2xl tracking-tight text-white">ACTA</span>
-                </div>
-            </Link>
-
-            {/* Center Links */}
-            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center gap-8">
-                {navItems.map(item => (
-                    <Link
-                        key={item.path}
-                        to={item.path === '/analysis' ? '#' : item.path}
-                        className={`text-sm font-medium transition-colors ${location.pathname === item.path
-                            ? 'text-white'
-                            : 'text-gray-400 hover:text-white'
-                            }`}
-                    >
-                        {item.label}
-                    </Link>
-                ))}
-            </div>
-
-            {/* Right Side - Settings & Profile */}
-            <div className="flex items-center gap-4">
-                {/* Server Status Indicator */}
-                <div className="flex items-center gap-2" title={serverStatus ? "Server Online" : "Server Offline"}>
-                    <span className={`w-2 h-2 rounded-full ${serverStatus === null ? 'bg-yellow-500 animate-pulse' :
-                        serverStatus ? 'bg-green-500' : 'bg-red-500'
-                        }`} />
-                </div>
-
-                <Link to="/settings" className="text-gray-400 hover:text-white transition-colors">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.1a2 2 0 0 1-1-1.72v-.51a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
-                        <circle cx="12" cy="12" r="3" />
-                    </svg>
+        <nav className="border-b border-white/5 bg-[#0B0E14]/80 backdrop-blur-md sticky top-0 z-50">
+            <div className="max-w-7xl mx-auto px-6 h-16 flex justify-between items-center">
+                {/* Logo Section */}
+                <Link to="/" className="flex items-center gap-2 group">
+                    <span className="font-bold text-xl tracking-tight text-white group-hover:text-blue-400 transition-colors">ACTA</span>
                 </Link>
 
-                {/* User Profile / Login */}
-                {!loading && (
-                    user ? (
-                        <div className="flex items-center gap-3">
-                            <button onClick={handleLogout} className="group relative">
-                                {user.picture ? (
-                                    <img
-                                        src={user.picture}
-                                        alt={user.name}
-                                        className="w-8 h-8 rounded-full border border-white/10 group-hover:border-white/30 transition-colors"
-                                    />
-                                ) : (
-                                    <div className="w-8 h-8 rounded-full bg-purple-500/20 flex items-center justify-center text-xs font-bold text-purple-400 border border-purple-500/30">
-                                        {user.name[0]}
-                                    </div>
-                                )}
-                            </button>
-                        </div>
-                    ) : (
-                        <button
-                            onClick={handleLogin}
-                            className="bg-white text-black px-4 py-1.5 rounded-full text-sm font-medium hover:bg-gray-200 transition-colors"
+                {/* Center Links */}
+                <div className="flex items-center gap-8">
+                    {navItems.map(item => (
+                        <Link
+                            key={item.path}
+                            to={item.path === '/analysis' ? '#' : item.path}
+                            className={`text-sm font-medium transition-all duration-200 ${location.pathname === item.path
+                                ? 'text-white'
+                                : 'text-slate-400 hover:text-white'
+                                }`}
                         >
-                            Login
-                        </button>
-                    )
-                )}
+                            {item.label}
+                        </Link>
+                    ))}
+                </div>
+
+                {/* Right Side - Settings & Profile */}
+                <div className="flex items-center gap-4">
+                    {/* Server Status Indicator */}
+                    <div className="flex items-center gap-2 px-2 py-1 rounded-full bg-white/5 border border-white/5" title={serverStatus ? "System Online" : "System Offline"}>
+                        <div className={`w-1.5 h-1.5 rounded-full ${serverStatus === null ? 'bg-yellow-500 animate-pulse' :
+                            serverStatus ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]' : 'bg-red-500'
+                            }`} />
+                        <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 hidden md:block">
+                            {serverStatus ? 'Online' : 'Offline'}
+                        </span>
+                    </div>
+
+                    <div className="h-4 w-px bg-white/10 mx-2"></div>
+
+                    <Link to="/settings" className="text-slate-400 hover:text-white transition-colors">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.1a2 2 0 0 1-1-1.72v-.51a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+                            <circle cx="12" cy="12" r="3" />
+                        </svg>
+                    </Link>
+
+                    {/* User Profile / Login */}
+                    {!loading && (
+                        user ? (
+                            <div className="flex items-center gap-3">
+                                <button onClick={handleLogout} className="group relative">
+                                    {user.picture ? (
+                                        <img
+                                            src={user.picture}
+                                            alt={user.name}
+                                            className="w-8 h-8 rounded-full border border-white/10 group-hover:border-white/30 transition-colors"
+                                        />
+                                    ) : (
+                                        <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center text-xs font-bold text-blue-400 border border-blue-500/30">
+                                            {user.name[0]}
+                                        </div>
+                                    )}
+                                </button>
+                            </div>
+                        ) : (
+                            <button
+                                onClick={handleLogin}
+                                className="bg-white text-[#0B0E14] px-5 py-2 rounded-md text-sm font-semibold hover:bg-slate-200 transition-colors"
+                            >
+                                Login
+                            </button>
+                        )
+                    )}
+                </div>
             </div>
         </nav>
     );

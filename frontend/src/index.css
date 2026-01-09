@@ -15,7 +15,7 @@
 @theme {
   --font-sans: 'Outfit', sans-serif;
   --color-bg-dots: radial-gradient(#333 1px, transparent 1px);
-  --color-bg-spotlight: radial-gradient(circle at 50% 0%, rgba(59, 130, 246, 0.15) 0%, transparent 60%);
+  --color-bg-spotlight: radial-gradient(circle at 50% 30%, rgba(59, 130, 246, 0.12) 0%, transparent 70%);
 }
 
 body {

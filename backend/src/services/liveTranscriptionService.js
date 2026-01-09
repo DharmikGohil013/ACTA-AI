@@ -155,7 +155,7 @@ class LiveTranscriptionProcessor {
     async transcribeChunk(audioPath) {
         return new Promise((resolve, reject) => {
             const pythonExe = getPythonExecutable();
-            const scriptPath = path.join(__dirname, '..', 'services', 'transcribe_audio.py');
+            const scriptPath = path.join(__dirname, 'transcribe_audio.py');
             
             // For live transcription: disable VAD, force English language
             const args = [

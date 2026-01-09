@@ -35,10 +35,19 @@ const Settings = () => {
             try {
                 const res = await axios.get(`${API_URL}/api/integrations`);
                 if (res.data.jiraConfig) {
-                    setJiraConfig(res.data.jiraConfig);
+                    setJiraConfig({
+                        domain: res.data.jiraConfig.domain || '',
+                        email: res.data.jiraConfig.email || '',
+                        apiToken: res.data.jiraConfig.apiToken || '',
+                        projectKey: res.data.jiraConfig.projectKey || ''
+                    });
                 }
                 if (res.data.trelloConfig) {
-                    setTrelloConfig(res.data.trelloConfig);
+                    setTrelloConfig({
+                        apiKey: res.data.trelloConfig.apiKey || '',
+                        apiToken: res.data.trelloConfig.apiToken || '',
+                        listId: res.data.trelloConfig.listId || ''
+                    });
                 }
             } catch (err) {
                 console.error('Failed to load configurations:', err);

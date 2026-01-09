@@ -284,9 +284,27 @@ async function runBot(meetingLink, meetingIdMongo, userId = null) {
         console.log('[Bot] Page loaded successfully');
         await delay(5000); // Wait for page to fully render
 
-        // Check if page shows an error (invalid meeting)
+        // Check if page shows a specific Zoom error (more precise detection)
         const pageContent = await page.content();
-        if (pageContent.includes('invalid') || pageContent.includes('not found') || pageContent.includes('3,001')) {
+        const pageText = await page.evaluate(() => document.body.innerText).catch(() => '');
+        
+        // Check for specific Zoom error messages
+        const errorIndicators = [
+            'Invalid meeting ID',
+            'This meeting ID is not valid',
+            'Meeting ID is invalid',
+            'The meeting ID is invalid',
+            'has been deleted',
+            'does not exist',
+            'Error Code: 3,001',
+            'Error Code: 200'
+        ];
+        
+        const hasError = errorIndicators.some(indicator => 
+            pageText.toLowerCase().includes(indicator.toLowerCase())
+        );
+        
+        if (hasError) {
             console.log('[Bot] Meeting link is invalid or expired');
             emitStatus(meetingIdMongo, 'failed', { message: 'Invalid or expired meeting link' });
             await browser.close();
@@ -678,27 +696,42 @@ async function runBot(meetingLink, meetingIdMongo, userId = null) {
 }
 
 async function saveAudioFile(audioChunks, audioPath, meetingIdMongo) {
+    console.log(`[Bot] saveAudioFile called - chunks: ${audioChunks.length}, meetingId: ${meetingIdMongo}`);
+    
     if (audioChunks.length > 0) {
         const fullBuffer = Buffer.concat(audioChunks);
+        const size = (fullBuffer.length / 1024 / 1024).toFixed(2);
+        console.log(`[Bot] Audio buffer size: ${size} MB (${fullBuffer.length} bytes)`);
+        
         if (fullBuffer.length > 1000) {
-            fs.writeFileSync(audioPath, fullBuffer);
-            const size = (fullBuffer.length / 1024 / 1024).toFixed(2);
-            console.log(`[Bot] ✅ Audio saved: ${audioPath} (${size} MB)`);
+            try {
+                fs.writeFileSync(audioPath, fullBuffer);
+                console.log(`[Bot] ✅ Audio saved to: ${audioPath} (${size} MB)`);
 
-            const Meeting = require('../models/Meeting');
-            await Meeting.findByIdAndUpdate(meetingIdMongo, {
-                audioPath: `/recordings/${meetingIdMongo}.webm`,
-                status: 'completed'
-            });
+                const Meeting = require('../models/Meeting');
+                const result = await Meeting.findByIdAndUpdate(meetingIdMongo, {
+                    audioPath: `/recordings/${meetingIdMongo}.webm`,
+                    status: 'completed'
+                });
+                
+                console.log(`[Bot] Database updated for meeting: ${meetingIdMongo}`);
+                console.log(`[Bot] Update result:`, result ? 'Success' : 'Meeting not found');
 
-            emitStatus(meetingIdMongo, 'completed', {
-                message: `Audio saved! (${size} MB)`,
-                audioPath: `/recordings/${meetingIdMongo}.webm`
-            });
-            return true;
+                emitStatus(meetingIdMongo, 'completed', {
+                    message: `Audio saved! (${size} MB)`,
+                    audioPath: `/recordings/${meetingIdMongo}.webm`
+                });
+                return true;
+            } catch (error) {
+                console.error(`[Bot] Error saving audio or updating DB:`, error);
+                return false;
+            }
+        } else {
+            console.log(`[Bot] ⚠️ Audio buffer too small: ${fullBuffer.length} bytes`);
         }
+    } else {
+        console.log('[Bot] ⚠️ No audio chunks recorded');
     }
-    console.log('[Bot] ⚠️ No audio chunks recorded');
     return false;
 }
 

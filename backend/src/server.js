@@ -62,8 +62,27 @@ app.use(passport.session());
 
 // Connect to MongoDB
 mongoose.connect(process.env.MONGO_URI)
-    .then(() => console.log('MongoDB Connected'))
-    .catch(err => console.error('MongoDB Connection Error:', err));
+    .then(() => {
+        console.log('MongoDB Connected');
+        console.log('Database:', mongoose.connection.name);
+    })
+    .catch(err => {
+        console.error('MongoDB Connection Error:', err);
+        process.exit(1);
+    });
+
+// Monitor connection status
+mongoose.connection.on('connected', () => {
+    console.log('Mongoose connected to MongoDB');
+});
+
+mongoose.connection.on('error', (err) => {
+    console.error('Mongoose connection error:', err);
+});
+
+mongoose.connection.on('disconnected', () => {
+    console.log('Mongoose disconnected from MongoDB');
+});
 
 // Serve recordings
 app.use('/recordings', express.static(path.join(__dirname, '../recordings')));
@@ -515,13 +534,20 @@ app.post('/api/join', optionalAuth, async (req, res) => {
     try {
         const zoomMeetingId = zoomService.extractMeetingId(link);
         const userId = req.user?._id || null;  // Get userId if authenticated
+        const userEmail = req.user?.email || null;  // Get userEmail if authenticated
+
+        console.log('[Server] Creating new meeting:', { link, zoomMeetingId, userId, userEmail });
 
         const newMeeting = new Meeting({
             meetingLink: link,
             zoomMeetingId: zoomMeetingId || '',
             status: 'joining',
+            userId: userId,
+            userEmail: userEmail,
         });
         await newMeeting.save();
+        
+        console.log('[Server] Meeting saved to database:', newMeeting._id.toString());
 
         emitStatus(newMeeting._id.toString(), 'joining', { message: 'Bot is starting...' });
 
@@ -529,11 +555,14 @@ app.post('/api/join', optionalAuth, async (req, res) => {
             console.log(`[Server] Bot started for meeting ${newMeeting._id}`);
             emitStatus(newMeeting._id.toString(), 'in-meeting', { message: 'Bot joined the meeting' });
 
-            browser.on('disconnected', async () => {
-                console.log(`[Server] Browser closed for meeting ${newMeeting._id}`);
-                await Meeting.findByIdAndUpdate(newMeeting._id, { status: 'completed' });
-                emitStatus(newMeeting._id.toString(), 'completed', { message: 'Meeting ended' });
-            });
+            // Only set up event listener if browser exists
+            if (browser) {
+                browser.on('disconnected', async () => {
+                    console.log(`[Server] Browser closed for meeting ${newMeeting._id}`);
+                    await Meeting.findByIdAndUpdate(newMeeting._id, { status: 'completed' });
+                    emitStatus(newMeeting._id.toString(), 'completed', { message: 'Meeting ended' });
+                });
+            }
 
         }).catch(async (err) => {
             console.error('Bot Failed:', err);
@@ -549,12 +578,29 @@ app.post('/api/join', optionalAuth, async (req, res) => {
     }
 });
 
-// 2. Get Meetings
-app.get('/api/meetings', async (req, res) => {
+// 2. Get Meetings (All meetings for dashboard)
+app.get('/api/meetings', optionalAuth, async (req, res) => {
     try {
-        const meetings = await Meeting.find().sort({ createdAt: -1 });
+        const query = req.user ? { userId: req.user._id } : { userId: null };
+        // Show all meetings (active and completed)
+        const meetings = await Meeting.find(query).sort({ createdAt: -1 });
         res.json(meetings);
     } catch (err) {
+        console.error('Get meetings error:', err);
+        res.status(500).json({ error: 'Server Error' });
+    }
+});
+
+// 2.1 Get Archive Meetings (Past meetings - completed/failed)
+app.get('/api/meetings/archive', optionalAuth, async (req, res) => {
+    try {
+        const query = req.user ? { userId: req.user._id } : { userId: null };
+        // Only show completed or failed meetings
+        query.status = { $in: ['completed', 'failed'] };
+        const meetings = await Meeting.find(query).sort({ createdAt: -1 });
+        res.json(meetings);
+    } catch (err) {
+        console.error('Get archive meetings error:', err);
         res.status(500).json({ error: 'Server Error' });
     }
 });

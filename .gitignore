@@ -45,3 +45,5 @@ coverage/
 .cache/
 .temp/
 .tmp/
+# Browser profiles (contains user sessions)
+backend/browser-profiles/

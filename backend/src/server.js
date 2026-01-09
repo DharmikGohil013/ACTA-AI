@@ -6,6 +6,7 @@ const dotenv = require('dotenv');
 const http = require('http');
 const session = require('express-session');
 const cookieParser = require('cookie-parser');
+const axios = require('axios');
 
 // Load environment variables FIRST
 dotenv.config();
@@ -16,6 +17,7 @@ const { generateToken, verifyToken, optionalAuth } = require('./middleware/auth'
 const { Server } = require('socket.io');
 const { runBot, stopBot, activeBots } = require('./bot/bot');
 const Meeting = require('./models/Meeting');
+const User = require('./models/User');
 const zoomService = require('./services/zoomService');
 const transcriptionService = require('./services/transcriptionService');
 
@@ -126,6 +128,184 @@ app.get('/api/auth/logout', (req, res) => {
     });
 });
 
+// Integration Routes
+// Save user integrations (Jira & Trello)
+app.post('/api/integrations/save', verifyToken, async (req, res) => {
+    try {
+        const { jiraConfig, trelloConfig } = req.body;
+        
+        const updateData = {};
+        if (jiraConfig) updateData.jiraConfig = jiraConfig;
+        if (trelloConfig) updateData.trelloConfig = trelloConfig;
+        
+        const user = await User.findByIdAndUpdate(
+            req.user._id,
+            updateData,
+            { new: true }
+        );
+        
+        res.json({ success: true, user });
+    } catch (err) {
+        console.error('Save integrations error:', err);
+        res.status(500).json({ error: 'Failed to save integrations' });
+    }
+});
+
+// Get user integrations
+app.get('/api/integrations', optionalAuth, async (req, res) => {
+    try {
+        // If not authenticated, return empty configs
+        if (!req.user) {
+            return res.json({
+                jiraConfig: {},
+                trelloConfig: {}
+            });
+        }
+        
+        const user = await User.findById(req.user._id);
+        res.json({
+            jiraConfig: user.jiraConfig || {},
+            trelloConfig: user.trelloConfig || {}
+        });
+    } catch (err) {
+        console.error('Get integrations error:', err);
+        res.status(500).json({ error: 'Failed to fetch integrations' });
+    }
+});
+
+// Test Jira connection (no auth required - just testing if credentials work)
+app.post('/api/integrations/test/jira', async (req, res) => {
+    try {
+        const { domain, email, apiToken, projectKey } = req.body;
+        
+        console.log('[Jira Test] Request received:', { domain, email: email ? '***' : 'missing', apiToken: apiToken ? '***' : 'missing', projectKey });
+        
+        if (!domain || !email || !apiToken) {
+            console.log('[Jira Test] Missing credentials');
+            return res.status(400).json({ error: 'Missing Jira credentials' });
+        }
+        
+        // Ensure domain starts with https://
+        let formattedDomain = domain;
+        if (!domain.startsWith('http://') && !domain.startsWith('https://')) {
+            formattedDomain = `https://${domain}`;
+        }
+        
+        // Test Jira connection
+        const jiraUrl = `${formattedDomain}/rest/api/3/myself`;
+        const auth = Buffer.from(`${email}:${apiToken}`).toString('base64');
+        
+        console.log('[Jira Test] Testing connection to:', jiraUrl);
+        
+        const response = await axios.get(jiraUrl, {
+            headers: {
+                'Authorization': `Basic ${auth}`,
+                'Accept': 'application/json'
+            },
+            timeout: 10000
+        });
+        
+        console.log('[Jira Test] Connection successful, user:', response.data.displayName);
+        
+        // If projectKey provided, verify project access
+        if (projectKey) {
+            const projectUrl = `${formattedDomain}/rest/api/3/project/${projectKey}`;
+            console.log('[Jira Test] Testing project access:', projectUrl);
+            await axios.get(projectUrl, {
+                headers: {
+                    'Authorization': `Basic ${auth}`,
+                    'Accept': 'application/json'
+                },
+                timeout: 10000
+            });
+            console.log('[Jira Test] Project access verified');
+        }
+        
+        res.json({ 
+            success: true, 
+            message: 'Jira connection successful',
+            user: response.data.displayName
+        });
+    } catch (err) {
+        console.error('[Jira Test] Error:', err.message);
+        console.error('[Jira Test] Error details:', err.response?.data || err.stack);
+        
+        let errorMessage = 'Failed to connect to Jira';
+        
+        if (err.code === 'ENOTFOUND') {
+            errorMessage = 'Invalid Jira domain';
+        } else if (err.response?.status === 401) {
+            errorMessage = 'Invalid email or API token';
+        } else if (err.response?.status === 404) {
+            errorMessage = 'Project not found or no access';
+        } else if (err.response?.data?.message) {
+            errorMessage = err.response.data.message;
+        }
+        
+        res.status(500).json({ 
+            success: false, 
+            error: errorMessage
+        });
+    }
+});
+
+// Test Trello connection (no auth required - just testing if credentials work)
+app.post('/api/integrations/test/trello', async (req, res) => {
+    try {
+        const { apiKey, apiToken, listId } = req.body;
+        
+        console.log('[Trello Test] Request received:', { apiKey: apiKey ? '***' : 'missing', apiToken: apiToken ? '***' : 'missing', listId });
+        
+        if (!apiKey || !apiToken) {
+            console.log('[Trello Test] Missing credentials');
+            return res.status(400).json({ error: 'Missing Trello credentials' });
+        }
+        
+        // Test Trello connection
+        const trelloUrl = `https://api.trello.com/1/members/me?key=${apiKey}&token=${apiToken}`;
+        
+        console.log('[Trello Test] Testing connection');
+        
+        const response = await axios.get(trelloUrl, {
+            timeout: 10000
+        });
+        
+        console.log('[Trello Test] Connection successful, user:', response.data.fullName);
+        
+        // If listId provided, verify list access
+        if (listId) {
+            console.log('[Trello Test] Testing list access');
+            const listUrl = `https://api.trello.com/1/lists/${listId}?key=${apiKey}&token=${apiToken}`;
+            await axios.get(listUrl, {
+                timeout: 10000
+            });
+            console.log('[Trello Test] List access verified');
+        }
+        
+        res.json({ 
+            success: true, 
+            message: 'Trello connection successful',
+            user: response.data.fullName
+        });
+    } catch (err) {
+        console.error('[Trello Test] Error:', err.message);
+        console.error('[Trello Test] Error details:', err.response?.data || err.stack);
+        
+        let errorMessage = 'Failed to connect to Trello';
+        
+        if (err.response?.status === 401) {
+            errorMessage = 'Invalid API key or token';
+        } else if (err.response?.status === 404) {
+            errorMessage = 'List not found or no access';
+        }
+        
+        res.status(500).json({ 
+            success: false, 
+            error: errorMessage
+        });
+    }
+});
+
 // User Settings Routes
 app.get('/api/user/settings', async (req, res) => {
     if (!req.isAuthenticated()) {
@@ -133,7 +313,6 @@ app.get('/api/user/settings', async (req, res) => {
     }
 
     try {
-        const User = require('./models/User');
         const user = await User.findById(req.user._id);
         res.json({
             jiraConfig: user.jiraConfig || {},
@@ -152,7 +331,6 @@ app.put('/api/user/settings', async (req, res) => {
 
     try {
         const { jiraConfig, trelloConfig } = req.body;
-        const User = require('./models/User');
         
         const updateData = {};
         if (jiraConfig) updateData.jiraConfig = jiraConfig;

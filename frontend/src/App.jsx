@@ -4,6 +4,7 @@ import Home from './pages/Home';
 import Dashboard from './pages/Dashboard';
 import Settings from './pages/Settings';
 import Profile from './pages/Profile';
+import Analysis from './pages/Analysis';
 
 import axios from 'axios';
 
@@ -101,7 +102,7 @@ const Navigation = () => {
                     {navItems.map(item => (
                         <Link
                             key={item.path}
-                            to={item.path === '/analysis' ? '#' : item.path}
+                            to={item.path}
                             className={`text-sm font-medium transition-all duration-200 ${location.pathname === item.path
                                 ? 'text-white'
                                 : 'text-slate-400 hover:text-white'
@@ -173,10 +174,10 @@ function App() {
                 <Navigation />
                 <Routes>
                     <Route path="/" element={<Home />} />
+                    <Route path="/analysis" element={<Analysis />} />
                     <Route path="/dashboard" element={<Dashboard />} />
                     <Route path="/settings" element={<Settings />} />
                     <Route path="/profile" element={<Profile />} />
-
                 </Routes>
             </div>
         </Router>

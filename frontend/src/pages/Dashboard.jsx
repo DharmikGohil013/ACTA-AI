@@ -71,6 +71,52 @@ const Dashboard = () => {
             }));
         });
 
+        // Live transcript from Deepgram
+        socketRef.current.on('live-transcript', (data) => {
+            console.log('[Live Transcript]', data.isFinal ? 'Final' : 'Interim', ':', data.text);
+            setLiveTranscripts(prev => {
+                const meetingId = data.meetingId;
+                const transcripts = [...(prev[meetingId] || [])];
+                
+                if (data.isFinal) {
+                    // Add final transcript
+                    transcripts.push({
+                        id: Date.now(),
+                        text: data.text,
+                        isFinal: true,
+                        confidence: data.confidence,
+                        timestamp: data.timestamp
+                    });
+                } else {
+                    // Remove interim and add new
+                    const filtered = transcripts.filter(t => t.isFinal);
+                    filtered.push({
+                        id: 'interim',
+                        text: data.text,
+                        isFinal: false,
+                        confidence: data.confidence,
+                        timestamp: data.timestamp
+                    });
+                    return { ...prev, [meetingId]: filtered };
+                }
+                
+                return { ...prev, [meetingId]: transcripts };
+            });
+        });
+
+        // Live transcript status
+        socketRef.current.on('live-transcript-status', (data) => {
+            console.log('[Live Transcript Status]', data.status, '-', data.message);
+            setLiveStatus(prev => ({
+                ...prev,
+                [data.meetingId]: { 
+                    ...prev[data.meetingId], 
+                    liveStatus: data.status,
+                    liveStatusMessage: data.message
+                }
+            }));
+        });
+
         // Transcription complete
         socketRef.current.on('transcription-complete', (data) => {
             console.log('Transcription complete:', data);
@@ -391,33 +437,36 @@ const Dashboard = () => {
                                             <div className="mt-3 p-4 bg-gradient-to-br from-purple-500/10 to-blue-500/10 rounded-lg border border-purple-500/20 max-h-48 overflow-y-auto">
                                                 <div className="flex items-center gap-2 mb-3">
                                                     <Sparkles size={14} className="text-purple-400" />
-                                                    <span className="text-xs font-semibold text-purple-400 uppercase tracking-wide">Live Transcript</span>
-                                                    <span className="ml-auto text-xs text-gray-500">Faster-Whisper + SpeechBrain</span>
+                                                    <span className="text-xs font-semibold text-purple-400 uppercase tracking-wide">Live Transcript (Deepgram)</span>
+                                                    <span className="ml-auto text-xs text-gray-500">Real-time AI</span>
                                                 </div>
                                                 <div className="space-y-2">
-                                                    {liveTranscripts[meeting._id].slice(-5).map((transcript, idx) => (
+                                                    {liveTranscripts[meeting._id].slice(-3).map((transcript, idx) => (
                                                         <motion.div
-                                                            key={`${meeting._id}-${transcript.chunk}`}
+                                                            key={`${meeting._id}-${transcript.id || idx}`}
                                                             initial={{ opacity: 0, x: -20 }}
                                                             animate={{ opacity: 1, x: 0 }}
-                                                            className="text-sm text-gray-300 p-2 bg-black/20 rounded border-l-2 border-purple-400"
+                                                            className={`text-sm p-2 rounded border-l-2 ${
+                                                                transcript.isFinal
+                                                                    ? 'bg-green-500/10 border-green-400 text-gray-200'
+                                                                    : 'bg-yellow-500/10 border-yellow-400 text-gray-300 opacity-75'
+                                                            }`}
                                                         >
                                                             <div className="flex items-center gap-2 mb-1">
-                                                                <span className="text-xs text-purple-400 font-mono">#{transcript.chunk}</span>
+                                                                <span className="text-xs font-semibold">
+                                                                    {transcript.isFinal ? '✅' : '⏳'}
+                                                                </span>
                                                                 <span className="text-xs text-gray-500">
                                                                     {new Date(transcript.timestamp).toLocaleTimeString()}
                                                                 </span>
-                                                                {transcript.language && (
-                                                                    <span className="text-xs text-blue-400 ml-auto">{transcript.language}</span>
-                                                                )}
                                                             </div>
                                                             <p className="text-white/90">{transcript.text}</p>
                                                         </motion.div>
                                                     ))}
                                                 </div>
-                                                {liveTranscripts[meeting._id].length > 5 && (
+                                                {liveTranscripts[meeting._id].length > 3 && (
                                                     <p className="text-xs text-gray-500 mt-2 text-center">
-                                                        Showing last 5 of {liveTranscripts[meeting._id].length} chunks
+                                                        {liveTranscripts[meeting._id].length} total transcripts
                                                     </p>
                                                 )}
                                             </div>
@@ -555,8 +604,14 @@ const Dashboard = () => {
                             {/* Live Transcript Section */}
                             <div className="flex-1 overflow-hidden flex flex-col">
                                 <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-                                    <FileText size={20} className="text-purple-400" />
-                                    Live Transcript
+                                    <Sparkles size={20} className="text-purple-400" />
+                                    Live Transcript (Deepgram AI)
+                                    {liveStatus[liveOverlay._id]?.liveStatus === 'connected' && (
+                                        <span className="text-xs bg-green-500/20 text-green-400 px-2 py-1 rounded-full ml-auto flex items-center gap-1">
+                                            <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
+                                            Live
+                                        </span>
+                                    )}
                                     {liveTranscripts[liveOverlay._id] && (
                                         <span className="text-xs text-gray-500">
                                             ({liveTranscripts[liveOverlay._id].length} segments)
@@ -569,23 +624,38 @@ const Dashboard = () => {
                                         <div className="space-y-3">
                                             {liveTranscripts[liveOverlay._id].map((item, idx) => (
                                                 <motion.div
-                                                    key={idx}
+                                                    key={item.id || idx}
                                                     initial={{ opacity: 0, y: 10 }}
                                                     animate={{ opacity: 1, y: 0 }}
-                                                    className="p-3 bg-white/5 rounded-lg hover:bg-white/10 transition-colors"
+                                                    className={`p-3 rounded-lg transition-colors ${
+                                                        item.isFinal
+                                                            ? 'bg-green-500/5 border border-green-500/20 hover:bg-green-500/10'
+                                                            : 'bg-yellow-500/5 border border-yellow-500/20 hover:bg-yellow-500/10 opacity-70'
+                                                    }`}
                                                 >
                                                     <div className="flex items-center gap-2 mb-1 text-xs text-gray-500">
+                                                        {item.isFinal ? (
+                                                            <span className="px-2 py-0.5 bg-green-500/20 text-green-400 rounded text-xs font-semibold">✅ Final</span>
+                                                        ) : (
+                                                            <span className="px-2 py-0.5 bg-yellow-500/20 text-yellow-400 rounded text-xs font-semibold">⏳ Interim</span>
+                                                        )}
                                                         <Clock size={12} />
                                                         {new Date(item.timestamp).toLocaleTimeString()}
-                                                        {item.language && (
-                                                            <span className="px-2 py-0.5 bg-purple-500/20 text-purple-400 rounded">
-                                                                {item.language}
+                                                        {item.confidence && (
+                                                            <span className="ml-auto text-gray-600 text-xs">
+                                                                Confidence: {Math.round(item.confidence * 100)}%
                                                             </span>
                                                         )}
                                                     </div>
-                                                    <p className="text-gray-300 leading-relaxed">{item.text}</p>
+                                                    <p className="text-gray-200 leading-relaxed font-medium">{item.text}</p>
                                                 </motion.div>
                                             ))}
+                                        </div>
+                                    ) : liveStatus[liveOverlay._id]?.liveStatus === 'connected' ? (
+                                        <div className="h-full flex flex-col items-center justify-center text-gray-600">
+                                            <Loader2 size={40} className="animate-spin mb-4 text-purple-400" />
+                                            <p>Connected to Deepgram Live Stream</p>
+                                            <p className="text-xs text-gray-700 mt-2">Waiting for speech to transcribe...</p>
                                         </div>
                                     ) : (
                                         <div className="h-full flex flex-col items-center justify-center text-gray-600">

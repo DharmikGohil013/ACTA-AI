@@ -2,7 +2,7 @@ const puppeteer = require('puppeteer');
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
-const { createLiveTranscriber } = require('../services/liveTranscriptionServiceDeepgram');
+const { createDeepgramLiveTranscriber } = require('../services/deepgramLiveService');
 const meetService = require('../services/meetService');
 const User = require('../models/User');
 
@@ -106,13 +106,14 @@ async function runBot(meetingLink, meetingIdMongo, userId = null) {
     // Audio chunk collection  
     let audioChunks = [];
 
-    // Initialize live transcription (DISABLED - using post-meeting transcription only)
-    // const liveTranscriber = createLiveTranscriber(meetingIdMongo, emitStatus, {
-    //     modelSize: 'tiny',  // Use tiny for lowest latency, or 'base' for better quality
-    //     chunkDuration: 10,  // Transcribe every 10 seconds (better for catching speech)
-    //     enableSpeakerID: true
-    // });
-    const liveTranscriber = null;  // Disabled
+    // Initialize live transcription with Deepgram
+    let liveTranscriber = null;
+    if (process.env.DEEPGRAM_API_KEY) {
+        liveTranscriber = createDeepgramLiveTranscriber(meetingIdMongo, process.env.DEEPGRAM_API_KEY);
+        console.log('[Bot] ✅ Live transcription ready (will connect when audio starts)');
+    } else {
+        console.log('[Bot] ⚠️ DEEPGRAM_API_KEY not set - live transcription disabled');
+    }
 
     // Store bot reference with transcriber
     activeBots.set(meetingIdMongo.toString(), { browser, page, audioChunks, liveTranscriber });
@@ -121,8 +122,16 @@ async function runBot(meetingLink, meetingIdMongo, userId = null) {
         console.log(`[Bot] Browser disconnected`);
 
         // Finalize live transcription
-        if (liveTranscriber) {
-            await liveTranscriber.finalize();
+        if (liveTranscriber && liveTranscriber.isConnected) {
+            try {
+                const transcripts = await liveTranscriber.close();
+                console.log('[Bot] ✅ Live transcription finalized');
+                emitStatus(meetingIdMongo, 'live-transcription-finalized', {
+                    message: `Captured ${transcripts.length} final transcripts`
+                });
+            } catch (error) {
+                console.error('[Bot] Error finalizing transcription:', error);
+            }
         }
 
         await saveAudioFile(audioChunks, audioPath, meetingIdMongo);
@@ -333,16 +342,27 @@ async function runBot(meetingLink, meetingIdMongo, userId = null) {
         try {
             await page.goto(targetUrl, { waitUntil: 'domcontentloaded', timeout: 60000 });
             console.log('[Bot] Page loaded successfully');
-            await delay(5000); // Wait for page to fully render
+            await delay(8000); // Wait longer for page to fully render
 
-            // Check if page shows an error (invalid meeting)
-            const pageContent = await page.content();
-            if (pageContent.includes('invalid') || pageContent.includes('not found') || pageContent.includes('3,001')) {
-                console.log('[Bot] Meeting link is invalid or expired');
+            // Check for specific error messages indicating invalid meeting
+            const pageText = await page.evaluate(() => document.body?.innerText || '');
+            const hasInvalidError = pageText.includes('Invalid meeting ID') ||
+                                   pageText.includes('This meeting ID is not valid') ||
+                                   pageText.includes('Meeting ID is invalid') ||
+                                   pageText.includes('Meeting not found') ||
+                                   pageText.includes('has been removed') ||
+                                   pageText.includes('Error Code: 3001') ||
+                                   pageText.includes('Error Code: 3,001');
+            
+            if (hasInvalidError) {
+                console.log('[Bot] ❌ Meeting link is invalid or expired');
+                console.log('[Bot] Page text:', pageText.substring(0, 500)); // Log first 500 chars for debugging
                 emitStatus(meetingIdMongo, 'failed', { message: 'Invalid or expired meeting link' });
                 await browser.close();
                 return { browser: null, page: null };
             }
+            
+            console.log('[Bot] ✅ Meeting link appears valid, proceeding...');
         } catch (e) {
             console.log('[Bot] Navigation timeout, continuing...');
         }
@@ -595,8 +615,16 @@ function monitorMeetingEnd(page, meetingIdMongo, audioChunks, audioPath) {
 
                 // Finalize transcription
                 const bot = activeBots.get(meetingIdMongo.toString());
-                if (bot && bot.liveTranscriber) {
-                    await bot.liveTranscriber.finalize();
+                if (bot && bot.liveTranscriber && bot.liveTranscriber.isConnected) {
+                    try {
+                        const transcripts = await bot.liveTranscriber.close();
+                        console.log('[Bot] ✅ Meeting ended - Live transcription finalized');
+                        emitStatus(meetingIdMongo, 'live-transcription-finalized', {
+                            message: `Captured ${transcripts.length} final transcripts`
+                        });
+                    } catch (error) {
+                        console.error('[Bot] Error finalizing transcription:', error);
+                    }
                 }
 
                 await saveAudioFile(audioChunks, audioPath, meetingIdMongo);
@@ -623,9 +651,14 @@ async function stopBot(meetingId) {
             await delay(2000);
         } catch (e) { }
 
-        // Finalize transcription
-        if (bot.liveTranscriber) {
-            await bot.liveTranscriber.finalize();
+        // Finalize live transcription
+        if (bot.liveTranscriber && bot.liveTranscriber.isConnected) {
+            try {
+                const transcripts = await bot.liveTranscriber.close();
+                console.log('[Bot] ✅ Live transcription finalized with', transcripts.length, 'transcripts');
+            } catch (error) {
+                console.error('[Bot] Error finalizing transcription:', error);
+            }
         }
 
         const recordingsDir = path.join(__dirname, '../../recordings');
@@ -646,6 +679,39 @@ async function setupAudioCapture(page, meetingIdMongo, audioChunks) {
     // --- START AUDIO CAPTURE ---
     console.log('[Bot] 🎙️ Starting audio capture (Shared)...');
 
+    // Get live transcriber from active bots
+    const bot = activeBots.get(meetingIdMongo.toString());
+    const liveTranscriber = bot?.liveTranscriber;
+
+    // Expose function to send PCM audio to Deepgram
+    await page.exposeFunction('sendPCMAudioToLive', (base64PCM) => {
+        if (liveTranscriber && liveTranscriber.isConnected) {
+            try {
+                const pcmBuffer = Buffer.from(base64PCM, 'base64');
+                liveTranscriber.sendAudio(pcmBuffer);
+            } catch (error) {
+                console.error('[Bot] Error sending PCM to Deepgram:', error.message);
+            }
+        }
+    });
+
+    // Connect to Deepgram when audio starts
+    await page.exposeFunction('onAudioStarted', (info) => {
+        console.log('[Bot] 🔴 Recording started!', info);
+        emitStatus(meetingIdMongo, 'recording', { message: 'Recording audio...' });
+
+        // NOW connect to Deepgram (audio is flowing)
+        if (liveTranscriber && !liveTranscriber.isConnected) {
+            console.log('[Bot] 🔌 Connecting to Deepgram Live Stream...');
+            liveTranscriber.connect().catch(err => {
+                console.warn('[Bot] Live transcription connection failed:', err.message);
+                emitStatus(meetingIdMongo, 'live-transcription-error', {
+                    message: `Failed to connect: ${err.message}`
+                });
+            });
+        }
+    });
+
     // Expose function to receive chunks
     await page.exposeFunction('sendAudioChunk', (base64) => {
         const buffer = Buffer.from(base64, 'base64');
@@ -660,11 +726,6 @@ async function setupAudioCapture(page, meetingIdMongo, audioChunks) {
                 size: parseFloat(size)
             });
         }
-    });
-
-    await page.exposeFunction('onAudioStarted', (info) => {
-        console.log('[Bot] 🔴 Recording started!', info);
-        emitStatus(meetingIdMongo, 'recording', { message: 'Recording audio...' });
     });
 
     await page.exposeFunction('onAudioError', (error) => {
@@ -705,6 +766,38 @@ async function setupAudioCapture(page, meetingIdMongo, audioChunks) {
                     window.onAudioDebug('No sources, trying display capture...');
                 }
 
+                // Create 16kHz audio context for Deepgram
+                const sampleRate = 16000;
+                const liveContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate });
+                const liveSource = liveContext.createMediaStreamSource(destination.stream);
+
+                // Script processor for PCM encoding
+                const bufferSize = 4096;
+                const processor = liveContext.createScriptProcessor(bufferSize, 1, 1);
+
+                processor.onaudioprocess = (e) => {
+                    const inputData = e.inputBuffer.getChannelData(0);
+
+                    // Convert Float32 to Int16 (PCM 16-bit)
+                    const pcmData = new Int16Array(inputData.length);
+                    for (let i = 0; i < inputData.length; i++) {
+                        const s = Math.max(-1, Math.min(1, inputData[i]));
+                        pcmData[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+                    }
+
+                    // Send PCM to Deepgram via Node backend
+                    const buffer = new Uint8Array(pcmData.buffer);
+                    const base64 = btoa(String.fromCharCode.apply(null, buffer));
+                    window.sendPCMAudioToLive(base64);
+                };
+
+                // Connect: destination stream → processor → context destination
+                liveSource.connect(processor);
+                processor.connect(liveContext.destination);
+
+                console.log('[Live Transcription] ✅ PCM processor started (16kHz, 16-bit)');
+
+                // Also record WebM for post-meeting transcription
                 const recorder = new MediaRecorder(destination.stream, { mimeType: 'audio/webm;codecs=opus' });
                 recorder.ondataavailable = e => { if (e.data.size > 0) { const r = new FileReader(); r.onloadend = () => window.sendAudioChunk(r.result.split(',')[1]); r.readAsDataURL(e.data); } };
                 recorder.onerror = e => window.onAudioError(e.error?.message);

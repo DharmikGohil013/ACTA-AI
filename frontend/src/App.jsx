@@ -4,6 +4,7 @@ import Home from './pages/Home';
 import Dashboard from './pages/Dashboard';
 import Settings from './pages/Settings';
 import Profile from './pages/Profile';
+import BotSetup from './pages/BotSetup';
 import axios from 'axios';
 
 const API_URL = 'http://localhost:3000';
@@ -84,6 +85,7 @@ const Navigation = () => {
         { path: '/', label: 'Home' },
         { path: '/analysis', label: 'Analysis' },
         { path: '/dashboard', label: 'Archive Meetings' },
+        { path: '/bot-setup', label: 'Bot Setup' },
     ];
 
     return (
@@ -174,6 +176,7 @@ function App() {
                     <Route path="/dashboard" element={<Dashboard />} />
                     <Route path="/settings" element={<Settings />} />
                     <Route path="/profile" element={<Profile />} />
+                    <Route path="/bot-setup" element={<BotSetup />} />
                 </Routes>
             </div>
         </Router>

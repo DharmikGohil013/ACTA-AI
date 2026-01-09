@@ -7,6 +7,8 @@ const http = require('http');
 const session = require('express-session');
 const cookieParser = require('cookie-parser');
 const axios = require('axios');
+const crypto = require('crypto');
+const puppeteer = require('puppeteer');
 
 // Load environment variables FIRST
 dotenv.config();
@@ -19,6 +21,7 @@ const { runBot, stopBot, activeBots } = require('./bot/bot');
 const Meeting = require('./models/Meeting');
 const User = require('./models/User');
 const zoomService = require('./services/zoomService');
+const meetService = require('./services/meetService');
 const transcriptionService = require('./services/transcriptionService');
 
 const app = express();
@@ -89,7 +92,7 @@ app.get('/api/auth/google/callback',
     (req, res) => {
         // Generate JWT token
         const token = generateToken(req.user);
-        
+
         // Set token in httpOnly cookie
         res.cookie('token', token, {
             httpOnly: true,
@@ -97,7 +100,7 @@ app.get('/api/auth/google/callback',
             maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
             sameSite: 'lax'
         });
-        
+
         // Redirect to frontend with token in URL (for localStorage)
         res.redirect(`http://localhost:5173?token=${token}`);
     }
@@ -121,7 +124,7 @@ app.get('/api/auth/logout', (req, res) => {
         if (err) {
             return res.status(500).json({ error: 'Logout failed' });
         }
-        
+
         // Clear cookie
         res.clearCookie('token');
         res.json({ success: true, message: 'Logged out successfully' });
@@ -133,17 +136,17 @@ app.get('/api/auth/logout', (req, res) => {
 app.post('/api/integrations/save', verifyToken, async (req, res) => {
     try {
         const { jiraConfig, trelloConfig } = req.body;
-        
+
         const updateData = {};
         if (jiraConfig) updateData.jiraConfig = jiraConfig;
         if (trelloConfig) updateData.trelloConfig = trelloConfig;
-        
+
         const user = await User.findByIdAndUpdate(
             req.user._id,
             updateData,
             { new: true }
         );
-        
+
         res.json({ success: true, user });
     } catch (err) {
         console.error('Save integrations error:', err);
@@ -161,7 +164,7 @@ app.get('/api/integrations', optionalAuth, async (req, res) => {
                 trelloConfig: {}
             });
         }
-        
+
         const user = await User.findById(req.user._id);
         res.json({
             jiraConfig: user.jiraConfig || {},
@@ -177,26 +180,26 @@ app.get('/api/integrations', optionalAuth, async (req, res) => {
 app.post('/api/integrations/test/jira', async (req, res) => {
     try {
         const { domain, email, apiToken, projectKey } = req.body;
-        
+
         console.log('[Jira Test] Request received:', { domain, email: email ? '***' : 'missing', apiToken: apiToken ? '***' : 'missing', projectKey });
-        
+
         if (!domain || !email || !apiToken) {
             console.log('[Jira Test] Missing credentials');
             return res.status(400).json({ error: 'Missing Jira credentials' });
         }
-        
+
         // Ensure domain starts with https://
         let formattedDomain = domain;
         if (!domain.startsWith('http://') && !domain.startsWith('https://')) {
             formattedDomain = `https://${domain}`;
         }
-        
+
         // Test Jira connection
         const jiraUrl = `${formattedDomain}/rest/api/3/myself`;
         const auth = Buffer.from(`${email}:${apiToken}`).toString('base64');
-        
+
         console.log('[Jira Test] Testing connection to:', jiraUrl);
-        
+
         const response = await axios.get(jiraUrl, {
             headers: {
                 'Authorization': `Basic ${auth}`,
@@ -204,9 +207,9 @@ app.post('/api/integrations/test/jira', async (req, res) => {
             },
             timeout: 10000
         });
-        
+
         console.log('[Jira Test] Connection successful, user:', response.data.displayName);
-        
+
         // If projectKey provided, verify project access
         if (projectKey) {
             const projectUrl = `${formattedDomain}/rest/api/3/project/${projectKey}`;
@@ -220,18 +223,18 @@ app.post('/api/integrations/test/jira', async (req, res) => {
             });
             console.log('[Jira Test] Project access verified');
         }
-        
-        res.json({ 
-            success: true, 
+
+        res.json({
+            success: true,
             message: 'Jira connection successful',
             user: response.data.displayName
         });
     } catch (err) {
         console.error('[Jira Test] Error:', err.message);
         console.error('[Jira Test] Error details:', err.response?.data || err.stack);
-        
+
         let errorMessage = 'Failed to connect to Jira';
-        
+
         if (err.code === 'ENOTFOUND') {
             errorMessage = 'Invalid Jira domain';
         } else if (err.response?.status === 401) {
@@ -241,9 +244,9 @@ app.post('/api/integrations/test/jira', async (req, res) => {
         } else if (err.response?.data?.message) {
             errorMessage = err.response.data.message;
         }
-        
-        res.status(500).json({ 
-            success: false, 
+
+        res.status(500).json({
+            success: false,
             error: errorMessage
         });
     }
@@ -253,25 +256,25 @@ app.post('/api/integrations/test/jira', async (req, res) => {
 app.post('/api/integrations/test/trello', async (req, res) => {
     try {
         const { apiKey, apiToken, listId } = req.body;
-        
+
         console.log('[Trello Test] Request received:', { apiKey: apiKey ? '***' : 'missing', apiToken: apiToken ? '***' : 'missing', listId });
-        
+
         if (!apiKey || !apiToken) {
             console.log('[Trello Test] Missing credentials');
             return res.status(400).json({ error: 'Missing Trello credentials' });
         }
-        
+
         // Test Trello connection
         const trelloUrl = `https://api.trello.com/1/members/me?key=${apiKey}&token=${apiToken}`;
-        
+
         console.log('[Trello Test] Testing connection');
-        
+
         const response = await axios.get(trelloUrl, {
             timeout: 10000
         });
-        
+
         console.log('[Trello Test] Connection successful, user:', response.data.fullName);
-        
+
         // If listId provided, verify list access
         if (listId) {
             console.log('[Trello Test] Testing list access');
@@ -281,26 +284,26 @@ app.post('/api/integrations/test/trello', async (req, res) => {
             });
             console.log('[Trello Test] List access verified');
         }
-        
-        res.json({ 
-            success: true, 
+
+        res.json({
+            success: true,
             message: 'Trello connection successful',
             user: response.data.fullName
         });
     } catch (err) {
         console.error('[Trello Test] Error:', err.message);
         console.error('[Trello Test] Error details:', err.response?.data || err.stack);
-        
+
         let errorMessage = 'Failed to connect to Trello';
-        
+
         if (err.response?.status === 401) {
             errorMessage = 'Invalid API key or token';
         } else if (err.response?.status === 404) {
             errorMessage = 'List not found or no access';
         }
-        
-        res.status(500).json({ 
-            success: false, 
+
+        res.status(500).json({
+            success: false,
             error: errorMessage
         });
     }
@@ -331,7 +334,7 @@ app.put('/api/user/settings', async (req, res) => {
 
     try {
         const { jiraConfig, trelloConfig } = req.body;
-        
+
         const updateData = {};
         if (jiraConfig) updateData.jiraConfig = jiraConfig;
         if (trelloConfig) updateData.trelloConfig = trelloConfig;
@@ -353,15 +356,165 @@ app.put('/api/user/settings', async (req, res) => {
     }
 });
 
+// Launch browser for user to setup Google account
+app.post('/api/bot/setup/start', verifyToken, async (req, res) => {
+    try {
+        const userId = req.user._id.toString();
+        const profilePath = path.join(__dirname, '../browser-profiles', userId);
+
+        // Create profile directory if it doesn't exist
+        if (!require('fs').existsSync(profilePath)) {
+            require('fs').mkdirSync(profilePath, { recursive: true });
+        }
+
+        console.log('[Bot Setup] Launching browser for setup:', userId);
+
+        // Launch browser with user data dir to save session
+        const browser = await puppeteer.launch({
+            headless: false,
+            userDataDir: profilePath,
+            args: [
+                '--no-sandbox',
+                '--disable-setuid-sandbox',
+                '--start-maximized',
+                '--disable-blink-features=AutomationControlled',
+                '--disable-dev-shm-usage',
+                '--user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+            ],
+            ignoreDefaultArgs: ['--enable-automation'],
+        });
+
+        const pages = await browser.pages();
+        const page = pages[0] || await browser.newPage();
+
+        // Set additional properties to avoid detection
+        await page.evaluateOnNewDocument(() => {
+            Object.defineProperty(navigator, 'webdriver', {
+                get: () => false,
+            });
+        });
+
+        // Navigate to Google Accounts login
+        await page.goto('https://accounts.google.com/signin', { waitUntil: 'domcontentloaded' });
+
+        console.log('[Bot Setup] Browser opened - waiting for user to login');
+
+        // Monitor when browser closes
+        browser.on('disconnected', async () => {
+            console.log('[Bot Setup] Browser closed - saving profile');
+
+            // Mark as configured
+            await User.findByIdAndUpdate(userId, {
+                meetBotConfig: {
+                    browserProfilePath: profilePath,
+                    isConfigured: true
+                }
+            });
+
+            console.log('[Bot Setup] Profile saved for user:', userId);
+        });
+
+        res.json({
+            success: true,
+            message: 'Browser launched. Please log into your Google account and close the browser when done.'
+        });
+
+    } catch (err) {
+        console.error('[Bot Setup] Launch error:', err);
+        res.status(500).json({ error: 'Failed to launch setup browser' });
+    }
+});
+
+// Get bot setup status
+app.get('/api/bot/setup', verifyToken, async (req, res) => {
+    try {
+        const user = await User.findById(req.user._id);
+
+        if (!user.meetBotConfig || !user.meetBotConfig.isConfigured) {
+            return res.json({
+                isConfigured: false
+            });
+        }
+
+        res.json({
+            isConfigured: user.meetBotConfig.isConfigured
+        });
+    } catch (err) {
+        console.error('[Bot Setup] Get status error:', err);
+        res.status(500).json({ error: 'Failed to fetch bot setup status' });
+    }
+});
+
+// Test bot credentials (optional - for future implementation)
+app.post('/api/bot/test', verifyToken, async (req, res) => {
+    try {
+        const { email, password } = req.body;
+
+        if (!email || !password) {
+            return res.status(400).json({ error: 'Email and password are required' });
+        }
+
+        console.log('[Bot Test] Testing credentials...');
+
+        // Note: Actual Google login testing would require a headless browser
+        // For now, just validate format
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            return res.status(400).json({
+                success: false,
+                error: 'Invalid email format'
+            });
+        }
+
+        res.json({
+            success: true,
+            message: 'Credentials format is valid. Full test will occur during meeting join.',
+            warning: 'Make sure 2FA is disabled and "Less secure app access" is enabled for the bot account.'
+        });
+    } catch (err) {
+        console.error('[Bot Test] Error:', err);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to test credentials'
+        });
+    }
+});
+
+// Delete bot credentials
+app.delete('/api/bot/setup', verifyToken, async (req, res) => {
+    try {
+        const user = await User.findByIdAndUpdate(
+            req.user._id,
+            {
+                meetBotConfig: {
+                    email: '',
+                    password: '',
+                    isConfigured: false
+                }
+            },
+            { new: true }
+        );
+
+        res.json({
+            success: true,
+            message: 'Bot credentials removed successfully'
+        });
+    } catch (err) {
+        console.error('[Bot Setup] Delete error:', err);
+        res.status(500).json({ error: 'Failed to remove bot credentials' });
+    }
+});
+
 // Routes
 
 // 1. Join Meeting
-app.post('/api/join', async (req, res) => {
+app.post('/api/join', optionalAuth, async (req, res) => {
     const { link } = req.body;
     if (!link) return res.status(400).json({ error: 'Link is required' });
 
     try {
         const zoomMeetingId = zoomService.extractMeetingId(link);
+        const userId = req.user?._id || null;  // Get userId if authenticated
 
         const newMeeting = new Meeting({
             meetingLink: link,
@@ -372,7 +525,7 @@ app.post('/api/join', async (req, res) => {
 
         emitStatus(newMeeting._id.toString(), 'joining', { message: 'Bot is starting...' });
 
-        runBot(link, newMeeting._id, emitStatus).then(({ browser }) => {
+        runBot(link, newMeeting._id, userId).then(({ browser }) => {
             console.log(`[Server] Bot started for meeting ${newMeeting._id}`);
             emitStatus(newMeeting._id.toString(), 'in-meeting', { message: 'Bot joined the meeting' });
 
@@ -587,15 +740,15 @@ app.post('/api/meetings/:id/transcribe', async (req, res) => {
 
         // Run POST-MEETING transcription (Deepgram + Assembly AI)
         const transcriptionResult = await transcriptionService.transcribeAudio(
-            audioFullPath, 
-            onProgress, 
+            audioFullPath,
+            onProgress,
             true,  // Enable speaker diarization
             { mode: 'post-meeting' }  // Use Deepgram + Assembly AI
         );
 
         // Handle both old (string) and new (object) return formats
-        const transcription = typeof transcriptionResult === 'string' 
-            ? transcriptionResult 
+        const transcription = typeof transcriptionResult === 'string'
+            ? transcriptionResult
             : transcriptionResult.transcript;
 
         const speakerSegments = transcriptionResult.speakerSegments || [];
@@ -605,7 +758,7 @@ app.post('/api/meetings/:id/transcribe', async (req, res) => {
         // Save to database
         const updatedMeeting = await Meeting.findByIdAndUpdate(
             meeting._id,
-            { 
+            {
                 transcription,
                 speakerSegments,
                 speakerStats,
@@ -622,7 +775,7 @@ app.post('/api/meetings/:id/transcribe', async (req, res) => {
 
         console.log(`[Server] ✅ Transcription saved for meeting ${req.params.id}`);
         console.log(`[Server] Speakers: ${totalSpeakers}, Segments: ${speakerSegments.length}`);
-        
+
         res.json({
             success: true,
             transcription,

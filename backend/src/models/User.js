@@ -24,6 +24,13 @@ const UserSchema = new mongoose.Schema({
         apiToken: String,
         listId: String
     },
+    meetBotConfig: {
+        browserProfilePath: String,  // Path to saved browser session
+        isConfigured: {
+            type: Boolean,
+            default: false
+        }
+    },
     createdAt: {
         type: Date,
         default: Date.now

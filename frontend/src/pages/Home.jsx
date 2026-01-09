@@ -11,11 +11,39 @@ const Home = () => {
     const [link, setLink] = useState('');
     const [loading, setLoading] = useState(false);
     const [status, setStatus] = useState({ type: null, message: '' });
+    const [botConfigured, setBotConfigured] = useState(true);  // Default true to avoid flashing
     const navigate = useNavigate();
+
+    useEffect(() => {
+        checkBotSetup();
+    }, []);
+
+    const checkBotSetup = async () => {
+        try {
+            const token = localStorage.getItem('authToken');
+            if (!token) {
+                setBotConfigured(true);  // Skip check if not logged in
+                return;
+            }
+
+            const res = await axios.get(`${API_URL}/api/bot/setup`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            setBotConfigured(res.data.isConfigured || false);
+        } catch (err) {
+            console.error('Error checking bot setup:', err);
+        }
+    };
 
     const handleJoin = async () => {
         if (!link) {
             setStatus({ type: 'error', message: 'Please enter a meeting link' });
+            return;
+        }
+
+        // Check if Google Meet link and bot not configured
+        if (link.includes('meet.google.com') && !botConfigured) {
+            setStatus({ type: 'error', message: 'Please setup bot credentials for Google Meet first' });
             return;
         }
 
@@ -105,6 +133,24 @@ const Home = () => {
                             </motion.div>
                         )}
                     </AnimatePresence>
+
+                    {/* Bot Setup Warning for Google Meet */}
+                    {!botConfigured && (
+                        <motion.div
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="mb-8 inline-flex items-center gap-2 px-4 py-3 rounded-lg text-sm font-medium bg-yellow-500/10 text-yellow-400 border border-yellow-500/20"
+                        >
+                            <AlertCircle size={16} />
+                            <span>Google Meet bot credentials not configured.</span>
+                            <button
+                                onClick={() => navigate('/bot-setup')}
+                                className="ml-2 underline hover:text-yellow-300 transition-colors"
+                            >
+                                Setup Now
+                            </button>
+                        </motion.div>
+                    )}
 
                     {/* Supported Platforms */}
                     <div className="flex flex-col items-center gap-6">

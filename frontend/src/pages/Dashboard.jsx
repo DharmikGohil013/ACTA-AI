@@ -26,6 +26,8 @@ const Dashboard = () => {
     const [liveTranscripts, setLiveTranscripts] = useState({});
     const [liveOverlay, setLiveOverlay] = useState(null); // For live meeting overlay
     const [endingBot, setEndingBot] = useState(false);
+    const [selectedTasksMeeting, setSelectedTasksMeeting] = useState(null); // For tasks modal
+    const [extractingTasks, setExtractingTasks] = useState(false); // For task extraction loading
     const audioRefs = useRef({});
     const socketRef = useRef(null);
 
@@ -218,6 +220,41 @@ const Dashboard = () => {
         fetchMeetings();
     };
 
+    const extractTasks = async (meeting) => {
+        setExtractingTasks(true);
+        try {
+            const res = await axios.post(`${API_URL}/api/meetings/${meeting._id}/extract-tasks`);
+            if (res.data.success) {
+                // Update the selected meeting with extracted tasks
+                const updatedMeeting = {
+                    ...meeting,
+                    extractedTasks: res.data.tasks
+                };
+                setSelectedTasksMeeting(updatedMeeting);
+                // Refresh meetings list to get updated data
+                fetchMeetings();
+            }
+        } catch (err) {
+            console.error('Task extraction error:', err);
+            alert(`Error extracting tasks: ${err.response?.data?.error || err.message}`);
+        } finally {
+            setExtractingTasks(false);
+        }
+    };
+
+    const createSampleMeeting = async () => {
+        try {
+            const res = await axios.post(`${API_URL}/api/test/create-sample-meeting`);
+            if (res.data.success) {
+                alert('Sample meeting created! Check your dashboard.');
+                fetchMeetings();
+            }
+        } catch (err) {
+            console.error('Error creating sample meeting:', err);
+            alert(`Error: ${err.response?.data?.error || err.message}`);
+        }
+    };
+
     const stopBot = async (id) => {
         setEndingBot(true);
         try {
@@ -273,10 +310,21 @@ const Dashboard = () => {
                     </p>
                 </div>
 
-                {/* Connection Status */}
-                <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs ${connected ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'}`}>
-                    {connected ? <Wifi size={14} /> : <WifiOff size={14} />}
-                    {connected ? 'Live' : 'Offline'}
+                <div className="flex items-center gap-3">
+                    {/* Test Button */}
+                    <button
+                        onClick={createSampleMeeting}
+                        className="px-4 py-2 bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 rounded-lg text-sm font-semibold flex items-center gap-2 transition-all"
+                    >
+                        <Sparkles size={16} />
+                        Create Test Meeting
+                    </button>
+
+                    {/* Connection Status */}
+                    <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs ${connected ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'}`}>
+                        {connected ? <Wifi size={14} /> : <WifiOff size={14} />}
+                        {connected ? 'Live' : 'Offline'}
+                    </div>
                 </div>
             </header>
 
@@ -502,6 +550,12 @@ const Dashboard = () => {
                                             ) : (
                                                 <button onClick={() => startTranscription(meeting)} className="text-purple-400 text-xs font-bold hover:text-purple-300 flex items-center gap-1 px-3 py-1.5 rounded-lg bg-purple-500/10 hover:bg-purple-500/20 transition-colors">
                                                     <Sparkles size={14} /> AI Transcribe
+                                                </button>
+                                            )}
+                                            
+                                            {meeting.transcription && (
+                                                <button onClick={() => setSelectedTasksMeeting(meeting)} className="text-blue-400 text-xs font-bold hover:text-blue-300 flex items-center gap-1 px-3 py-1.5 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 transition-colors">
+                                                    <Mic size={14} /> Tasks
                                                 </button>
                                             )}
                                         </>
@@ -839,6 +893,131 @@ const Dashboard = () => {
                                         </button>
                                     )}
                                 </div>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Tasks Modal */}
+            <AnimatePresence>
+                {selectedTasksMeeting && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+                        onClick={() => setSelectedTasksMeeting(null)}
+                    >
+                        <motion.div
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.9, opacity: 0 }}
+                            onClick={(e) => e.stopPropagation()}
+                            className="bg-gradient-to-br from-gray-900 to-black border border-white/10 rounded-2xl shadow-2xl max-w-4xl w-full max-h-[85vh] overflow-hidden flex flex-col"
+                        >
+                            <div className="flex items-center justify-between px-8 py-6 border-b border-white/5">
+                                <div>
+                                    <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+                                        <Mic className="text-blue-400" size={24} />
+                                        Action Items & Tasks
+                                    </h2>
+                                    <p className="text-sm text-gray-400 mt-1">
+                                        {getPlatformName(selectedTasksMeeting.meetingLink)} • {new Date(selectedTasksMeeting.createdAt).toLocaleDateString()}
+                                    </p>
+                                </div>
+                                <button onClick={() => setSelectedTasksMeeting(null)} className="text-gray-400 hover:text-white transition-colors">
+                                    <X size={24} />
+                                </button>
+                            </div>
+
+                            <div className="flex-1 overflow-y-auto px-8 py-6">
+                                {extractingTasks ? (
+                                    <div className="flex flex-col items-center justify-center h-full gap-4">
+                                        <Loader2 className="animate-spin text-blue-400" size={48} />
+                                        <div className="text-center">
+                                            <p className="text-white font-medium text-lg">Extracting tasks with AI...</p>
+                                            <p className="text-sm text-gray-400 mt-2">Analyzing transcript and identifying action items</p>
+                                        </div>
+                                    </div>
+                                ) : selectedTasksMeeting.extractedTasks && selectedTasksMeeting.extractedTasks.length > 0 ? (
+                                    <div className="space-y-3">
+                                        {selectedTasksMeeting.extractedTasks.map((task, index) => (
+                                            <motion.div
+                                                key={index}
+                                                initial={{ x: -20, opacity: 0 }}
+                                                animate={{ x: 0, opacity: 1 }}
+                                                transition={{ delay: index * 0.05 }}
+                                                className="p-4 bg-white/5 rounded-lg border border-white/5 hover:border-blue-500/30 transition-colors"
+                                            >
+                                                <div className="flex items-start gap-3">
+                                                    <div className="mt-1 w-5 h-5 rounded-full bg-blue-500/20 flex items-center justify-center flex-shrink-0">
+                                                        <span className="text-blue-400 text-xs font-bold">{index + 1}</span>
+                                                    </div>
+                                                    <div className="flex-1">
+                                                        <p className="text-white font-medium">{task.task || task}</p>
+                                                        {task.assignee && (
+                                                            <p className="text-sm text-gray-400 mt-1">
+                                                                <span className="text-gray-500">Assigned to:</span> {task.assignee}
+                                                            </p>
+                                                        )}
+                                                        {task.deadline && (
+                                                            <p className="text-sm text-gray-400 mt-1">
+                                                                <span className="text-gray-500">Deadline:</span> {task.deadline}
+                                                            </p>
+                                                        )}
+                                                        <div className="flex gap-2 mt-2">
+                                                            {task.priority && (
+                                                                <span className={`text-xs px-2 py-1 rounded-full ${
+                                                                    task.priority === 'high' ? 'bg-red-500/20 text-red-400' :
+                                                                    task.priority === 'medium' ? 'bg-yellow-500/20 text-yellow-400' :
+                                                                    'bg-green-500/20 text-green-400'
+                                                                }`}>
+                                                                    {task.priority}
+                                                                </span>
+                                                            )}
+                                                            {task.category && (
+                                                                <span className="text-xs px-2 py-1 rounded-full bg-blue-500/20 text-blue-400">
+                                                                    {task.category}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </motion.div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="flex flex-col items-center justify-center h-full gap-4 text-gray-600">
+                                        <Sparkles size={48} className="opacity-30 text-blue-400" />
+                                        <div className="text-center">
+                                            <p className="text-white text-lg font-medium mb-2">No tasks extracted yet</p>
+                                            <p className="text-sm text-gray-500 mb-6">
+                                                {selectedTasksMeeting.transcription ? 
+                                                    'Extract action items, assignments, and decisions from the meeting transcript using AI' : 
+                                                    'Please transcribe the meeting first before extracting tasks'}
+                                            </p>
+                                            {selectedTasksMeeting.transcription && (
+                                                <button
+                                                    onClick={() => extractTasks(selectedTasksMeeting)}
+                                                    className="px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 rounded-xl text-white text-sm font-semibold flex items-center gap-2 mx-auto transition-all"
+                                                >
+                                                    <Sparkles size={16} />
+                                                    Extract Tasks with AI
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="flex justify-between items-center gap-3 px-8 py-6 border-t border-white/5">
+                                <p className="text-xs text-gray-600">
+                                    {selectedTasksMeeting.extractedTasks?.length || 0} task(s)
+                                </p>
+                                <button onClick={() => setSelectedTasksMeeting(null)} className="px-6 py-3 rounded-xl text-sm font-semibold hover:bg-white/5 transition-colors">
+                                    Close
+                                </button>
                             </div>
                         </motion.div>
                     </motion.div>

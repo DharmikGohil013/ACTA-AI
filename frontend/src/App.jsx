@@ -10,6 +10,17 @@ const API_URL = 'http://localhost:3000';
 // Configure axios to send credentials
 axios.defaults.withCredentials = true;
 
+// Set up axios interceptor to include token in all requests
+axios.interceptors.request.use((config) => {
+    const token = localStorage.getItem('authToken');
+    if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+}, (error) => {
+    return Promise.reject(error);
+});
+
 // Navigation Component
 const Navigation = () => {
     const location = useLocation();
@@ -34,9 +45,28 @@ const Navigation = () => {
     useEffect(() => {
         const checkAuth = async () => {
             try {
-                const res = await axios.get(`${API_URL}/api/auth/user`, { withCredentials: true });
-                setUser(res.data.user);
-            } catch {
+                // Check URL for token (from OAuth redirect)
+                const urlParams = new URLSearchParams(window.location.search);
+                const tokenFromUrl = urlParams.get('token');
+                
+                if (tokenFromUrl) {
+                    // Store token in localStorage
+                    localStorage.setItem('authToken', tokenFromUrl);
+                    // Remove token from URL
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                }
+
+                // Try to get user with stored token
+                const token = localStorage.getItem('authToken');
+                if (token) {
+                    const res = await axios.get(`${API_URL}/api/auth/verify`);
+                    setUser(res.data.user);
+                } else {
+                    setUser(null);
+                }
+            } catch (err) {
+                // Token invalid or expired, clear it
+                localStorage.removeItem('authToken');
                 setUser(null);
             } finally {
                 setLoading(false);
@@ -51,7 +81,8 @@ const Navigation = () => {
 
     const handleLogout = async () => {
         try {
-            await axios.get(`${API_URL}/api/auth/logout`, { withCredentials: true });
+            await axios.get(`${API_URL}/api/auth/logout`);
+            localStorage.removeItem('authToken');
             setUser(null);
         } catch (err) {
             console.error('Logout failed:', err);

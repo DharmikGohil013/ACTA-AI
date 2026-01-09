@@ -5,12 +5,14 @@ const path = require('path');
 const dotenv = require('dotenv');
 const http = require('http');
 const session = require('express-session');
+const cookieParser = require('cookie-parser');
 
 // Load environment variables FIRST
 dotenv.config();
 
 // Import passport AFTER env vars are loaded
 const passport = require('./config/passport');
+const { generateToken, verifyToken, optionalAuth } = require('./middleware/auth');
 const { Server } = require('socket.io');
 const { runBot, stopBot, activeBots } = require('./bot/bot');
 const Meeting = require('./models/Meeting');
@@ -36,6 +38,7 @@ app.use(cors({
     credentials: true
 }));
 app.use(express.json());
+app.use(cookieParser());
 
 // Session configuration
 app.use(session({
@@ -82,17 +85,33 @@ app.get('/api/auth/google',
 app.get('/api/auth/google/callback',
     passport.authenticate('google', { failureRedirect: 'http://localhost:5173' }),
     (req, res) => {
-        // Successful authentication, redirect to frontend
-        res.redirect('http://localhost:5173');
+        // Generate JWT token
+        const token = generateToken(req.user);
+        
+        // Set token in httpOnly cookie
+        res.cookie('token', token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+            sameSite: 'lax'
+        });
+        
+        // Redirect to frontend with token in URL (for localStorage)
+        res.redirect(`http://localhost:5173?token=${token}`);
     }
 );
 
-app.get('/api/auth/user', (req, res) => {
-    if (req.isAuthenticated()) {
+app.get('/api/auth/user', optionalAuth, (req, res) => {
+    if (req.isAuthenticated() || req.user) {
         res.json({ user: req.user });
     } else {
         res.status(401).json({ user: null });
     }
+});
+
+// Verify JWT token
+app.get('/api/auth/verify', verifyToken, (req, res) => {
+    res.json({ user: req.user });
 });
 
 app.get('/api/auth/logout', (req, res) => {
@@ -100,6 +119,9 @@ app.get('/api/auth/logout', (req, res) => {
         if (err) {
             return res.status(500).json({ error: 'Logout failed' });
         }
+        
+        // Clear cookie
+        res.clearCookie('token');
         res.json({ success: true, message: 'Logged out successfully' });
     });
 });

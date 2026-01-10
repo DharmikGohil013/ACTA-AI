@@ -97,19 +97,19 @@ const Home = () => {
         setStatus({ type: 'info', message: 'Summoning bot...' });
 
         try {
-            await axios.post(`${API_URL}/api/join`, { 
+            await axios.post(`${API_URL}/api/join`, {
                 link,
                 meetingName: meetingName || 'Meeting',
                 botName: botName || 'AI Assistant'
             });
             setStatus({ type: 'success', message: 'Bot deployed! Audio recording will start automatically.' });
-            
+
             // Reset form after successful submission
             setLink('');
             setMeetingName('');
             setBotName('AI Assistant');
             setShowAdvanced(false);
-            
+
             setTimeout(() => navigate('/dashboard'), 2500);
         } catch (err) {
             setStatus({ type: 'error', message: err.response?.data?.error || 'Failed to summon bot' });
@@ -172,7 +172,7 @@ const Home = () => {
                             >
                                 {loading ? <Loader size={18} className="animate-spin" /> :
                                     <>
-                                        <span>ACTA AI Bot</span>
+                                        <span>ANALYZE MEETING</span>
                                         <ArrowRight size={16} />
                                     </>
                                 }
@@ -212,11 +212,10 @@ const Home = () => {
                                             <button
                                                 key={name}
                                                 onClick={() => setMeetingName(name)}
-                                                className={`text-xs px-3 py-1.5 rounded-full transition-colors ${
-                                                    meetingName === name
-                                                        ? 'bg-blue-600 text-white'
-                                                        : 'bg-white/10 text-slate-300 hover:bg-white/20'
-                                                }`}
+                                                className={`text-xs px-3 py-1.5 rounded-full transition-colors ${meetingName === name
+                                                    ? 'bg-blue-600 text-white'
+                                                    : 'bg-white/10 text-slate-300 hover:bg-white/20'
+                                                    }`}
                                             >
                                                 {name}
                                             </button>

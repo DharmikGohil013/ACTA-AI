@@ -304,7 +304,7 @@ const MeetingDashboard = () => {
                             exit={{ opacity: 0, y: -10 }}
                             transition={{ duration: 0.2 }}
                         >
-                            {activeTab === 'overview' && <OverviewTab data={data} />}
+                            {activeTab === 'overview' && <OverviewTab data={data} meetingId={id} />}
                             {activeTab === 'transcript' && <TranscriptTimelineTab data={data} exportToSRT={exportToSRT} />}
                             {activeTab === 'calendar' && <CalendarTab data={data} />}
                             {activeTab === 'analytics' && <AnalyticsTab data={data} />}
@@ -330,8 +330,40 @@ const MeetingDashboard = () => {
 
 // --- Sub-Components ---
 
-const OverviewTab = ({ data }) => {
+const OverviewTab = ({ data, meetingId }) => {
     const [activeHubTab, setActiveHubTab] = useState('email');
+    const [selectedLanguage, setSelectedLanguage] = useState('English');
+    const [translatedSummary, setTranslatedSummary] = useState(null);
+    const [isTranslating, setIsTranslating] = useState(false);
+
+    const handleTranslateSummary = async () => {
+        if (selectedLanguage === 'English') {
+            setTranslatedSummary(null);
+            return;
+        }
+
+        setIsTranslating(true);
+        try {
+            const res = await axios.post(`${API_URL}/api/meetings/${meetingId}/translate`, {
+                language: selectedLanguage,
+                target: 'summary'
+            });
+
+            if (res.data.success && res.data.summary) {
+                setTranslatedSummary(res.data.summary);
+            }
+        } catch (err) {
+            console.error('Translation error:', err);
+            // Could add a toast or error state here
+            alert('Failed to translate summary. Please try again.');
+        } finally {
+            setIsTranslating(false);
+        }
+    };
+
+    const displaySummary = (selectedLanguage !== 'English' && translatedSummary)
+        ? translatedSummary
+        : data.summary;
 
     return (
         <div className="space-y-6">
@@ -401,12 +433,37 @@ const OverviewTab = ({ data }) => {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Meeting Summary */}
                 <div className="lg:col-span-2 bg-[#1C1F2E] rounded-3xl p-6 border border-white/5 shadow-sm">
-                    <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                        <FileText size={18} className="text-gray-400" />
-                        Executive Summary
-                    </h3>
+                    <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                            <FileText size={18} className="text-gray-400" />
+                            Executive Summary
+                        </h3>
+
+                        <div className="flex items-center gap-2">
+                            <div className="bg-[#0B0E14] rounded-lg border border-white/10 p-0.5 flex items-center">
+                                <select
+                                    value={selectedLanguage}
+                                    onChange={(e) => setSelectedLanguage(e.target.value)}
+                                    className="bg-transparent text-white text-[10px] font-medium px-1.5 py-1 outline-none cursor-pointer"
+                                    disabled={isTranslating}
+                                >
+                                    <option value="English">English</option>
+                                    <option value="Hindi">Hindi</option>
+                                    <option value="Gujarati">Gujarati</option>
+                                </select>
+                            </div>
+                            <button
+                                onClick={handleTranslateSummary}
+                                disabled={isTranslating || selectedLanguage === 'English'}
+                                className="p-1.5 bg-emerald-600/20 hover:bg-emerald-600/40 text-emerald-400 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                                title="Translate Summary"
+                            >
+                                {isTranslating ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
+                            </button>
+                        </div>
+                    </div>
                     <p className="text-slate-300 leading-relaxed text-sm whitespace-pre-line">
-                        {data.summary}
+                        {displaySummary}
                     </p>
 
                     <div className="mt-6">

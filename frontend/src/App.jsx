@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
 import Home from './pages/Home';
 import Dashboard from './pages/Dashboard';
+import MeetingDashboard from './pages/MeetingDashboard';
 import Settings from './pages/Settings';
 import Profile from './pages/Profile';
 import Analysis from './pages/Analysis';
@@ -179,6 +180,7 @@ function App() {
                     <Route path="/analysis" element={<Analysis />} />
                     <Route path="/upload" element={<Upload />} />
                     <Route path="/dashboard" element={<Dashboard />} />
+                    <Route path="/dashboard/:id" element={<MeetingDashboard />} />
                     <Route path="/settings" element={<Settings />} />
                     <Route path="/profile" element={<Profile />} />
                 </Routes>

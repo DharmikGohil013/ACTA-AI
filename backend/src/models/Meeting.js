@@ -41,6 +41,10 @@ const MeetingSchema = new mongoose.Schema({
     type: Number,
     default: 0,
   },
+  analysis: {
+    type: Object,
+    default: null,
+  },
   userId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',

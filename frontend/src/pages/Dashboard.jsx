@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { io } from 'socket.io-client';
 import { Play, Pause, Mic, X, Trash2, Calendar, Clock, ExternalLink, StopCircle, Loader2, Volume2, Download, FileAudio, Wifi, WifiOff, FileText, Sparkles, Users, MoreVertical } from 'lucide-react';
@@ -56,6 +57,7 @@ const getPlatformDetails = (link) => {
 };
 
 const Dashboard = () => {
+    const navigate = useNavigate();
     const [meetings, setMeetings] = useState([]);
     const [loading, setLoading] = useState(true);
     const [selectedMeeting, setSelectedMeeting] = useState(null);
@@ -543,7 +545,7 @@ const Dashboard = () => {
                                             ) : (
                                                 <div className="flex gap-2">
                                                     <button
-                                                        onClick={() => meeting.transcription ? viewTranscript(meeting) : startTranscription(meeting)}
+                                                        onClick={() => meeting.transcription ? navigate(`/dashboard/${meeting._id}`) : startTranscription(meeting)}
                                                         className="flex-1 py-2.5 rounded-lg bg-[#1C1F2E] hover:bg-[#252a3d] border border-white/10 hover:border-white/20 text-white text-sm font-semibold transition-all shadow-lg flex items-center justify-center gap-2"
                                                     >
                                                         {meeting.transcription ? 'View Dashboard' : 'Start Transcription'}

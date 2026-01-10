@@ -97,7 +97,7 @@ const MeetingItem = ({ meeting, isLive = false, onStopBot, getPlatformFromLink, 
     }
 
     // Recent/completed meetings display 
-const platform = getPlatformFromLink(meeting.meetingLink);
+    const platform = getPlatformFromLink(meeting.meetingLink);
     const duration = formatDuration(meeting.createdAt);
 
     return (

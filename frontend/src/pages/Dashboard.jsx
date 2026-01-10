@@ -1,17 +1,58 @@
 import React, { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
 import { io } from 'socket.io-client';
-import { Play, Pause, Mic, X, Trash2, Calendar, Clock, ExternalLink, StopCircle, Loader2, Volume2, Download, FileAudio, Wifi, WifiOff, FileText, Sparkles, Users } from 'lucide-react';
+import { Play, Pause, Mic, X, Trash2, Calendar, Clock, ExternalLink, StopCircle, Loader2, Volume2, Download, FileAudio, Wifi, WifiOff, FileText, Sparkles, Users, MoreVertical } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+
+// Import Platform Logos
+import googleMeetLogo from '../assets/google-meet.png';
+import teamsLogo from '../assets/teams.png';
+import zoomLogo from '../assets/zoom.png';
 
 const API_URL = 'http://localhost:3000';
 
-const getPlatformName = (link) => {
-    if (!link) return 'Meeting';
-    if (link.includes('zoom.us')) return 'Zoom Meeting';
-    if (link.includes('meet.google.com')) return 'Google Meet';
-    if (link.includes('teams')) return 'Teams Meeting';
-    return 'Meeting';
+const getPlatformDetails = (link) => {
+    if (!link) return { name: 'Meeting', logo: null, color: 'text-gray-400', border: 'from-gray-700 to-gray-800', shadow: 'shadow-gray-500/20' };
+
+    if (link.includes('zoom.us')) return {
+        name: 'Zoom Meeting',
+        logo: zoomLogo,
+        color: 'text-blue-400',
+        bgColor: 'bg-blue-500',
+        border: 'from-blue-600 to-blue-900',
+        shadow: 'shadow-blue-500/20',
+        glow: 'group-hover:shadow-[0_0_30px_-5px_rgba(59,130,246,0.3)]'
+    };
+
+    if (link.includes('meet.google.com')) return {
+        name: 'Google Meet',
+        logo: googleMeetLogo,
+        color: 'text-emerald-400',
+        bgColor: 'bg-emerald-500',
+        border: 'from-emerald-500 to-green-900',
+        shadow: 'shadow-emerald-500/20',
+        glow: 'group-hover:shadow-[0_0_30px_-5px_rgba(16,185,129,0.3)]'
+    };
+
+    if (link.includes('teams')) return {
+        name: 'Microsoft Teams',
+        logo: teamsLogo,
+        color: 'text-indigo-400',
+        bgColor: 'bg-indigo-500',
+        border: 'from-indigo-600 to-purple-900',
+        shadow: 'shadow-indigo-500/20',
+        glow: 'group-hover:shadow-[0_0_30px_-5px_rgba(99,102,241,0.3)]'
+    };
+
+    return {
+        name: 'Web Meeting',
+        logo: null,
+        color: 'text-purple-400',
+        bgColor: 'bg-purple-500',
+        border: 'from-purple-600 to-pink-900',
+        shadow: 'shadow-purple-500/20',
+        glow: 'group-hover:shadow-[0_0_30px_-5px_rgba(168,85,247,0.3)]'
+    };
 };
 
 const Dashboard = () => {
@@ -79,7 +120,7 @@ const Dashboard = () => {
             setLiveTranscripts(prev => {
                 const meetingId = data.meetingId;
                 const transcripts = [...(prev[meetingId] || [])];
-                
+
                 if (data.isFinal) {
                     // Add final transcript
                     transcripts.push({
@@ -101,7 +142,7 @@ const Dashboard = () => {
                     });
                     return { ...prev, [meetingId]: filtered };
                 }
-                
+
                 return { ...prev, [meetingId]: transcripts };
             });
         });
@@ -111,8 +152,8 @@ const Dashboard = () => {
             console.log('[Live Transcript Status]', data.status, '-', data.message);
             setLiveStatus(prev => ({
                 ...prev,
-                [data.meetingId]: { 
-                    ...prev[data.meetingId], 
+                [data.meetingId]: {
+                    ...prev[data.meetingId],
                     liveStatus: data.status,
                     liveStatusMessage: data.message
                 }
@@ -274,129 +315,89 @@ const Dashboard = () => {
         setLiveOverlay(meeting);
     };
 
-    const getActiveMeetings = () => {
-        return meetings.filter(meeting => {
-            const status = liveStatus[meeting._id]?.status || meeting.status;
-            return ['starting', 'navigating', 'joining', 'waiting', 'in-meeting', 'recording'].includes(status);
-        });
-    };
-
     const getStatusInfo = (meeting) => {
         const live = liveStatus[meeting._id];
         const status = live?.status || meeting.status;
         const message = live?.message || '';
 
         switch (status) {
-            case 'starting': return { color: 'bg-blue-500', text: '🚀 Starting', pulse: true, message };
-            case 'navigating': return { color: 'bg-blue-500', text: '🌐 Opening', pulse: true, message };
-            case 'joining': return { color: 'bg-yellow-500', text: '🚪 Joining', pulse: true, message };
-            case 'waiting': return { color: 'bg-yellow-500', text: '⏳ Waiting', pulse: true, message };
-            case 'in-meeting': return { color: 'bg-orange-500', text: '📍 In Meeting', pulse: true, message };
-            case 'recording': return { color: 'bg-red-500', text: '🔴 Recording', pulse: true, message: live?.size ? `${live.size} MB` : message };
-            case 'completed': return { color: 'bg-green-500', text: '✅ Completed', pulse: false, message };
-            case 'failed': return { color: 'bg-red-600', text: '❌ Failed', pulse: false, message };
+            case 'starting': return { color: 'bg-blue-500', text: 'Live', pulse: true, message };
+            case 'navigating': return { color: 'bg-blue-500', text: 'Live', pulse: true, message };
+            case 'joining': return { color: 'bg-yellow-500', text: 'Live', pulse: true, message };
+            case 'waiting': return { color: 'bg-yellow-500', text: 'Live', pulse: true, message };
+            case 'in-meeting': return { color: 'bg-orange-500', text: 'Live', pulse: true, message };
+            case 'recording': return { color: 'bg-red-500', text: 'Live', pulse: true, message: live?.size ? `${live.size} MB` : message };
+            case 'completed': return { color: 'bg-emerald-500', text: 'Completed', pulse: false, message };
+            case 'failed': return { color: 'bg-red-600', text: 'Failed', pulse: false, message };
             default: return { color: 'bg-gray-500', text: status || 'Pending', pulse: false, message };
         }
     };
 
     return (
-        <div className="max-w-6xl mx-auto w-full px-6 py-8">
-            <header className="flex justify-between items-center mb-8">
-                <div>
-                    <h1 className="text-4xl font-bold mb-2">Meeting Archives</h1>
-                    <p className="text-gray-400 font-light flex items-center gap-2">
+        <div className="max-w-[1400px] mx-auto w-full px-6 py-8">
+            <header className="flex justify-between items-center mb-10">
+                <div className="flex items-center gap-4">
+                    <h1 className="text-3xl font-bold tracking-tight text-white">Meetings Archive</h1>
+                    <div className="h-6 w-px bg-white/10"></div>
+                    <p className="text-gray-400 font-medium flex items-center gap-2 text-sm">
                         <Volume2 size={16} className="text-purple-500" />
-                        {meetings.filter(m => m.audioPath).length} Audio Recordings
+                        {meetings.filter(m => m.audioPath).length} Recordings
                     </p>
+                </div>
+
+                {/* Search Bar - Visual Only for now */}
+                <div className="flex-1 max-w-xl mx-8 hidden md:block">
+                    <div className="relative group">
+                        <div className="absolute inset-0 bg-gradient-to-r from-purple-500/20 to-blue-500/20 rounded-full blur-md opacity-0 group-hover:opacity-100 transition-opacity" />
+                        <div className="relative flex items-center bg-[#0B0E14] border border-white/10 rounded-full px-4 py-2.5 focus-within:border-white/30 transition-colors">
+                            <Sparkles size={16} className="text-gray-500 mr-2" />
+                            <input
+                                type="text"
+                                placeholder="Search Meetings..."
+                                className="bg-transparent border-none outline-none text-sm text-white w-full placeholder-gray-600"
+                            />
+                        </div>
+                    </div>
                 </div>
 
                 <div className="flex items-center gap-3">
                     {/* Test Button */}
                     <button
                         onClick={createSampleMeeting}
-                        className="px-4 py-2 bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 rounded-lg text-sm font-semibold flex items-center gap-2 transition-all"
+                        className="px-4 py-2.5 bg-white/5 hover:bg-white/10 rounded-full text-sm font-medium border border-white/10 transition-all flex items-center gap-2"
                     >
-                        <Sparkles size={16} />
-                        Create Test Meeting
+                        <Sparkles size={14} className="text-purple-400" />
+                        Test Record
                     </button>
 
-                    {/* Connection Status */}
-                    <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs ${connected ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'}`}>
+                    <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold ${connected ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-red-500/10 text-red-400 border border-red-500/20'}`}>
                         {connected ? <Wifi size={14} /> : <WifiOff size={14} />}
-                        {connected ? 'Live' : 'Offline'}
+                        {connected ? 'ONLINE' : 'OFFLINE'}
                     </div>
                 </div>
             </header>
 
-            {/* Active Live Meetings Section */}
-            {getActiveMeetings().length > 0 && (
-                <div className="mb-8">
-                    <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-                        <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-                        Live Meetings ({getActiveMeetings().length})
-                    </h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {getActiveMeetings().map((meeting) => {
-                            const statusInfo = getStatusInfo(meeting);
-                            const liveData = liveStatus[meeting._id] || {};
-
-                            return (
-                                <motion.div
-                                    key={`live-${meeting._id}`}
-                                    initial={{ opacity: 0, scale: 0.95 }}
-                                    animate={{ opacity: 1, scale: 1 }}
-                                    className="glass rounded-xl p-5 border-2 border-red-500/30 shadow-lg shadow-red-500/20 cursor-pointer hover:border-red-500/50 transition-all hover:scale-[1.02]"
-                                    onClick={() => openLiveOverlay(meeting)}
-                                >
-                                    <div className="flex items-center justify-between mb-3">
-                                        <div className="flex items-center gap-2">
-                                            <span className={`w-3 h-3 rounded-full ${statusInfo.color} animate-pulse`} />
-                                            <span className="font-bold text-white">{statusInfo.text}</span>
-                                        </div>
-                                        {liveData.size && (
-                                            <span className="text-xs text-gray-400">{liveData.size} MB</span>
-                                        )}
-                                    </div>
-
-                                    <div className="text-sm text-gray-300 mb-2 truncate">
-                                        {meeting.meetingUrl || 'Meeting in progress...'}
-                                    </div>
-
-                                    <div className="flex items-center gap-2 text-xs text-gray-500">
-                                        <Clock size={12} />
-                                        {new Date(meeting.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                    </div>
-
-                                    {liveTranscripts[meeting._id] && liveTranscripts[meeting._id].length > 0 && (
-                                        <div className="mt-3 p-2 bg-purple-500/10 rounded-lg border border-purple-500/20">
-                                            <p className="text-xs text-purple-300 line-clamp-2">
-                                                {liveTranscripts[meeting._id][liveTranscripts[meeting._id].length - 1].text}
-                                            </p>
-                                        </div>
-                                    )}
-                                </motion.div>
-                            );
-                        })}
+            {loading && meetings.length === 0 ? (
+                <div className="flex justify-center py-40">
+                    <div className="flex flex-col items-center">
+                        <div className="relative">
+                            <div className="absolute inset-0 bg-purple-500 blur-xl opacity-20 animate-pulse"></div>
+                            <Loader2 className="animate-spin text-purple-400 relative z-10" size={40} />
+                        </div>
+                        <p className="mt-4 text-gray-500 font-medium">Loading archives...</p>
                     </div>
                 </div>
-            )}
-
-            {loading && meetings.length === 0 ? (
-                <div className="flex justify-center py-20 text-gray-500 animate-pulse">
-                    <Loader2 className="animate-spin mr-2" /> Loading...
-                </div>
             ) : meetings.length === 0 ? (
-                <div className="text-center py-20 text-gray-500">
+                <div className="text-center py-20 text-gray-500 border border-dashed border-white/10 rounded-3xl bg-white/5">
                     <FileAudio size={60} className="mx-auto mb-4 opacity-30" />
-                    <p className="text-xl mb-2">No recordings yet</p>
+                    <p className="text-xl mb-2 font-semibold text-gray-400">No recordings found</p>
                     <p className="text-sm">Summon your first bot from the home page!</p>
                 </div>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {meetings.map((meeting, i) => {
                         const statusInfo = getStatusInfo(meeting);
-                        const isActive = ['starting', 'navigating', 'joining', 'waiting', 'in-meeting', 'recording'].includes(statusInfo.text.toLowerCase().replace(/[^a-z-]/g, '')) ||
-                            liveStatus[meeting._id]?.status;
+                        const platform = getPlatformDetails(meeting.meetingLink);
 
                         return (
                             <motion.div
@@ -404,166 +405,165 @@ const Dashboard = () => {
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: i * 0.05 }}
-                                className={`glass rounded-2xl p-6 relative group border transition-colors ${isActive ? 'border-purple-500/30 shadow-lg shadow-purple-500/10' : 'border-white/5 hover:border-white/10'
-                                    }`}
+                                className="group relative"
                             >
-                                {/* Status Badge */}
-                                <div className="flex items-center gap-2 mb-4">
-                                    <span className={`w-2.5 h-2.5 rounded-full ${statusInfo.color} ${statusInfo.pulse ? 'animate-pulse' : ''}`} />
-                                    <span className="text-sm font-medium text-white">{statusInfo.text}</span>
-                                    {statusInfo.message && (
-                                        <span className="text-xs text-gray-500 ml-auto">{statusInfo.message}</span>
-                                    )}
-                                </div>
+                                {/* Glow Effect */}
+                                <div className={`absolute -inset-0.5 rounded-2xl bg-gradient-to-br ${platform.border} opacity-50 blur opacity-0 group-hover:opacity-100 transition duration-500`}></div>
 
-                                {/* Date */}
-                                <div className="flex items-center gap-2 text-xs text-purple-300 mb-3 font-medium uppercase tracking-wide">
-                                    <Calendar size={12} />
-                                    {new Date(meeting.createdAt).toLocaleDateString()}
-                                    <span className="text-gray-600">|</span>
-                                    <Clock size={12} />
-                                    {new Date(meeting.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                </div>
+                                <div className="relative bg-[#0B0E14] rounded-2xl overflow-hidden h-full flex flex-col border border-white/10 group-hover:border-white/20 transition-colors">
 
-                                <h3 className="text-lg font-semibold mb-2 text-white/90 truncate">
-                                    {meeting.topic || getPlatformName(meeting.meetingLink)}
-                                </h3>
+                                    {/* Header */}
+                                    <div className="p-5 pb-0">
+                                        <div className="flex justify-between items-start mb-4">
+                                            <div className="flex items-center gap-3">
+                                                {platform.logo ? (
+                                                    <img src={platform.logo} alt={platform.name} className="w-8 h-8 object-contain" />
+                                                ) : (
+                                                    <div className={`w-8 h-8 rounded-lg ${platform.bgColor} bg-opacity-20 flex items-center justify-center`}>
+                                                        <Volume2 size={16} className={platform.color} />
+                                                    </div>
+                                                )}
+                                                <div>
+                                                    <h3 className="font-bold text-white text-base leading-tight line-clamp-1">
+                                                        {meeting.extraData?.topic || platform.name}
+                                                    </h3>
+                                                    <div className="flex items-center gap-2 text-xs text-gray-400 mt-1">
+                                                        <span>{new Date(meeting.createdAt).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
 
-                                <div className="flex items-center gap-2 text-xs text-gray-500 mb-4 truncate bg-black/20 p-2 rounded-lg">
-                                    <ExternalLink size={12} />
-                                    <span className="truncate">{meeting.meetingLink}</span>
-                                </div>
+                                            <div className={`flex items-center gap-1.5 px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${statusInfo.text === 'Live' ? 'bg-red-500/10 text-red-500 border-red-500/20' :
+                                                'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'
+                                                }`}>
+                                                <div className={`w-1.5 h-1.5 rounded-full ${statusInfo.color} ${statusInfo.pulse ? 'animate-pulse' : ''}`} />
+                                                {statusInfo.text}
+                                            </div>
+                                        </div>
+                                    </div>
 
-                                {/* Audio Player or Status */}
-                                {meeting.audioPath ? (
-                                    <div className="mb-4">
+                                    {/* Body */}
+                                    <div className="flex-1 px-5 py-2">
+                                        <div className="mb-3">
+                                            <a
+                                                href={meeting.meetingLink}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="flex items-center gap-2 text-xs text-gray-400 hover:text-white transition-colors group/link p-2 rounded-lg bg-white/5 border border-white/5 hover:bg-white/10"
+                                            >
+                                                <ExternalLink size={12} className="text-gray-500 group-hover/link:text-white" />
+                                                <span className="truncate max-w-[200px]">{meeting.meetingLink}</span>
+                                            </a>
+                                        </div>
+                                        <div className="bg-[#1C1F2E] rounded-xl p-4 min-h-[100px] border border-white/5 relative group/content">
+                                            {meeting.transcription ? (
+                                                <>
+                                                    <p className="text-gray-400 text-sm line-clamp-3 leading-relaxed">
+                                                        {meeting.transcription}
+                                                    </p>
+                                                    <div className="absolute top-2 right-2 opacity-0 group-hover/content:opacity-100 transition-opacity">
+                                                        <Sparkles size={12} className="text-purple-400" />
+                                                    </div>
+                                                </>
+                                            ) : (
+                                                <div className="h-full flex flex-col items-center justify-center text-gray-600 gap-2">
+                                                    <div className="w-full space-y-2 opacity-30">
+                                                        <div className="h-2 bg-gray-500 rounded w-3/4"></div>
+                                                        <div className="h-2 bg-gray-500 rounded w-full"></div>
+                                                        <div className="h-2 bg-gray-500 rounded w-1/2"></div>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Footer */}
+                                    <div className="p-5 pt-2 mt-auto">
+                                        {/* Action Button */}
+                                        <div className="mb-4">
+                                            {statusInfo.text === 'Live' ? (
+                                                <button
+                                                    onClick={() => openLiveOverlay(meeting)}
+                                                    className="w-full py-2.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 text-sm font-semibold transition-all flex items-center justify-center gap-2 group-hover:shadow-[0_0_20px_-5px_rgba(239,68,68,0.2)]"
+                                                >
+                                                    <div className="relative flex h-2 w-2">
+                                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                                                        <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                                                    </div>
+                                                    View Live Transcript
+                                                </button>
+                                            ) : (
+                                                <div className="flex gap-2">
+                                                    <button
+                                                        onClick={() => meeting.transcription ? viewTranscript(meeting) : startTranscription(meeting)}
+                                                        className="flex-1 py-2.5 rounded-lg bg-[#1C1F2E] hover:bg-[#252a3d] border border-white/10 hover:border-white/20 text-white text-sm font-semibold transition-all shadow-lg flex items-center justify-center gap-2"
+                                                    >
+                                                        {meeting.transcription ? 'View Dashboard' : 'Start Transcription'}
+                                                    </button>
+
+                                                    {meeting.transcription && (
+                                                        <button
+                                                            onClick={() => setSelectedTasksMeeting(meeting)}
+                                                            className="px-4 py-2.5 rounded-lg bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/20 hover:border-purple-500/40 text-purple-400 hover:text-purple-300 transition-all flex items-center justify-center gap-2"
+                                                            title="View Action Items & Tasks"
+                                                        >
+                                                            <Mic size={16} />
+                                                            <span className="hidden xl:inline">Tasks</span>
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <div className="flex items-center justify-between border-t border-white/5 pt-4">
+                                            <div className="flex items-center gap-3">
+                                                {meeting.totalSpeakers ? (
+                                                    <div className="flex items-center gap-2 pl-2 pr-3 py-1.5 bg-gradient-to-r from-purple-500/10 to-blue-500/10 border border-purple-500/20 rounded-full group/speakers hover:border-purple-500/40 transition-colors">
+                                                        <div className="flex -space-x-2">
+                                                            {[...Array(Math.min(3, meeting.totalSpeakers))].map((_, idx) => (
+                                                                <div key={idx} className="w-5 h-5 rounded-full bg-gray-800 border-2 border-[#1C1F2E] flex items-center justify-center overflow-hidden relative z-[3] first:ml-0">
+                                                                    <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${meeting._id}-${idx}`} alt="avatar" className="w-full h-full" />
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                        <span className="text-xs font-semibold text-purple-300">
+                                                            {meeting.totalSpeakers} Speakers
+                                                        </span>
+                                                    </div>
+                                                ) : (
+                                                    <div className="flex items-center gap-2 text-xs text-gray-500 px-2 py-1 bg-white/5 rounded-lg border border-white/5">
+                                                        <Users size={12} />
+                                                        <span>No speakers yet</span>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            <div className="flex gap-2">
+                                                {meeting.audioPath && (
+                                                    <button
+                                                        onClick={() => togglePlay(meeting._id, meeting.audioPath)}
+                                                        className={`p-2 rounded-full transition-colors ${playing === meeting._id ? 'bg-purple-500 text-white' : 'bg-white/5 text-gray-400 hover:text-white hover:bg-white/10'}`}
+                                                    >
+                                                        {playing === meeting._id ? <Pause size={14} /> : <Play size={14} />}
+                                                    </button>
+                                                )}
+
+                                                <button onClick={() => deleteMeeting(meeting._id)} className="p-2 rounded-full bg-white/5 text-gray-400 hover:text-red-400 hover:bg-white/10 transition-colors">
+                                                    <Trash2 size={14} />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Audio Element Hidden */}
+                                    {meeting.audioPath && (
                                         <audio
                                             ref={el => audioRefs.current[meeting._id] = el}
                                             src={`${API_URL}${meeting.audioPath}`}
                                             onEnded={() => setPlaying(null)}
                                             className="hidden"
                                         />
-                                        <div className="p-1 bg-white/5 rounded-full flex items-center gap-3 pr-4 border border-white/5">
-                                            <button
-                                                onClick={() => togglePlay(meeting._id, meeting.audioPath)}
-                                                className="w-10 h-10 bg-white text-black rounded-full flex items-center justify-center hover:bg-purple-200 transition-colors shadow-lg"
-                                            >
-                                                {playing === meeting._id ? <Pause size={16} /> : <Play size={16} className="ml-0.5" />}
-                                            </button>
-                                            <div className="flex-1 flex items-center gap-1 h-8 opacity-60">
-                                                {[...Array(12)].map((_, j) => (
-                                                    <div key={j} className={`flex-1 bg-white rounded-full ${playing === meeting._id ? 'animate-pulse' : ''}`} style={{ height: `${30 + Math.random() * 60}%` }} />
-                                                ))}
-                                            </div>
-                                        </div>
-                                        <div className="flex items-center justify-between mt-2">
-                                            <p className="text-xs text-green-400 flex items-center gap-1">
-                                                <Volume2 size={10} /> Audio available
-                                            </p>
-                                            <a href={`${API_URL}${meeting.audioPath}`} download className="text-xs text-gray-500 hover:text-white flex items-center gap-1">
-                                                <Download size={12} /> Download
-                                            </a>
-                                        </div>
-                                    </div>
-                                ) : liveStatus[meeting._id]?.status === 'recording' ? (
-                                    <div className="mb-4">
-                                        <div className="p-4 bg-gradient-to-r from-red-500/10 to-orange-500/10 rounded-lg border border-red-500/20">
-                                            <div className="flex items-center gap-2 mb-2">
-                                                <span className="w-3 h-3 bg-red-500 rounded-full animate-pulse" />
-                                                <span className="text-sm text-red-400 font-medium">Recording...</span>
-                                                {liveStatus[meeting._id]?.size && (
-                                                    <span className="ml-auto text-xs text-gray-400">{liveStatus[meeting._id].size} MB</span>
-                                                )}
-                                            </div>
-                                            <div className="w-full bg-white/5 rounded-full h-1 overflow-hidden">
-                                                <div className="h-full bg-gradient-to-r from-red-500 to-orange-500 animate-pulse" style={{ width: '60%' }} />
-                                            </div>
-                                        </div>
-
-                                        {/* Live Transcript Display */}
-                                        {liveTranscripts[meeting._id] && liveTranscripts[meeting._id].length > 0 && (
-                                            <div className="mt-3 p-4 bg-gradient-to-br from-purple-500/10 to-blue-500/10 rounded-lg border border-purple-500/20 max-h-48 overflow-y-auto">
-                                                <div className="flex items-center gap-2 mb-3">
-                                                    <Sparkles size={14} className="text-purple-400" />
-                                                    <span className="text-xs font-semibold text-purple-400 uppercase tracking-wide">Live Transcript (Deepgram)</span>
-                                                    <span className="ml-auto text-xs text-gray-500">Real-time AI</span>
-                                                </div>
-                                                <div className="space-y-2">
-                                                    {liveTranscripts[meeting._id].slice(-3).map((transcript, idx) => (
-                                                        <motion.div
-                                                            key={`${meeting._id}-${transcript.id || idx}`}
-                                                            initial={{ opacity: 0, x: -20 }}
-                                                            animate={{ opacity: 1, x: 0 }}
-                                                            className={`text-sm p-2 rounded border-l-2 ${
-                                                                transcript.isFinal
-                                                                    ? 'bg-green-500/10 border-green-400 text-gray-200'
-                                                                    : 'bg-yellow-500/10 border-yellow-400 text-gray-300 opacity-75'
-                                                            }`}
-                                                        >
-                                                            <div className="flex items-center gap-2 mb-1">
-                                                                <span className="text-xs font-semibold">
-                                                                    {transcript.isFinal ? '✅' : '⏳'}
-                                                                </span>
-                                                                <span className="text-xs text-gray-500">
-                                                                    {new Date(transcript.timestamp).toLocaleTimeString()}
-                                                                </span>
-                                                            </div>
-                                                            <p className="text-white/90">{transcript.text}</p>
-                                                        </motion.div>
-                                                    ))}
-                                                </div>
-                                                {liveTranscripts[meeting._id].length > 3 && (
-                                                    <p className="text-xs text-gray-500 mt-2 text-center">
-                                                        {liveTranscripts[meeting._id].length} total transcripts
-                                                    </p>
-                                                )}
-                                            </div>
-                                        )}
-                                    </div>
-                                ) : liveStatus[meeting._id] ? (
-                                    <div className="mb-4 p-3 bg-purple-500/10 rounded-lg border border-purple-500/20">
-                                        <p className="text-sm text-purple-400">{liveStatus[meeting._id].message || 'Processing...'}</p>
-                                    </div>
-                                ) : null}
-
-                                {/* Transcript Preview */}
-                                {meeting.transcription && (
-                                    <div className="text-sm text-gray-400 mb-4 line-clamp-2 p-3 bg-white/5 rounded-lg border border-white/5">
-                                        <span className="text-purple-400 text-xs">📝</span> {meeting.transcription.substring(0, 100)}...
-                                    </div>
-                                )}
-
-                                {/* Actions */}
-                                <div className="flex flex-wrap items-center gap-2 pt-4 border-t border-white/5">
-                                    {(liveStatus[meeting._id] || ['in-meeting', 'recording', 'joining'].includes(meeting.status)) && meeting.status !== 'completed' && (
-                                        <button onClick={() => stopBot(meeting._id)} className="text-red-400 text-xs font-bold hover:text-red-300 flex items-center gap-1 px-3 py-1.5 rounded-lg bg-red-500/10">
-                                            <StopCircle size={14} /> Stop
-                                        </button>
                                     )}
-
-                                    {meeting.audioPath && (
-                                        <>
-                                            {meeting.transcription ? (
-                                                <button onClick={() => viewTranscript(meeting)} className="text-green-400 text-xs font-bold hover:text-green-300 flex items-center gap-1 px-3 py-1.5 rounded-lg bg-green-500/10 hover:bg-green-500/20 transition-colors">
-                                                    <FileText size={14} /> View Transcript
-                                                </button>
-                                            ) : (
-                                                <button onClick={() => startTranscription(meeting)} className="text-purple-400 text-xs font-bold hover:text-purple-300 flex items-center gap-1 px-3 py-1.5 rounded-lg bg-purple-500/10 hover:bg-purple-500/20 transition-colors">
-                                                    <Sparkles size={14} /> AI Transcribe
-                                                </button>
-                                            )}
-                                            
-                                            {meeting.transcription && (
-                                                <button onClick={() => setSelectedTasksMeeting(meeting)} className="text-blue-400 text-xs font-bold hover:text-blue-300 flex items-center gap-1 px-3 py-1.5 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 transition-colors">
-                                                    <Mic size={14} /> Tasks
-                                                </button>
-                                            )}
-                                        </>
-                                    )}
-
-                                    <button onClick={() => deleteMeeting(meeting._id)} className="ml-auto text-gray-600 hover:text-red-400 transition-colors p-2">
-                                        <Trash2 size={16} />
-                                    </button>
                                 </div>
                             </motion.div>
                         );
@@ -681,11 +681,10 @@ const Dashboard = () => {
                                                     key={item.id || idx}
                                                     initial={{ opacity: 0, y: 10 }}
                                                     animate={{ opacity: 1, y: 0 }}
-                                                    className={`p-3 rounded-lg transition-colors ${
-                                                        item.isFinal
-                                                            ? 'bg-green-500/5 border border-green-500/20 hover:bg-green-500/10'
-                                                            : 'bg-yellow-500/5 border border-yellow-500/20 hover:bg-yellow-500/10 opacity-70'
-                                                    }`}
+                                                    className={`p-3 rounded-lg transition-colors ${item.isFinal
+                                                        ? 'bg-green-500/5 border border-green-500/20 hover:bg-green-500/10'
+                                                        : 'bg-yellow-500/5 border border-yellow-500/20 hover:bg-yellow-500/10 opacity-70'
+                                                        }`}
                                                 >
                                                     <div className="flex items-center gap-2 mb-1 text-xs text-gray-500">
                                                         {item.isFinal ? (
@@ -923,7 +922,7 @@ const Dashboard = () => {
                                         Action Items & Tasks
                                     </h2>
                                     <p className="text-sm text-gray-400 mt-1">
-                                        {getPlatformName(selectedTasksMeeting.meetingLink)} • {new Date(selectedTasksMeeting.createdAt).toLocaleDateString()}
+                                        {getPlatformDetails(selectedTasksMeeting.meetingLink).name} • {new Date(selectedTasksMeeting.createdAt).toLocaleDateString()}
                                     </p>
                                 </div>
                                 <button onClick={() => setSelectedTasksMeeting(null)} className="text-gray-400 hover:text-white transition-colors">
@@ -968,11 +967,10 @@ const Dashboard = () => {
                                                         )}
                                                         <div className="flex gap-2 mt-2">
                                                             {task.priority && (
-                                                                <span className={`text-xs px-2 py-1 rounded-full ${
-                                                                    task.priority === 'high' ? 'bg-red-500/20 text-red-400' :
+                                                                <span className={`text-xs px-2 py-1 rounded-full ${task.priority === 'high' ? 'bg-red-500/20 text-red-400' :
                                                                     task.priority === 'medium' ? 'bg-yellow-500/20 text-yellow-400' :
-                                                                    'bg-green-500/20 text-green-400'
-                                                                }`}>
+                                                                        'bg-green-500/20 text-green-400'
+                                                                    }`}>
                                                                     {task.priority}
                                                                 </span>
                                                             )}
@@ -993,8 +991,8 @@ const Dashboard = () => {
                                         <div className="text-center">
                                             <p className="text-white text-lg font-medium mb-2">No tasks extracted yet</p>
                                             <p className="text-sm text-gray-500 mb-6">
-                                                {selectedTasksMeeting.transcription ? 
-                                                    'Extract action items, assignments, and decisions from the meeting transcript using AI' : 
+                                                {selectedTasksMeeting.transcription ?
+                                                    'Extract action items, assignments, and decisions from the meeting transcript using AI' :
                                                     'Please transcribe the meeting first before extracting tasks'}
                                             </p>
                                             {selectedTasksMeeting.transcription && (

@@ -1,16 +1,18 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-    AreaChart, Area
+    AreaChart, Area, PieChart, Pie, Cell, Legend
 } from 'recharts';
 import {
     ArrowLeft, Plus, Search, Bell, Clock, CheckCircle2, ShieldCheck,
-    Copy, Zap, AlertTriangle, FileText, Loader2
+    Copy, Zap, AlertTriangle, FileText, Loader2, Calendar,
+    MessageSquare, BarChart2, LayoutDashboard, ChevronRight, Send, User,
+    MoreHorizontal, Filter, ChevronDown, RefreshCw
 } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const API_URL = 'http://localhost:3000';
 
@@ -21,27 +23,34 @@ const MeetingDashboard = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [generating, setGenerating] = useState(false);
-    const [activeHubTab, setActiveHubTab] = useState('email');
+    const [activeTab, setActiveTab] = useState('overview');
+
+    // Ask AI State
+    const [chatQuery, setChatQuery] = useState('');
+    const [chatHistory, setChatHistory] = useState([]);
+    const [askingAi, setAskingAi] = useState(false);
+    const chatEndRef = useRef(null);
 
     useEffect(() => {
         fetchDashboardData();
     }, [id]);
 
+    useEffect(() => {
+        if (activeTab === 'ask-ai' && chatEndRef.current) {
+            chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
+        }
+    }, [chatHistory, activeTab]);
+
     const fetchDashboardData = async () => {
         try {
             const res = await axios.get(`${API_URL}/api/meetings/${id}/analysis`);
-            console.log('[Dashboard] API Response:', res.data);
             if (res.data.success && res.data.analysis) {
-                console.log('[Dashboard] Action Items:', res.data.analysis.actionItems);
-                console.log('[Dashboard] Action Items Count:', res.data.analysis.actionItems?.length || 0);
                 setData(res.data.analysis);
             } else {
-                // No analysis yet
                 setData(null);
             }
         } catch (err) {
             console.error('Error fetching dashboard:', err);
-            // If 404 on analysis, it just means not generated. If 404 on meeting, that's an error.
             if (err.response?.status === 404 && err.response?.data?.error === 'Meeting not found') {
                 setError('Meeting not found');
             }
@@ -54,9 +63,7 @@ const MeetingDashboard = () => {
         setGenerating(true);
         try {
             const res = await axios.post(`${API_URL}/api/meetings/${id}/analyze`);
-            console.log('[Dashboard] Generate Analysis Response:', res.data);
             if (res.data.success) {
-                console.log('[Dashboard] Generated Action Items:', res.data.analysis.actionItems);
                 setData(res.data.analysis);
             }
         } catch (err) {
@@ -67,15 +74,31 @@ const MeetingDashboard = () => {
         }
     };
 
-    const copyToClipboard = (text, label) => {
-        navigator.clipboard.writeText(text);
-        alert(`${label} copied!`);
+    const handleAskAi = async (e) => {
+        e.preventDefault();
+        if (!chatQuery.trim()) return;
+
+        const userMsg = { role: 'user', content: chatQuery };
+        setChatHistory(prev => [...prev, userMsg]);
+        setChatQuery('');
+        setAskingAi(true);
+
+        try {
+            const res = await axios.post(`${API_URL}/api/meetings/${id}/ask`, { question: userMsg.content });
+            if (res.data.success) {
+                setChatHistory(prev => [...prev, { role: 'ai', content: res.data.answer }]);
+            }
+        } catch (err) {
+            setChatHistory(prev => [...prev, { role: 'error', content: 'Failed to get answer.' }]);
+        } finally {
+            setAskingAi(false);
+        }
     };
 
     if (loading) {
         return (
             <div className="flex h-screen items-center justify-center bg-[#0B0E14] text-white">
-                <Loader2 className="animate-spin text-purple-500" size={40} />
+                <Loader2 className="animate-spin text-emerald-500" size={40} />
             </div>
         );
     }
@@ -100,10 +123,9 @@ const MeetingDashboard = () => {
         return (
             <div className="flex h-screen flex-col items-center justify-center bg-[#0B0E14] text-white gap-6 p-6 text-center">
                 <div className="relative">
-                    <div className="absolute inset-0 bg-purple-500 blur-2xl opacity-20 animate-pulse"></div>
-                    <Zap className="relative z-10 text-purple-400" size={64} />
+                    <div className="absolute inset-0 bg-emerald-500 blur-2xl opacity-20 animate-pulse"></div>
+                    <Zap className="relative z-10 text-emerald-400" size={64} />
                 </div>
-
                 <div>
                     <h2 className="text-3xl font-bold mb-2">Ready to Analyze</h2>
                     <p className="text-gray-400 max-w-md mx-auto">
@@ -111,11 +133,10 @@ const MeetingDashboard = () => {
                         Generate a professional dashboard powered by Gemini AI.
                     </p>
                 </div>
-
                 <button
                     onClick={generateAnalysis}
                     disabled={generating}
-                    className="px-8 py-3 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white rounded-xl font-bold shadow-lg shadow-purple-500/20 transition-all flex items-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105"
+                    className="px-8 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl font-bold shadow-lg shadow-emerald-500/20 transition-all flex items-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105"
                 >
                     {generating ? (
                         <>
@@ -129,7 +150,6 @@ const MeetingDashboard = () => {
                         </>
                     )}
                 </button>
-
                 <button
                     onClick={() => navigate('/dashboard')}
                     className="text-gray-500 hover:text-white transition-colors text-sm"
@@ -140,78 +160,158 @@ const MeetingDashboard = () => {
         );
     }
 
+    const tabs = [
+        { id: 'overview', label: 'Overview', icon: LayoutDashboard },
+        { id: 'tasks', label: 'Tasks & Actions', icon: CheckCircle2 },
+        { id: 'calendar', label: 'Calendar', icon: Calendar },
+        { id: 'analytics', label: 'Analytics', icon: BarChart2 },
+        { id: 'ask-ai', label: 'Ask AI', icon: MessageSquare },
+    ];
+
     return (
-        <div className="min-h-screen bg-[#0B0E14] text-slate-100 p-4 lg:p-8 pb-24">
+        <div className="min-h-screen bg-[#0B0E14] text-slate-100 flex flex-col font-sans selection:bg-emerald-500/30">
             {/* Header */}
-            <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-                <div className="flex items-center gap-4">
-                    <button
-                        onClick={() => navigate('/dashboard')}
-                        className="p-2 bg-white/5 rounded-xl hover:bg-white/10 transition-colors"
-                    >
-                        <ArrowLeft size={20} className="text-gray-400" />
-                    </button>
-                    <div>
-                        <h1 className="text-2xl lg:text-3xl font-bold text-white mb-1">{data.title}</h1>
-                        <div className="flex items-center gap-2 text-gray-400 text-sm">
-                            <Clock size={14} className="text-purple-400" />
-                            <span>{data.date} • {data.totalDuration}</span>
+            <header className="sticky top-0 z-50 bg-[#0B0E14]/80 backdrop-blur-xl border-b border-white/5">
+                <div className="px-6 h-16 flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                        <button
+                            onClick={() => navigate('/dashboard')}
+                            className="p-2 bg-white/5 rounded-xl hover:bg-white/10 transition-colors group"
+                        >
+                            <ArrowLeft size={20} className="text-gray-400 group-hover:text-white transition-colors" />
+                        </button>
+                        <div>
+                            <h1 className="text-lg font-bold text-white flex items-center gap-2">
+                                {data.title}
+                                <span className="px-2 py-0.5 bg-white/5 rounded text-[10px] text-gray-400 font-normal border border-white/5">
+                                    {data.date}
+                                </span>
+                            </h1>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                        <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 rounded-full">
+                            <Zap size={14} className="text-emerald-400 fill-emerald-400/20" />
+                            <span className="text-xs font-bold text-emerald-400 uppercase tracking-wide">AI Analysis Active</span>
+                        </div>
+                        <button
+                            onClick={fetchDashboardData}
+                            className="p-2 hover:bg-white/5 rounded-lg text-gray-400 hover:text-white transition-colors"
+                            title="Refresh Data"
+                        >
+                            <RefreshCw size={18} />
+                        </button>
+                    </div>
+                </div>
+
+                {/* Tabs */}
+                <div className="px-6 flex items-center gap-8 overflow-x-auto no-scrollbar border-b border-white/5">
+                    {tabs.map((tab) => (
+                        <button
+                            key={tab.id}
+                            onClick={() => setActiveTab(tab.id)}
+                            className={`relative pb-4 pt-2 text-sm font-medium flex items-center gap-2 transition-colors whitespace-nowrap ${activeTab === tab.id ? 'text-white' : 'text-gray-500 hover:text-gray-300'
+                                }`}
+                        >
+                            <tab.icon size={16} className={activeTab === tab.id ? 'text-emerald-400' : ''} />
+                            {tab.label}
+                            {activeTab === tab.id && (
+                                <motion.div
+                                    layoutId="activeTab"
+                                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]"
+                                />
+                            )}
+                        </button>
+                    ))}
+                </div>
+            </header>
+
+            {/* Content Content */}
+            <main className="flex-1 p-6 lg:p-8 overflow-y-auto custom-scrollbar">
+                <div className="max-w-7xl mx-auto">
+                    <AnimatePresence mode="wait">
+                        <motion.div
+                            key={activeTab}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -10 }}
+                            transition={{ duration: 0.2 }}
+                        >
+                            {activeTab === 'overview' && <OverviewTab data={data} />}
+                            {activeTab === 'tasks' && <TasksTab data={data} />}
+                            {activeTab === 'calendar' && <CalendarTab data={data} />}
+                            {activeTab === 'analytics' && <AnalyticsTab data={data} />}
+                            {activeTab === 'ask-ai' && (
+                                <AskAiTab
+                                    chatHistory={chatHistory}
+                                    chatQuery={chatQuery}
+                                    setChatQuery={setChatQuery}
+                                    handleAskAi={handleAskAi}
+                                    askingAi={askingAi}
+                                    chatEndRef={chatEndRef}
+                                />
+                            )}
+                        </motion.div>
+                    </AnimatePresence>
+                </div>
+            </main>
+        </div>
+    );
+};
+
+// --- Sub-Components ---
+
+const OverviewTab = ({ data }) => {
+    const [activeHubTab, setActiveHubTab] = useState('email');
+
+    return (
+        <div className="space-y-6">
+            {/* Quick Stats Row */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <StatCard label="Duration" value={data.totalDuration} icon={<Clock size={16} className="text-blue-400" />} />
+                <StatCard label="Action Items" value={data.actionItemCount || data.actionItems?.length || 0} icon={<CheckCircle2 size={16} className="text-emerald-400" />} />
+                <StatCard label="Decisions" value={data.decisions?.length || 0} icon={<ShieldCheck size={16} className="text-purple-400" />} />
+                <StatCard label="Sentiment" value={data.overallSentiment} icon={<Zap size={16} className="text-amber-400" />} />
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Meeting Summary */}
+                <div className="lg:col-span-2 bg-[#1C1F2E] rounded-3xl p-6 border border-white/5 shadow-sm">
+                    <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                        <FileText size={18} className="text-gray-400" />
+                        Executive Summary
+                    </h3>
+                    <p className="text-slate-300 leading-relaxed text-sm whitespace-pre-line">
+                        {data.summary}
+                    </p>
+
+                    <div className="mt-6">
+                        <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Key Topics</h4>
+                        <div className="flex flex-wrap gap-2">
+                            {data.keyTopics?.map((topic, i) => (
+                                <div key={i} className="px-3 py-1.5 bg-white/5 rounded-lg border border-white/5 text-xs text-slate-300 flex items-center gap-2">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                                    {topic.name}
+                                    <span className="text-gray-500 ml-1 opacity-60">
+                                        {Math.round(topic.percentage)}%
+                                    </span>
+                                </div>
+                            ))}
                         </div>
                     </div>
                 </div>
 
-                <div className="flex items-center gap-3">
-                    <div className="px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full text-emerald-400 text-xs font-bold uppercase tracking-wider flex items-center gap-2">
-                        <Zap size={12} /> AI Analysis Complete
-                    </div>
-                    <button
-                        onClick={generateAnalysis}
-                        disabled={generating}
-                        className="px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white rounded-xl font-semibold text-sm shadow-lg shadow-purple-500/20 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105"
-                    >
-                        {generating ? (
-                            <>
-                                <Loader2 className="animate-spin" size={16} />
-                                Regenerating...
-                            </>
-                        ) : (
-                            <>
-                                <Zap size={16} />
-                                Regenerate Dashboard
-                            </>
-                        )}
-                    </button>
-                </div>
-            </header>
-
-            {/* Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                <StatCard label="Overall Sentiment" value={data.overallSentiment} trend="Analysis" icon={<Zap className="text-purple-400" size={20} />} highlight />
-                <StatCard label="Action Items" value={data.actionItems.length.toString()} trend="Pending" icon={<Plus size={20} className="text-blue-400" />} />
-                <StatCard label="Decisions" value={data.decisions.length.toString()} trend="Confirmed" icon={<ShieldCheck className="text-emerald-400" size={20} />} />
-                <StatCard label="Tasks" value={data.actionItems.length.toString()} trend="Total Tasks" icon={<CheckCircle2 className="text-cyan-400" size={20} />} />
-            </div>
-
-
-
-            {/* Main Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-8">
-
                 {/* Productivity Hub */}
-                <div className="lg:col-span-7 bg-[#1C1F2E] p-6 rounded-[2.5rem] shadow-sm border border-white/5 flex flex-col min-h-[450px]">
-                    <div className="flex items-center justify-between mb-8">
-                        <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                            <Zap className="text-amber-500" size={20} />
-                            Productivity Hub
-                        </h3>
-                        <div className="flex bg-[#0B0E14] p-1 rounded-xl border border-white/5">
-                            {['email', 'slack', 'risks'].map((tab) => (
+                <div className="bg-[#1C1F2E] rounded-3xl p-6 border border-white/5 shadow-sm flex flex-col h-[400px]">
+                    <div className="flex items-center justify-between mb-6">
+                        <h3 className="text-lg font-bold text-white">Productivity Hub</h3>
+                        <div className="flex bg-[#0B0E14] p-1 rounded-lg">
+                            {['email', 'slack', 'risks'].map(tab => (
                                 <button
                                     key={tab}
                                     onClick={() => setActiveHubTab(tab)}
-                                    className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all capitalize ${activeHubTab === tab
-                                        ? 'bg-white/10 text-white shadow-sm'
-                                        : 'text-gray-500 hover:text-gray-300'
+                                    className={`px-3 py-1 rounded-md text-[10px] font-bold uppercase tracking-wide transition-all ${activeHubTab === tab ? 'bg-white/10 text-white' : 'text-gray-500 hover:text-gray-300'
                                         }`}
                                 >
                                     {tab}
@@ -220,191 +320,77 @@ const MeetingDashboard = () => {
                         </div>
                     </div>
 
-                    <div className="flex-1 bg-[#0B0E14]/50 rounded-2xl p-6 relative overflow-hidden border border-white/5">
+                    <div className="flex-1 bg-[#0B0E14]/50 rounded-2xl p-4 overflow-hidden border border-white/5 relative">
                         {activeHubTab === 'email' && (
-                            <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 h-full flex flex-col">
-                                <div className="flex justify-between items-center mb-4">
-                                    <span className="text-[10px] uppercase font-black tracking-widest text-gray-500">Follow-up Email Draft</span>
-                                    <button
-                                        onClick={() => copyToClipboard(data.followUpDrafts.email, 'Email')}
-                                        className="p-2 hover:bg-white/10 rounded-lg text-purple-400 transition-colors"
-                                        title="Copy to Clipboard"
-                                    >
-                                        <Copy size={16} />
-                                    </button>
+                            <div className="h-full flex flex-col animate-in fade-in duration-300">
+                                <div className="flex justify-between items-center mb-3">
+                                    <span className="text-xs text-gray-500">Draft</span>
+                                    <CopyButton text={data.followUpDrafts?.email} />
                                 </div>
-                                <div className="text-sm text-slate-300 whitespace-pre-wrap leading-relaxed font-mono overflow-y-auto custom-scrollbar flex-1 pr-2">
-                                    {data.followUpDrafts.email}
+                                <div className="overflow-y-auto flex-1 custom-scrollbar text-xs text-slate-300 font-mono whitespace-pre-wrap">
+                                    {data.followUpDrafts?.email || "No draft available."}
                                 </div>
                             </div>
                         )}
-
                         {activeHubTab === 'slack' && (
-                            <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
-                                <div className="flex justify-between items-center mb-4">
-                                    <span className="text-[10px] uppercase font-black tracking-widest text-gray-500">Slack Update Message</span>
-                                    <button
-                                        onClick={() => copyToClipboard(data.followUpDrafts.slack, 'Slack update')}
-                                        className="p-2 hover:bg-white/10 rounded-lg text-purple-400 transition-colors"
-                                    >
-                                        <Copy size={16} />
-                                    </button>
+                            <div className="h-full flex flex-col animate-in fade-in duration-300">
+                                <div className="flex justify-between items-center mb-3">
+                                    <span className="text-xs text-gray-500">Update</span>
+                                    <CopyButton text={data.followUpDrafts?.slack} />
                                 </div>
-                                <div className="p-4 bg-[#0B0E14] border border-white/10 rounded-xl text-sm text-slate-300 shadow-inner">
-                                    {data.followUpDrafts.slack}
+                                <div className="p-3 bg-[#0B0E14] rounded-xl border border-white/5 text-xs text-slate-300">
+                                    {data.followUpDrafts?.slack || "No update available."}
                                 </div>
                             </div>
                         )}
-
                         {activeHubTab === 'risks' && (
-                            <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 space-y-4 overflow-y-auto max-h-[320px] custom-scrollbar pr-2">
-                                {data.risks.map((risk, i) => (
-                                    <motion.div
-                                        initial={{ opacity: 0, y: 10 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        transition={{ delay: i * 0.1 }}
-                                        key={i}
-                                        className="flex gap-4 items-start p-4 bg-[#0B0E14] rounded-xl border-l-4 border-l-red-500/80 shadow-sm border-t border-r border-b border-t-white/5 border-r-white/5 border-b-white/5"
-                                    >
-                                        <div className="p-2 bg-red-500/10 text-red-400 rounded-lg">
-                                            <AlertTriangle size={18} />
+                            <div className="h-full overflow-y-auto custom-scrollbar space-y-3 animate-in fade-in duration-300">
+                                {data.risks?.map((risk, i) => (
+                                    <div key={i} className="p-3 bg-[#0B0E14] rounded-xl border-l-2 border-l-red-500 border-t border-r border-b border-t-white/5 border-r-white/5 border-b-white/5">
+                                        <div className="flex justify-between items-start mb-1">
+                                            <span className="text-xs font-bold text-slate-200">{risk.issue}</span>
+                                            <span className={`text-[9px] px-1.5 py-0.5 rounded uppercase font-bold ${risk.severity === 'High' ? 'bg-red-500/20 text-red-400' : 'bg-amber-500/20 text-amber-400'
+                                                }`}>{risk.severity}</span>
                                         </div>
-                                        <div>
-                                            <p className="text-sm font-bold text-slate-200">{risk.issue}</p>
-                                            <p className="text-xs text-slate-400 mt-1 mb-2">{risk.impact}</p>
-                                            <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded ${risk.severity === 'High' ? 'bg-red-500/20 text-red-400' :
-                                                risk.severity === 'Medium' ? 'bg-amber-500/20 text-amber-400' :
-                                                    'bg-emerald-500/20 text-emerald-400'
-                                                }`}>
-                                                {risk.severity} Priority
-                                            </span>
-                                        </div>
-                                    </motion.div>
-                                ))}
-                                {data.risks.length === 0 && (
-                                    <div className="flex flex-col items-center justify-center py-20 text-gray-500">
-                                        <ShieldCheck size={48} className="opacity-20 mb-4" />
-                                        <p className="text-sm font-medium">No immediate risks identified.</p>
+                                        <p className="text-[10px] text-gray-400">{risk.impact}</p>
                                     </div>
-                                )}
+                                ))}
+                                {!data.risks?.length && <p className="text-center text-gray-500 text-xs mt-10">No risks identified.</p>}
                             </div>
                         )}
-                    </div>
-                </div>
-
-                {/* Sentiment Mini-Chart */}
-                <div className="lg:col-span-5 bg-[#1C1F2E] p-6 rounded-[2.5rem] shadow-sm border border-white/5">
-                    <h3 className="text-lg font-bold text-white mb-6">Engagement Flow</h3>
-                    <div className="h-64 w-full">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <AreaChart data={data.sentimentTimeline}>
-                                <defs>
-                                    <linearGradient id="colorSentiment" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
-                                        <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
-                                    </linearGradient>
-                                </defs>
-                                <XAxis
-                                    dataKey="time"
-                                    axisLine={false}
-                                    tickLine={false}
-                                    tick={{ fill: '#64748b', fontSize: 10 }}
-                                    dy={10}
-                                />
-                                <Tooltip
-                                    contentStyle={{
-                                        backgroundColor: '#0F172A',
-                                        borderRadius: '12px',
-                                        border: '1px solid #1e293b',
-                                        color: '#f8fafc'
-                                    }}
-                                />
-                                <Area
-                                    type="monotone"
-                                    dataKey="sentiment"
-                                    stroke="#10b981"
-                                    strokeWidth={3}
-                                    fillOpacity={1}
-                                    fill="url(#colorSentiment)"
-                                />
-                            </AreaChart>
-                        </ResponsiveContainer>
-                    </div>
-                    <div className="mt-4 p-4 bg-emerald-500/5 rounded-2xl flex items-center justify-between border border-emerald-500/10">
-                        <span className="text-xs font-bold text-emerald-400">Overall Sentiment Score</span>
-                        <span className="text-xs font-black text-white px-3 py-1 bg-emerald-500/20 rounded-full shadow-sm">
-                            {data.overallSentiment}
-                        </span>
                     </div>
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                {/* Participants Mini */}
-                <div className="lg:col-span-4 bg-[#1C1F2E] p-6 rounded-[2.5rem] shadow-sm border border-white/5">
-                    <h3 className="text-lg font-bold text-white mb-6">Collaboration</h3>
-                    <div className="space-y-4">
-                        {data.participants.map((p, idx) => (
-                            <div key={idx} className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-full bg-gray-800 overflow-hidden border border-gray-700">
-                                    <img src={`https://api.dicebear.com/7.x/notionists/svg?seed=${p.name}`} className="w-full h-full object-cover" alt={p.name} />
-                                </div>
-                                <div className="flex-1">
-                                    <div className="flex justify-between mb-1">
-                                        <p className="text-xs font-bold text-white">{p.name}</p>
-                                        <span className="text-[10px] text-gray-400">{p.contribution}%</span>
-                                    </div>
-                                    <div className="w-full bg-gray-800 h-1.5 rounded-full overflow-hidden">
-                                        <div className="bg-gradient-to-r from-purple-500 to-blue-500 h-full rounded-full" style={{ width: `${p.contribution}%` }}></div>
-                                    </div>
-                                    <p className="text-[10px] text-gray-500 mt-1">{p.role}</p>
-                                </div>
-                            </div>
+            {/* Timeline & Priorities */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="bg-[#1C1F2E] rounded-3xl p-6 border border-white/5 shadow-sm">
+                    <h3 className="text-base font-bold text-white mb-4">Top Priorities</h3>
+                    <ul className="space-y-3">
+                        {data.topPriorities?.map((priority, i) => (
+                            <li key={i} className="flex gap-3 text-sm text-slate-300">
+                                <span className="flex-shrink-0 w-5 h-5 rounded-full bg-emerald-500/10 text-emerald-500 flex items-center justify-center text-xs font-bold">
+                                    {i + 1}
+                                </span>
+                                {priority}
+                            </li>
                         ))}
-                    </div>
+                        {!data.topPriorities?.length && <p className="text-gray-500 text-sm">No specific priorities listed.</p>}
+                    </ul>
                 </div>
 
-                {/* Action Items Mini */}
-                <div className="lg:col-span-8 bg-[#1C1F2E] p-6 rounded-[2.5rem] shadow-sm border border-white/5">
-                    <h3 className="text-lg font-bold text-white mb-6">Action Items & Next Steps</h3>
-                    <div className="grid gap-3">
-                        {data.actionItems && data.actionItems.length > 0 ? (
-                            data.actionItems.map((item, idx) => (
-                                <div key={idx} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-[#0B0E14] rounded-xl border border-white/5 hover:border-purple-500/30 transition-colors group">
-                                    <div className="flex items-start gap-3 mb-2 sm:mb-0">
-                                        <div className="mt-0.5 text-purple-500">
-                                            <CheckCircle2 size={18} />
-                                        </div>
-                                        <div>
-                                            <span className="text-sm font-semibold text-slate-200 block">{item.task}</span>
-                                            <div className="flex items-center gap-2 mt-1">
-                                                <span className={`text-[10px] font-bold uppercase px-1.5 py-0.5 rounded ${item.priority === 'High' ? 'bg-red-500/20 text-red-400' : 'bg-blue-500/20 text-blue-400'
-                                                    }`}>
-                                                    {item.priority}
-                                                </span>
-                                                <span className="text-[11px] text-gray-500 flex items-center gap-1">
-                                                    <Clock size={10} /> Due {item.dueDate}
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center gap-3 pl-8 sm:pl-0">
-                                        <div className="flex items-center gap-2 px-3 py-1 bg-white/5 rounded-full border border-white/5">
-                                            <div className="w-4 h-4 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center text-[8px] font-bold text-white">
-                                                {item.owner.charAt(0)}
-                                            </div>
-                                            <span className="text-xs text-gray-400">{item.owner}</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            ))
-                        ) : (
-                            <div className="flex flex-col items-center justify-center py-12 text-gray-500">
-                                <CheckCircle2 size={48} className="opacity-20 mb-4" />
-                                <p className="text-sm font-medium">No action items identified in this meeting.</p>
-                                <p className="text-xs text-gray-600 mt-2">Try regenerating the dashboard to extract tasks.</p>
+                <div className="bg-[#1C1F2E] rounded-3xl p-6 border border-white/5 shadow-sm">
+                    <h3 className="text-base font-bold text-white mb-4">Meeting Timeline</h3>
+                    <div className="relative pl-4 border-l border-white/10 space-y-6">
+                        {data.timeline?.map((item, i) => (
+                            <div key={i} className="relative">
+                                <div className="absolute -left-[21px] top-1 w-2.5 h-2.5 rounded-full bg-[#1C1F2E] border-2 border-emerald-500"></div>
+                                <span className="text-xs text-emerald-400 font-mono mb-1 block">{item.time}</span>
+                                <p className="text-sm font-semibold text-slate-200">{item.event}</p>
+                                <p className="text-xs text-gray-400 mt-1">{item.description}</p>
                             </div>
-                        )}
+                        ))}
+                        {!data.timeline?.length && <p className="text-gray-500 text-sm">Timeline data unavailable.</p>}
                     </div>
                 </div>
             </div>
@@ -412,24 +398,307 @@ const MeetingDashboard = () => {
     );
 };
 
-const StatCard = ({ label, value, trend, icon, highlight }) => (
-    <div className={`p-6 rounded-[2rem] border transition-all hover:translate-y-[-4px] ${highlight
-        ? 'bg-gradient-to-br from-purple-900/50 to-blue-900/50 text-white border-purple-500/30 shadow-lg shadow-purple-900/20'
-        : 'bg-[#1C1F2E] text-slate-200 border-white/5 hover:border-white/10'
-        }`}>
-        <div className="flex items-center justify-between mb-4">
-            <span className={`text-sm font-semibold ${highlight ? 'text-purple-200' : 'text-gray-400'}`}>{label}</span>
-            <div className={`p-2 rounded-full ${highlight ? 'bg-white/10' : 'bg-[#0B0E14]'}`}>
-                {icon}
+const TasksTab = ({ data }) => {
+    const tasks = data.actionItems || [];
+
+    return (
+        <div className="bg-[#1C1F2E] rounded-[2.5rem] border border-white/5 shadow-sm overflow-hidden min-h-[600px] flex flex-col">
+            <div className="p-8 border-b border-white/5 flex justify-between items-center">
+                <div>
+                    <h2 className="text-2xl font-bold text-white mb-1">Tasks & Actions</h2>
+                    <p className="text-gray-400 text-sm">Track progress and accountability</p>
+                </div>
+                <div className="flex gap-2">
+                    <button className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold rounded-xl transition-colors flex items-center gap-2">
+                        <Plus size={16} /> Add Task
+                    </button>
+                </div>
+            </div>
+
+            <div className="flex-1 p-8">
+                {tasks.length > 0 ? (
+                    <div className="grid gap-4">
+                        {tasks.map((task, i) => (
+                            <div key={i} className="group flex items-start sm:items-center justify-between p-5 bg-[#0B0E14] border border-white/5 rounded-2xl hover:border-emerald-500/30 transition-all hover:bg-[#0B0E14]/80">
+                                <div className="flex items-start gap-4">
+                                    <button className="mt-1 text-gray-500 hover:text-emerald-500 transition-colors">
+                                        <CheckCircle2 size={20} />
+                                    </button>
+                                    <div>
+                                        <p className="text-base font-medium text-slate-100 mb-1">{task.task}</p>
+                                        <div className="flex items-center gap-3 text-xs text-gray-400">
+                                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${task.priority === 'High' ? 'bg-red-500/10 text-red-400' :
+                                                    task.priority === 'Medium' ? 'bg-amber-500/10 text-amber-400' :
+                                                        'bg-blue-500/10 text-blue-400'
+                                                }`}>
+                                                {task.priority || 'Normal'}
+                                            </span>
+                                            {task.dueDate && (
+                                                <span className="flex items-center gap-1">
+                                                    <Calendar size={12} /> {task.dueDate}
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="flex items-center gap-4 pl-4 sm:pl-0 border-t sm:border-t-0 border-white/5 pt-4 sm:pt-0 mt-4 sm:mt-0 w-full sm:w-auto justify-between sm:justify-end">
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-6 h-6 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center text-[10px] font-bold text-white">
+                                            {task.owner ? task.owner.charAt(0) : '?'}
+                                        </div>
+                                        <span className="text-sm text-gray-400">{task.owner || 'Unassigned'}</span>
+                                    </div>
+                                    <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
+                                        <button className="p-2 hover:bg-white/10 rounded-lg text-gray-400"><MoreHorizontal size={16} /></button>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <div className="flex flex-col items-center justify-center h-full text-gray-500">
+                        <CheckCircle2 size={48} className="opacity-20 mb-4" />
+                        <p>No action items extracted from this meeting.</p>
+                    </div>
+                )}
             </div>
         </div>
-        <p className="text-3xl font-black mb-1">{value}</p>
-        <div className="flex items-center gap-1">
-            <span className={`text-[10px] font-bold ${highlight ? 'text-purple-300' : 'text-gray-500'}`}>
-                {trend}
-            </span>
+    );
+};
+
+const CalendarTab = ({ data }) => {
+    const dates = data.importantDates || [];
+
+    const addToGoogleCalendar = (item) => {
+        // Simplified GCal link generation
+        const text = encodeURIComponent(item.event);
+        const details = encodeURIComponent(item.description);
+        // Assuming current year if no year provided, simplistic parsing
+        const dateStr = item.date;
+        const url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${text}&details=${details}`;
+        window.open(url, '_blank');
+    };
+
+    return (
+        <div className="bg-[#1C1F2E] rounded-[2.5rem] border border-white/5 shadow-sm overflow-hidden min-h-[600px] p-8">
+            <h2 className="text-2xl font-bold text-white mb-6">Important Dates</h2>
+
+            {dates.length > 0 ? (
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                    {dates.map((date, i) => (
+                        <div key={i} className="bg-[#0B0E14] p-6 rounded-3xl border border-white/5 group hover:border-emerald-500/30 transition-all">
+                            <div className="flex items-start justify-between mb-4">
+                                <div className="p-3 bg-emerald-500/10 rounded-2xl text-emerald-400">
+                                    <Calendar size={24} />
+                                </div>
+                                <button
+                                    onClick={() => addToGoogleCalendar(date)}
+                                    className="px-3 py-1.5 bg-white/5 hover:bg-white/10 rounded-lg text-xs font-semibold text-white transition-colors flex items-center gap-2"
+                                >
+                                    <Plus size={14} /> Add
+                                </button>
+                            </div>
+                            <h3 className="text-lg font-bold text-white mb-1">{date.date}</h3>
+                            <p className="text-emerald-400 text-xs font-bold uppercase tracking-wider mb-4">{date.event}</p>
+                            <p className="text-sm text-gray-400 leading-relaxed">
+                                {date.description}
+                            </p>
+                        </div>
+                    ))}
+                </div>
+            ) : (
+                <div className="flex flex-col items-center justify-center h-64 text-gray-500">
+                    <Calendar size={48} className="opacity-20 mb-4" />
+                    <p>No important dates detected.</p>
+                </div>
+            )}
+        </div>
+    );
+};
+
+const AnalyticsTab = ({ data }) => {
+    // Transform data for charts
+    const participants = data.participants || [];
+    const topics = data.keyTopics || [];
+    const sentiment = data.sentimentTimeline || [];
+
+    return (
+        <div className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Speaker Contribution */}
+                <div className="bg-[#1C1F2E] rounded-3xl p-6 border border-white/5 shadow-sm">
+                    <h3 className="text-lg font-bold text-white mb-6">Speaker Contribution</h3>
+                    <div className="h-64">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={participants} layout="vertical" margin={{ left: 0 }}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" horizontal={false} />
+                                <XAxis type="number" hide />
+                                <YAxis dataKey="name" type="category" width={80} stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
+                                <Tooltip
+                                    contentStyle={{ backgroundColor: '#0F172A', border: '1px solid #1e293b', borderRadius: '12px', color: '#fff' }}
+                                    cursor={{ fill: '#ffffff05' }}
+                                />
+                                <Bar dataKey="contribution" fill="#10b981" radius={[0, 4, 4, 0]} barSize={24} />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
+                </div>
+
+                {/* Topic Distribution */}
+                <div className="bg-[#1C1F2E] rounded-3xl p-6 border border-white/5 shadow-sm">
+                    <h3 className="text-lg font-bold text-white mb-6">Topic Distribution</h3>
+                    <div className="h-64 flex items-center justify-center">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                                <Pie
+                                    data={topics}
+                                    cx="50%"
+                                    cy="50%"
+                                    innerRadius={60}
+                                    outerRadius={80}
+                                    paddingAngle={5}
+                                    dataKey="percentage"
+                                >
+                                    {topics.map((entry, index) => (
+                                        <Cell key={`cell-${index}`} fill={['#10b981', '#3b82f6', '#8b5cf6', '#f59e0b', '#ef4444'][index % 5]} />
+                                    ))}
+                                </Pie>
+                                <Tooltip contentStyle={{ backgroundColor: '#0F172A', border: '1px solid #1e293b', borderRadius: '12px', color: '#fff' }} />
+                                <Legend verticalAlign="bottom" height={36} iconType="circle" />
+                            </PieChart>
+                        </ResponsiveContainer>
+                    </div>
+                </div>
+            </div>
+
+            {/* Detailed Breakdown */}
+            <div className="bg-[#1C1F2E] rounded-3xl p-6 border border-white/5 shadow-sm">
+                <h3 className="text-lg font-bold text-white mb-6">Detailed Topic Breakdown</h3>
+                <div className="grid gap-4 md:grid-cols-2">
+                    {data.topicBreakdown?.map((item, i) => (
+                        <div key={i} className="bg-[#0B0E14] p-5 rounded-2xl border border-white/5">
+                            <h4 className="text-base font-bold text-emerald-400 mb-2">{item.topic}</h4>
+                            <p className="text-sm text-slate-300 mb-4">{item.details}</p>
+                            <div className="flex flex-wrap gap-2">
+                                {item.subtopics?.map((sub, j) => (
+                                    <span key={j} className="text-[10px] px-2 py-1 bg-white/5 rounded-md text-gray-400">
+                                        {sub}
+                                    </span>
+                                ))}
+                            </div>
+                        </div>
+                    ))}
+                    {!data.topicBreakdown?.length && <p className="text-gray-500">No detailed breakdown available.</p>}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const AskAiTab = ({ chatHistory, chatQuery, setChatQuery, handleAskAi, askingAi, chatEndRef }) => {
+    return (
+        <div className="bg-[#1C1F2E] rounded-[2.5rem] border border-white/5 shadow-sm overflow-hidden h-[600px] flex flex-col relative">
+            <div className="absolute inset-0 bg-gradient-to-b from-emerald-500/5 to-transparent pointer-events-none"></div>
+
+            {/* Messages Area */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
+                {chatHistory.length === 0 && (
+                    <div className="h-full flex flex-col items-center justify-center text-center opacity-40">
+                        <Zap size={64} className="text-emerald-500 mb-4" />
+                        <h3 className="text-2xl font-bold text-white mb-2">Ask details about the meeting</h3>
+                        <p className="text-sm">"What was the budget decision?" <br /> "Did we assign tasks for the marketing launch?"</p>
+                    </div>
+                )}
+
+                {chatHistory.map((msg, i) => (
+                    <div key={i} className={`flex gap-4 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                        {msg.role === 'ai' && (
+                            <div className="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400 border border-emerald-500/30 flex-shrink-0">
+                                <Zap size={14} />
+                            </div>
+                        )}
+                        <div className={`max-w-[80%] p-4 rounded-2xl text-sm leading-relaxed ${msg.role === 'user'
+                                ? 'bg-emerald-600 text-white rounded-br-none'
+                                : 'bg-[#0B0E14] text-slate-200 border border-white/10 rounded-bl-none'
+                            }`}>
+                            {msg.content}
+                        </div>
+                        {msg.role === 'user' && (
+                            <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-white flex-shrink-0">
+                                <User size={14} />
+                            </div>
+                        )}
+                    </div>
+                ))}
+                {askingAi && (
+                    <div className="flex gap-4 justify-start">
+                        <div className="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400 border border-emerald-500/30">
+                            <Zap size={14} />
+                        </div>
+                        <div className="bg-[#0B0E14] px-4 py-3 rounded-2xl rounded-bl-none border border-white/10 flex items-center gap-2">
+                            <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-bounce"></span>
+                            <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-bounce delay-100"></span>
+                            <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-bounce delay-200"></span>
+                        </div>
+                    </div>
+                )}
+                <div ref={chatEndRef}></div>
+            </div>
+
+            {/* Input Area */}
+            <div className="p-4 bg-[#0B0E14] border-t border-white/5">
+                <form onSubmit={handleAskAi} className="relative">
+                    <input
+                        type="text"
+                        value={chatQuery}
+                        onChange={(e) => setChatQuery(e.target.value)}
+                        placeholder="Ask anything about the meeting..."
+                        className="w-full bg-[#1C1F2E] border border-white/10 rounded-xl pl-4 pr-12 py-3.5 text-sm text-white focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all placeholder:text-gray-500"
+                    />
+                    <button
+                        type="submit"
+                        disabled={!chatQuery.trim() || askingAi}
+                        className="absolute right-2 top-2 p-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        <Send size={18} />
+                    </button>
+                </form>
+            </div>
+        </div>
+    );
+};
+
+// --- Helpers ---
+
+const StatCard = ({ label, value, icon }) => (
+    <div className="bg-[#1C1F2E] p-4 rounded-2xl border border-white/5 flex items-center gap-4 hover:border-white/10 transition-colors">
+        <div className="p-3 bg-[#0B0E14] rounded-xl border border-white/5">
+            {icon}
+        </div>
+        <div>
+            <p className="text-gray-400 text-xs font-medium uppercase tracking-wide">{label}</p>
+            <p className="text-xl font-bold text-white mt-0.5">{value}</p>
         </div>
     </div>
 );
+
+const CopyButton = ({ text }) => {
+    const handleCopy = () => {
+        if (!text) return;
+        navigator.clipboard.writeText(text);
+        // Could add toast here
+    };
+
+    return (
+        <button
+            onClick={handleCopy}
+            className="p-1.5 hover:bg-white/10 rounded-lg text-emerald-500 transition-colors opacity-80 hover:opacity-100"
+            title="Copy"
+        >
+            <Copy size={14} />
+        </button>
+    );
+}
 
 export default MeetingDashboard;

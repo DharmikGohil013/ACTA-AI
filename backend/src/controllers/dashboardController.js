@@ -14,6 +14,10 @@ const ANALYSIS_SCHEMA = {
         speakerCount: { type: Type.NUMBER },
         actionItemCount: { type: Type.NUMBER },
         overallSentiment: { type: Type.STRING },
+        topPriorities: {
+            type: Type.ARRAY,
+            items: { type: Type.STRING }
+        },
         participants: {
             type: Type.ARRAY,
             items: {
@@ -60,6 +64,28 @@ const ANALYSIS_SCHEMA = {
                 }
             }
         },
+        timeline: {
+            type: Type.ARRAY,
+            items: {
+                type: Type.OBJECT,
+                properties: {
+                    time: { type: Type.STRING },
+                    event: { type: Type.STRING },
+                    description: { type: Type.STRING }
+                }
+            }
+        },
+        importantDates: {
+            type: Type.ARRAY,
+            items: {
+                type: Type.OBJECT,
+                properties: {
+                    date: { type: Type.STRING },
+                    event: { type: Type.STRING },
+                    description: { type: Type.STRING }
+                }
+            }
+        },
         followUpDrafts: {
             type: Type.OBJECT,
             properties: {
@@ -88,9 +114,23 @@ const ANALYSIS_SCHEMA = {
                 }
             }
         },
+        topicBreakdown: {
+            type: Type.ARRAY,
+            items: {
+                type: Type.OBJECT,
+                properties: {
+                    topic: { type: Type.STRING },
+                    details: { type: Type.STRING },
+                    subtopics: {
+                        type: Type.ARRAY,
+                        items: { type: Type.STRING }
+                    }
+                }
+            }
+        },
         progress: { type: Type.NUMBER }
     },
-    required: ["title", "summary", "participants", "actionItems", "decisions", "keyTopics", "progress", "risks", "followUpDrafts"]
+    required: ["title", "summary", "participants", "actionItems", "decisions", "keyTopics", "progress", "risks", "followUpDrafts", "topPriorities", "timeline", "importantDates", "topicBreakdown"]
 };
 
 /**
@@ -120,11 +160,6 @@ exports.generateDashboard = async (req, res) => {
             return res.status(400).json({ error: 'Meeting does not have a transcript yet.' });
         }
 
-        // If analysis already exists, return it (cache)
-        // if (meeting.analysis) {
-        //   return res.json({ success: true, analysis: meeting.analysis });
-        // }
-
         if (!process.env.GEMINI_API_KEY) {
             console.error('GEMINI_API_KEY is missing');
             return res.status(500).json({ error: 'Server configuration error: GEMINI_API_KEY missing' });
@@ -132,14 +167,20 @@ exports.generateDashboard = async (req, res) => {
 
         console.log(`[Dashboard] Generating analysis for meeting ${id}...`);
 
+        const prompt = `Analyze this transcript and extract comprehensive insights for a meeting dashboard.
+        1. Identify Risks/Blockers (severity: High/Medium/Low).
+        2. Generate a professional Follow-up Email draft.
+        3. Generate a concise Slack update.
+        4. Identify Top Priorities (list of strings).
+        5. Create a Meeting Timeline (time, event, description).
+        6. Extract Important Dates (date, event, description) for a calendar.
+        7. Provide a Topic Breakdown with subtopics.
+        Focus on accuracy and detail. Return raw JSON matching the schema.
+        TRANSCRIPT: ${meeting.transcription}`;
+
         const response = await ai.models.generateContent({
             model: 'gemini-flash-latest',
-            contents: `Analyze this transcript. Extract insights for a dashboard. 
-      1. Identify Risks/Blockers mentioned (severity: High/Medium/Low).
-      2. Generate a professional Follow-up Email draft.
-      3. Generate a concise Slack update.
-      Focus on accuracy. Return raw JSON.
-      TRANSCRIPT: ${meeting.transcription}`,
+            contents: prompt,
             config: {
                 responseMimeType: "application/json",
                 responseSchema: ANALYSIS_SCHEMA
@@ -149,14 +190,12 @@ exports.generateDashboard = async (req, res) => {
         const rawText = response.candidates?.[0]?.content?.parts?.[0]?.text || response.text?.() || '{}';
         const data = extractJson(rawText);
 
-        // Add IDs if needed
         const analysisData = {
             ...data,
             id: meeting._id,
             rawTranscript: meeting.transcription
         };
 
-        // Save to DB
         meeting.analysis = analysisData;
         await meeting.save();
 
@@ -186,5 +225,40 @@ exports.getDashboard = async (req, res) => {
     } catch (err) {
         console.error('[Dashboard] Error fetching analysis:', err);
         res.status(500).json({ error: 'Failed to fetch dashboard analysis' });
+    }
+};
+
+exports.askQuestion = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { question } = req.body;
+
+        const meeting = await Meeting.findById(id);
+        if (!meeting) return res.status(404).json({ error: 'Meeting not found' });
+        if (!meeting.transcription) return res.status(400).json({ error: 'No transcript available' });
+
+        if (!process.env.GEMINI_API_KEY) {
+            return res.status(500).json({ error: 'GEMINI_API_KEY is missing' });
+        }
+
+        const prompt = `You are an AI assistant answering questions about a meeting transcript.
+        TRANSCRIPT: ${meeting.transcription}
+        
+        QUESTION: ${question}
+        
+        Answer concisely and accurately based ONLY on the transcript.`;
+
+        const response = await ai.models.generateContent({
+            model: 'gemini-flash-latest',
+            contents: prompt
+        });
+
+        const answer = response.candidates?.[0]?.content?.parts?.[0]?.text || response.text?.();
+
+        res.json({ success: true, answer });
+
+    } catch (err) {
+        console.error('[Dashboard] Ask AI error:', err);
+        res.status(500).json({ error: 'Failed to get answer' });
     }
 };

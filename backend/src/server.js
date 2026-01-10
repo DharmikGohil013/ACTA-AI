@@ -394,7 +394,7 @@ app.post('/api/tasks/create/jira', optionalAuth, async (req, res) => {
         // Prepare description in Atlassian Document Format (ADF)
         let descriptionText = `Task: ${task}`;
         if (deadline) descriptionText += `\nDeadline: ${deadline}`;
-        
+
         const description = {
             version: 1,
             type: 'doc',
@@ -439,8 +439,8 @@ app.post('/api/tasks/create/jira', optionalAuth, async (req, res) => {
 
         // Create issue in Jira
         // Handle domain that may already include .atlassian.net
-        const jiraDomain = jiraConfig.domain.includes('.atlassian.net') ? 
-            jiraConfig.domain : 
+        const jiraDomain = jiraConfig.domain.includes('.atlassian.net') ?
+            jiraConfig.domain :
             `${jiraConfig.domain}.atlassian.net`;
         const jiraUrl = `https://${jiraDomain}/rest/api/3/issue`;
         const auth = Buffer.from(`${jiraConfig.email}:${jiraConfig.apiToken}`).toString('base64');
@@ -874,7 +874,7 @@ app.get('/api/meetings/archive', optionalAuth, async (req, res) => {
 app.put('/api/meetings/:id/name', optionalAuth, async (req, res) => {
     try {
         const { meetingName } = req.body;
-        
+
         if (!meetingName || !meetingName.trim()) {
             return res.status(400).json({ error: 'Meeting name is required' });
         }
@@ -1051,6 +1051,7 @@ app.post('/api/meetings/upload', optionalAuth, upload.single('audio'), async (re
 // 5. Dashboard Analysis
 app.post('/api/meetings/:id/analyze', optionalAuth, dashboardController.generateDashboard);
 app.get('/api/meetings/:id/analysis', optionalAuth, dashboardController.getDashboard);
+app.post('/api/meetings/:id/ask', optionalAuth, dashboardController.askQuestion);
 
 
 
@@ -1303,7 +1304,7 @@ app.get('/api/analytics/dashboard', optionalAuth, async (req, res) => {
         // Calculate stats
         const completedMeetings = allMeetings.filter(m => m.status === 'completed');
         const activeMeetings = allMeetings.filter(m => m.status && ['recording', 'in-meeting'].includes(m.status));
-        
+
         // Calculate total bot time (in minutes)
         let totalBotMinutes = 0;
         completedMeetings.forEach(meeting => {
@@ -1322,7 +1323,7 @@ app.get('/api/analytics/dashboard', optionalAuth, async (req, res) => {
         let actionItemsCount = 0;
         let totalWords = 0;
         let meetingsWithTranscripts = 0;
-        
+
         allMeetings.forEach(meeting => {
             // Count extracted tasks
             if (meeting.extractedTasks && Array.isArray(meeting.extractedTasks)) {
@@ -1466,7 +1467,7 @@ app.get('/api/analytics/detailed', optionalAuth, async (req, res) => {
     try {
         const query = req.user ? { userId: req.user._id } : { userId: null };
         console.log('[Server] Fetching detailed analytics with query:', query);
-        
+
         const allMeetings = await Meeting.find(query).sort({ createdAt: -1 });
         console.log('[Server] Found', allMeetings.length, 'meetings');
 
@@ -1499,7 +1500,7 @@ app.get('/api/analytics/detailed', optionalAuth, async (req, res) => {
         });
 
         // Get active/live meetings
-        const activeMeetings = allMeetings.filter(m => 
+        const activeMeetings = allMeetings.filter(m =>
             m.status && ['recording', 'in-meeting', 'starting', 'joining'].includes(m.status)
         ).map(m => ({
             _id: m._id,

@@ -22,12 +22,14 @@ const { Server } = require('socket.io');
 const { runBot, stopBot, activeBots } = require('./bot/bot');
 const Meeting = require('./models/Meeting');
 const User = require('./models/User');
+const ScheduledMeeting = require('./models/ScheduledMeeting');
 const zoomService = require('./services/zoomService');
 const meetService = require('./services/meetService');
 const transcriptionService = require('./services/transcriptionService');
 const taskExtractionService = require('./services/taskExtractionService');
 const dashboardController = require('./controllers/dashboardController');
 const translationService = require('./services/translationService');
+const meetingSchedulerService = require('./services/meetingSchedulerService');
 
 const app = express();
 const server = http.createServer(app);
@@ -1221,7 +1223,112 @@ app.delete('/api/meetings/:id', async (req, res) => {
     }
 });
 
-// 6. Get active bots
+// ===== SCHEDULED MEETINGS ROUTES =====
+
+// Create scheduled meeting
+app.post('/api/scheduled-meetings', optionalAuth, async (req, res) => {
+    try {
+        const { meetingType, meetingLink, scheduledTime, title } = req.body;
+
+        if (!meetingType || !meetingLink || !scheduledTime) {
+            return res.status(400).json({ error: 'Missing required fields' });
+        }
+
+        const scheduledMeeting = new ScheduledMeeting({
+            meetingType,
+            meetingLink,
+            scheduledTime: new Date(scheduledTime),
+            title: title || 'Scheduled Meeting',
+            userId: req.user?._id,
+            userEmail: req.user?.email,
+        });
+
+        await scheduledMeeting.save();
+        res.json({ success: true, meeting: scheduledMeeting });
+    } catch (err) {
+        console.error('Create scheduled meeting error:', err);
+        res.status(500).json({ error: 'Failed to create scheduled meeting' });
+    }
+});
+
+// Get all scheduled meetings
+app.get('/api/scheduled-meetings', optionalAuth, async (req, res) => {
+    try {
+        const query = req.user ? { userId: req.user._id } : { userId: null };
+        const scheduledMeetings = await ScheduledMeeting.find(query).sort({ scheduledTime: 1 });
+        res.json({ success: true, meetings: scheduledMeetings });
+    } catch (err) {
+        console.error('Get scheduled meetings error:', err);
+        res.status(500).json({ error: 'Failed to fetch scheduled meetings' });
+    }
+});
+
+// Delete scheduled meeting
+app.delete('/api/scheduled-meetings/:id', optionalAuth, async (req, res) => {
+    try {
+        const meeting = await ScheduledMeeting.findByIdAndDelete(req.params.id);
+        if (!meeting) {
+            return res.status(404).json({ error: 'Scheduled meeting not found' });
+        }
+        res.json({ success: true });
+    } catch (err) {
+        console.error('Delete scheduled meeting error:', err);
+        res.status(500).json({ error: 'Failed to delete scheduled meeting' });
+    }
+});
+
+// Update scheduled meeting status
+app.patch('/api/scheduled-meetings/:id', optionalAuth, async (req, res) => {
+    try {
+        const { status } = req.body;
+        const meeting = await ScheduledMeeting.findByIdAndUpdate(
+            req.params.id,
+            { status },
+            { new: true }
+        );
+        if (!meeting) {
+            return res.status(404).json({ error: 'Scheduled meeting not found' });
+        }
+        res.json({ success: true, meeting });
+    } catch (err) {
+        console.error('Update scheduled meeting error:', err);
+        res.status(500).json({ error: 'Failed to update scheduled meeting' });
+    }
+});
+
+// 5. Trigger scheduled meeting manually (for testing)
+app.post('/api/scheduled-meetings/:id/trigger', optionalAuth, async (req, res) => {
+    try {
+        const result = await meetingSchedulerService.triggerScheduledMeeting(req.params.id);
+        res.json(result);
+    } catch (err) {
+        console.error('Trigger scheduled meeting error:', err);
+        res.status(500).json({ error: err.message || 'Failed to trigger meeting' });
+    }
+});
+
+// 6. Get scheduler status
+app.get('/api/scheduler/status', (req, res) => {
+    const status = meetingSchedulerService.getSchedulerStatus();
+    res.json(status);
+});
+
+// 6.5. Cleanup expired scheduled meetings manually
+app.post('/api/scheduler/cleanup', optionalAuth, async (req, res) => {
+    try {
+        const deletedCount = await meetingSchedulerService.cleanupExpiredMeetings();
+        res.json({ 
+            success: true, 
+            message: `Cleaned up ${deletedCount} expired meeting(s)`,
+            deletedCount 
+        });
+    } catch (err) {
+        console.error('Cleanup error:', err);
+        res.status(500).json({ error: 'Failed to cleanup expired meetings' });
+    }
+});
+
+// 7. Get active bots
 app.get('/api/bots/active', (req, res) => {
     const activeIds = Array.from(activeBots.keys());
     res.json({ activeBots: activeIds, count: activeIds.length });
@@ -1907,4 +2014,9 @@ app.post('/api/meetings/:id/translate', async (req, res) => {
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
+    
+    // Start the automatic meeting scheduler
+    console.log('[Server] Starting automatic meeting scheduler...');
+    meetingSchedulerService.startScheduler();
+    console.log('[Server] ✅ Meeting scheduler is now active');
 });

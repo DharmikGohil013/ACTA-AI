@@ -353,7 +353,12 @@ const OverviewTab = ({ data }) => {
                     {data.participants?.map((speaker, i) => {
                         const colors = ['bg-blue-500', 'bg-emerald-500', 'bg-orange-500', 'bg-pink-500', 'bg-purple-500', 'bg-cyan-500', 'bg-yellow-500', 'bg-red-500'];
                         const color = colors[i % colors.length];
-                        const initial = speaker.name?.charAt(0).toUpperCase() || 'S';
+                        
+                        // Use letter-based naming (A, B, C, D) when speaker name matches generic pattern
+                        const isGenericSpeaker = speaker.name?.match(/^Speaker \d+$/);
+                        const speakerLetter = String.fromCharCode(65 + i); // A=65, B=66, C=67...
+                        const displayName = isGenericSpeaker ? `Speaker ${speakerLetter}` : speaker.name;
+                        const initial = displayName?.charAt(0).toUpperCase() || 'S';
                         const utterances = Math.round((speaker.contribution || 0) * 100 / 5) || Math.floor(Math.random() * 30) + 10;
                         
                         return (
@@ -363,7 +368,7 @@ const OverviewTab = ({ data }) => {
                                 </div>
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-2 mb-1">
-                                        <span className="text-sm font-semibold text-white">{speaker.name || `Speaker ${i + 1}`}</span>
+                                        <span className="text-sm font-semibold text-white">{displayName || `Speaker ${speakerLetter}`}</span>
                                         {speaker.role && (
                                             <span className="text-xs px-2 py-0.5 bg-white/5 rounded-full text-gray-400">
                                                 {speaker.role}

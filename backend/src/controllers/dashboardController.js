@@ -179,18 +179,69 @@ const formatTime = (seconds) => {
 
 /**
  * Extract timeline from speaker segments
+ * Normalizes speaker names to "Speaker A", "Speaker B" format
  */
 const extractTimelineFromSegments = (speakerSegments) => {
     if (!speakerSegments || speakerSegments.length === 0) {
         return [];
     }
 
-    return speakerSegments.map(segment => ({
-        startTime: formatTime(segment.start || 0),
-        endTime: formatTime(segment.end || segment.start + 5),
-        speaker: segment.speaker || 'Unknown',
-        text: segment.text || ''
-    }));
+    // Create a map to normalize speaker names
+    const speakerMap = {};
+    let speakerCounter = 0;
+    
+    return speakerSegments.map(segment => {
+        let speaker = segment.speaker || 'Unknown';
+        
+        // Normalize speaker name to "Speaker A", "Speaker B" format
+        if (speaker.match(/^Speaker [A-Z0-9]+$/)) {
+            if (!speakerMap[speaker]) {
+                const speakerLetter = String.fromCharCode(65 + speakerCounter); // A=65, B=66, C=67...
+                speakerMap[speaker] = `Speaker ${speakerLetter}`;
+                speakerCounter++;
+            }
+            speaker = speakerMap[speaker];
+        }
+        
+        return {
+            startTime: formatTime(segment.start || 0),
+            endTime: formatTime(segment.end || segment.start + 5),
+            speaker: speaker,
+            text: segment.text || ''
+        };
+    });
+};
+
+/**
+ * Extract and normalize participant data from speaker stats
+ * Converts "Speaker 1, 2, 3" to "Speaker A, B, C" format
+ */
+const extractParticipantsFromStats = (speakerStats) => {
+    if (!speakerStats || Object.keys(speakerStats).length === 0) {
+        return [];
+    }
+
+    const participants = [];
+    const speakerKeys = Object.keys(speakerStats).sort();
+    
+    speakerKeys.forEach((speaker, index) => {
+        const stats = speakerStats[speaker];
+        // Normalize speaker name: convert "Speaker 1, 2, 3" to "Speaker A, B, C"
+        let displayName = speaker;
+        if (speaker.match(/^Speaker [A-Z0-9]+$/)) {
+            const speakerLetter = String.fromCharCode(65 + index); // A=65, B=66, C=67...
+            displayName = `Speaker ${speakerLetter}`;
+        }
+        
+        participants.push({
+            name: displayName,
+            contribution: parseFloat((stats.percentage || 0).toFixed(1)),
+            role: 'Participant',
+            persona: ''
+        });
+    });
+
+    return participants;
 };
 
 /**
@@ -364,7 +415,7 @@ exports.getDashboard = async (req, res) => {
 
         let analysis = meeting.analysis || null;
 
-        // If analysis exists, check for timeline data
+        // If analysis exists, check for timeline data and normalize participants
         if (analysis) {
             // Priority: Use real speaker segments if available
             if (meeting.speakerSegments && meeting.speakerSegments.length > 0) {
@@ -388,6 +439,16 @@ exports.getDashboard = async (req, res) => {
                     transcriptTimeline: segments
                 };
                 console.log(`[Dashboard] Generated ${segments.length} segments from transcript`);
+            }
+            
+            // Normalize participants from speakerStats if available
+            if (meeting.speakerStats && Object.keys(meeting.speakerStats).length > 0) {
+                const normalizedParticipants = extractParticipantsFromStats(meeting.speakerStats);
+                analysis = {
+                    ...analysis,
+                    participants: normalizedParticipants
+                };
+                console.log(`[Dashboard] Using normalized speaker stats for participants: ${normalizedParticipants.length} speakers`);
             }
         }
 

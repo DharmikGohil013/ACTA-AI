@@ -25,12 +25,12 @@ function getPythonExecutable() {
     if (process.env.PYTHON_EXECUTABLE) {
         return process.env.PYTHON_EXECUTABLE;
     }
-    
+
     const venvPython = path.join(__dirname, '..', '..', 'myenv', 'Scripts', 'python.exe');
     if (fs.existsSync(venvPython)) {
         return venvPython;
     }
-    
+
     return 'python';
 }
 
@@ -45,7 +45,7 @@ function getPythonExecutable() {
  * @param {string} language - Language code or null for auto-detection
  * @returns {Promise<Object>} - Transcript with speaker information
  */
-async function transcribeLive(audioPath, onProgress = () => {}, enableSpeakerDiarization = true, modelSize = 'base', language = null) {
+async function transcribeLive(audioPath, onProgress = () => { }, enableSpeakerDiarization = true, modelSize = 'base', language = null) {
     try {
         onProgress('starting', 'Starting live transcription with Faster-Whisper...');
 
@@ -60,7 +60,7 @@ async function transcribeLive(audioPath, onProgress = () => {}, enableSpeakerDia
 
         const pythonExe = getPythonExecutable();
         const scriptPath = path.join(__dirname, 'transcribe_audio.py');
-        
+
         const args = [scriptPath, audioPath, modelSize, 'auto'];
         if (language) {
             args.push(language);
@@ -86,7 +86,7 @@ async function transcribeLive(audioPath, onProgress = () => {}, enableSpeakerDia
             pythonProcess.stderr.on('data', (data) => {
                 const message = data.toString();
                 stderr += message;
-                
+
                 if (message.includes('Loading audio') || message.includes('Converting')) {
                     onProgress('loading', 'Loading audio...');
                 } else if (message.includes('Starting transcription')) {
@@ -94,7 +94,7 @@ async function transcribeLive(audioPath, onProgress = () => {}, enableSpeakerDia
                 } else if (message.includes('Processing')) {
                     onProgress('transcribing', 'Processing segments...');
                 }
-                
+
                 console.log(`[Live Transcription] ${message.trim()}`);
             });
 
@@ -207,7 +207,7 @@ async function transcribeLive(audioPath, onProgress = () => {}, enableSpeakerDia
  * @param {boolean} enableSpeakerDiarization - Enable speaker identification (default: true)
  * @returns {Promise<Object>} - Transcript with speaker information
  */
-async function transcribePostMeeting(audioPath, onProgress = () => {}, enableSpeakerDiarization = true) {
+async function transcribePostMeeting(audioPath, onProgress = () => { }, enableSpeakerDiarization = true) {
     try {
         onProgress('starting', 'Starting post-meeting transcription with Deepgram...');
 
@@ -250,7 +250,7 @@ async function transcribePostMeeting(audioPath, onProgress = () => {}, enableSpe
         // Add timeout and retry logic
         let result, error;
         let retries = 3;
-        
+
         while (retries > 0) {
             try {
                 const response = await deepgram.listen.prerecorded.transcribeFile(
@@ -267,15 +267,15 @@ async function transcribePostMeeting(audioPath, onProgress = () => {}, enableSpe
                         timeout: 120000 // 2 minutes timeout
                     }
                 );
-                
+
                 result = response.result;
                 error = response.error;
-                
+
                 // If successful, break the loop
                 if (result && !error) {
                     break;
                 }
-                
+
                 // If there's an error but we have retries left
                 if (error && retries > 1) {
                     console.log(`[Post-Meeting] Retry ${4 - retries}/3 due to error:`, error.message);
@@ -283,7 +283,7 @@ async function transcribePostMeeting(audioPath, onProgress = () => {}, enableSpe
                     await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds before retry
                     continue;
                 }
-                
+
                 break;
             } catch (err) {
                 error = err;
@@ -300,12 +300,12 @@ async function transcribePostMeeting(audioPath, onProgress = () => {}, enableSpe
         if (error) {
             console.error('[Post-Meeting] Deepgram error:', error);
             const errorMsg = error.message || JSON.stringify(error) || 'Unknown error';
-            
+
             // Check for specific error types
             if (errorMsg.includes('SLOW_UPLOAD') || errorMsg.includes('timeout')) {
                 throw new Error(`Upload timeout: File too large (${fileSizeMB} MB) or slow connection. Try with a smaller file.`);
             }
-            
+
             throw new Error(`Deepgram error: ${errorMsg}`);
         }
 
@@ -379,9 +379,9 @@ async function transcribePostMeeting(audioPath, onProgress = () => {}, enableSpe
  * @param {string} options.language - Language code for live mode
  * @returns {Promise<Object>} - Transcript with speaker information
  */
-async function transcribeAudio(audioPath, onProgress = () => {}, enableSpeakerDiarization = true, options = {}) {
+async function transcribeAudio(audioPath, onProgress = () => { }, enableSpeakerDiarization = true, options = {}) {
     const mode = options.mode || 'live';
-    
+
     if (mode === 'post-meeting') {
         return transcribePostMeeting(audioPath, onProgress, enableSpeakerDiarization);
     } else {

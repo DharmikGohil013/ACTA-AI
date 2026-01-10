@@ -39,8 +39,8 @@ const emitStatus = (meetingId, status, data = {}) => {
     }
 };
 
-async function runBot(meetingLink, meetingIdMongo, userId = null) {
-    console.log(`[Bot] Launching for meeting: ${meetingLink}`);
+async function runBot(meetingLink, meetingIdMongo, userId = null, botName = 'AI Bot') {
+    console.log(`[Bot] Launching for meeting: ${meetingLink} with bot name: ${botName}`);
 
     emitStatus(meetingIdMongo, 'starting', { message: 'Launching browser...' });
 
@@ -442,7 +442,7 @@ async function runBot(meetingLink, meetingIdMongo, userId = null) {
 
             // Name input
             emitStatus(meetingIdMongo, 'joining', { message: 'Entering meeting...' });
-            console.log('[Bot] Entering name...');
+            console.log('[Bot] Entering name:', botName);
             await delay(2000);
 
             const nameSelectors = ['#inputname', 'input[id*="name"]', 'input[type="text"]'];
@@ -451,7 +451,7 @@ async function runBot(meetingLink, meetingIdMongo, userId = null) {
                 const input = await page.$(sel);
                 if (input) {
                     await input.click({ clickCount: 3 });
-                    await input.type('AI Meeting Bot', { delay: 30 });
+                    await input.type(botName, { delay: 30 });
                     break;
                 }
             }

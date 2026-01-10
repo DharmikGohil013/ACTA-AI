@@ -570,7 +570,7 @@ app.delete('/api/bot/setup', verifyToken, async (req, res) => {
 
 // 1. Join Meeting
 app.post('/api/join', optionalAuth, async (req, res) => {
-    const { link } = req.body;
+    const { link, meetingName, botName } = req.body;
     if (!link) return res.status(400).json({ error: 'Link is required' });
 
     try {
@@ -578,7 +578,15 @@ app.post('/api/join', optionalAuth, async (req, res) => {
         const userId = req.user?._id || null;  // Get userId if authenticated
         const userEmail = req.user?.email || null;  // Get userEmail if authenticated
 
-        console.log('[Server] Creating new meeting:', { link, zoomMeetingId, userId, userEmail });
+        // Auto-generate meeting name if not provided
+        let finalMeetingName = meetingName || 'Meeting';
+        if (!meetingName || meetingName.trim() === '') {
+            // Count existing meetings to generate sequential names
+            const count = await Meeting.countDocuments();
+            finalMeetingName = `AI Meeting Bot ${count + 1}`;
+        }
+
+        console.log('[Server] Creating new meeting:', { link, zoomMeetingId, userId, userEmail, meetingName: finalMeetingName, botName });
 
         const newMeeting = new Meeting({
             meetingLink: link,
@@ -586,6 +594,8 @@ app.post('/api/join', optionalAuth, async (req, res) => {
             status: 'joining',
             userId: userId,
             userEmail: userEmail,
+            meetingName: finalMeetingName,
+            botName: botName || 'AI Bot',
         });
         await newMeeting.save();
         
@@ -593,7 +603,7 @@ app.post('/api/join', optionalAuth, async (req, res) => {
 
         emitStatus(newMeeting._id.toString(), 'joining', { message: 'Bot is starting...' });
 
-        runBot(link, newMeeting._id, userId).then(({ browser }) => {
+        runBot(link, newMeeting._id, userId, newMeeting.botName).then(({ browser }) => {
             console.log(`[Server] Bot started for meeting ${newMeeting._id}`);
 
             // Only attach event listener if browser is not null

@@ -52,9 +52,21 @@ const MeetingSchema = new mongoose.Schema({
     type: Array,
     default: [],
   },
+  meetingName: {
+    type: String,
+    default: 'Meeting',
+  },
+  botName: {
+    type: String,
+    default: 'AI Bot',
+  },
   createdAt: {
     type: Date,
     default: Date.now,
+  },
+  completedAt: {
+    type: Date,
+    default: null,
   },
 });
 

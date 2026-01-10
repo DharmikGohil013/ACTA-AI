@@ -415,7 +415,7 @@ const Dashboard = () => {
                                     {/* Header */}
                                     <div className="p-5 pb-0">
                                         <div className="flex justify-between items-start mb-4">
-                                            <div className="flex items-center gap-3">
+                                            <div className="flex items-center gap-3 flex-1">
                                                 {platform.logo ? (
                                                     <img src={platform.logo} alt={platform.name} className="w-8 h-8 object-contain" />
                                                 ) : (
@@ -423,9 +423,9 @@ const Dashboard = () => {
                                                         <Volume2 size={16} className={platform.color} />
                                                     </div>
                                                 )}
-                                                <div>
+                                                <div className="flex-1">
                                                     <h3 className="font-bold text-white text-base leading-tight line-clamp-1">
-                                                        {meeting.extraData?.topic || platform.name}
+                                                        {meeting.meetingName || meeting.extraData?.topic || platform.name}
                                                     </h3>
                                                     <div className="flex items-center gap-2 text-xs text-gray-400 mt-1">
                                                         <span>{new Date(meeting.createdAt).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}</span>

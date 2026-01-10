@@ -9,11 +9,27 @@ const API_URL = 'http://localhost:3000';
 
 const Home = () => {
     const [link, setLink] = useState('');
+    const [meetingName, setMeetingName] = useState('');
+    const [botName, setBotName] = useState('AI Assistant');
     const [loading, setLoading] = useState(false);
     const [status, setStatus] = useState({ type: null, message: '' });
     const [botConfigured, setBotConfigured] = useState(true);  // Default true to avoid flashing
     const [setupLoading, setSetupLoading] = useState(false);
+    const [showAdvanced, setShowAdvanced] = useState(false);
     const navigate = useNavigate();
+
+    const defaultMeetingNames = [
+        'Daily Standup',
+        'Sprint Planning',
+        'Client Meeting',
+        'Team Sync',
+        'Project Review',
+        'Q&A Session',
+        'All Hands Meeting',
+        'One-on-One',
+        'Technical Discussion',
+        'Product Demo'
+    ];
 
     useEffect(() => {
         checkBotSetup();
@@ -81,12 +97,32 @@ const Home = () => {
         setStatus({ type: 'info', message: 'Summoning bot...' });
 
         try {
-            await axios.post(`${API_URL}/api/join`, { link });
+            await axios.post(`${API_URL}/api/join`, { 
+                link,
+                meetingName: meetingName || 'Meeting',
+                botName: botName || 'AI Assistant'
+            });
             setStatus({ type: 'success', message: 'Bot deployed! Audio recording will start automatically.' });
+            
+            // Reset form after successful submission
+            setLink('');
+            setMeetingName('');
+            setBotName('AI Assistant');
+            setShowAdvanced(false);
+            
             setTimeout(() => navigate('/dashboard'), 2500);
         } catch (err) {
             setStatus({ type: 'error', message: err.response?.data?.error || 'Failed to summon bot' });
             setLoading(false);
+        }
+    };
+
+    const handleLinkChange = (e) => {
+        const value = e.target.value;
+        setLink(value);
+        // Auto-expand Meeting Details when user pastes a link
+        if (value && !showAdvanced) {
+            setShowAdvanced(true);
         }
     };
     return (
@@ -117,14 +153,14 @@ const Home = () => {
                     </p>
 
                     {/* Input Field - Professional */}
-                    <div className="w-full max-w-xl mx-auto mb-16 relative group">
+                    <div className="w-full max-w-xl mx-auto mb-6 relative group">
                         <div className="absolute -inset-1 bg-gradient-to-r from-blue-500 via-purple-500 to-indigo-500 rounded-lg blur opacity-25 group-hover:opacity-50 transition duration-500"></div>
                         <div className="relative flex items-center bg-[#0B0E14] border border-white/10 rounded-lg focus-within:border-white/20 transition-colors h-16 shadow-2xl p-1.5">
                             <input
                                 type="text"
                                 placeholder="Paste Zoom, Teams, or Meet link..."
                                 value={link}
-                                onChange={(e) => setLink(e.target.value)}
+                                onChange={handleLinkChange}
                                 onKeyDown={(e) => e.key === 'Enter' && handleJoin()}
                                 disabled={loading}
                                 className="flex-1 bg-transparent border-none outline-none text-white px-4 h-full text-lg placeholder-slate-600 font-light"
@@ -142,6 +178,66 @@ const Home = () => {
                                 }
                             </button>
                         </div>
+                    </div>
+
+                    {/* Advanced Options */}
+                    <div className="w-full max-w-xl mx-auto mb-16">
+                        <button
+                            onClick={() => setShowAdvanced(!showAdvanced)}
+                            className="text-sm text-slate-400 hover:text-slate-300 transition-colors flex items-center gap-2 justify-center w-full mb-4"
+                        >
+                            <span>{showAdvanced ? '▼' : '▶'}</span>
+                            Meeting Details
+                        </button>
+
+                        {showAdvanced && (
+                            <motion.div
+                                initial={{ opacity: 0, height: 0 }}
+                                animate={{ opacity: 1, height: 'auto' }}
+                                exit={{ opacity: 0, height: 0 }}
+                                className="space-y-4 p-4 bg-white/5 border border-white/10 rounded-lg"
+                            >
+                                {/* Meeting Name Field */}
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-300 mb-2">Meeting Name</label>
+                                    <input
+                                        type="text"
+                                        placeholder="Enter meeting name..."
+                                        value={meetingName}
+                                        onChange={(e) => setMeetingName(e.target.value)}
+                                        className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-white placeholder-slate-500 focus:border-blue-500 focus:outline-none transition-colors"
+                                    />
+                                    <div className="mt-2 flex flex-wrap gap-2">
+                                        {defaultMeetingNames.map((name) => (
+                                            <button
+                                                key={name}
+                                                onClick={() => setMeetingName(name)}
+                                                className={`text-xs px-3 py-1.5 rounded-full transition-colors ${
+                                                    meetingName === name
+                                                        ? 'bg-blue-600 text-white'
+                                                        : 'bg-white/10 text-slate-300 hover:bg-white/20'
+                                                }`}
+                                            >
+                                                {name}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Bot Name Field */}
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-300 mb-2">Bot Name</label>
+                                    <input
+                                        type="text"
+                                        placeholder="Enter bot name..."
+                                        value={botName}
+                                        onChange={(e) => setBotName(e.target.value)}
+                                        className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-white placeholder-slate-500 focus:border-blue-500 focus:outline-none transition-colors"
+                                    />
+                                    <p className="text-xs text-slate-500 mt-1">This is how the bot will appear in the meeting</p>
+                                </div>
+                            </motion.div>
+                        )}
                     </div>
 
                     {/* Status Message */}

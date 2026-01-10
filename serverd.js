@@ -129,21 +129,21 @@ app.get('/api/users/me/profile', isAuthenticated, async (req, res) => {
 app.patch('/api/users/me/profile', isAuthenticated, async (req, res) => {
     try {
         const { jiraConfig, trelloConfig } = req.body;
-        
+
         const updateData = {};
         if (jiraConfig) updateData.jiraConfig = jiraConfig;
         if (trelloConfig) updateData.trelloConfig = trelloConfig;
-        
+
         const user = await User.findByIdAndUpdate(
             req.user._id,
             { $set: updateData },
             { new: true, runValidators: true }
         );
-        
+
         if (!user) {
             return res.status(404).json({ error: 'User not found' });
         }
-        
+
         res.json({ user, message: 'Profile updated successfully' });
     } catch (error) {
         console.error('Error updating profile:', error);
@@ -158,23 +158,23 @@ app.get('/api/users/me/jira-projects', isAuthenticated, async (req, res) => {
         if (!user || !user.jiraConfig || !user.jiraConfig.domain || !user.jiraConfig.email || !user.jiraConfig.apiToken) {
             return res.status(400).json({ error: 'Jira not configured. Please set domain, email, and API token first.' });
         }
-        
+
         let { domain, email, apiToken } = user.jiraConfig;
         // Remove .atlassian.net if user included it
         domain = domain.replace(/\.atlassian\.net$/i, '');
         const authToken = Buffer.from(`${email}:${apiToken}`).toString('base64');
-        
+
         const response = await fetch(`https://${domain}.atlassian.net/rest/api/3/project`, {
             headers: {
                 'Authorization': `Basic ${authToken}`,
                 'Accept': 'application/json'
             }
         });
-        
+
         if (!response.ok) {
             throw new Error(`Jira API error: ${response.statusText}`);
         }
-        
+
         const projects = await response.json();
         res.json({ projects: projects.map(p => ({ key: p.key, name: p.name })) });
     } catch (error) {
@@ -188,17 +188,17 @@ app.post('/api/integrations/jira/test', isAuthenticated, async (req, res) => {
     try {
         const user = await User.findById(req.user._id);
         if (!user || !user.jiraConfig || !user.jiraConfig.domain || !user.jiraConfig.email || !user.jiraConfig.apiToken) {
-            return res.status(400).json({ 
-                connected: false, 
-                error: 'Jira not configured. Please set domain, email, and API token.' 
+            return res.status(400).json({
+                connected: false,
+                error: 'Jira not configured. Please set domain, email, and API token.'
             });
         }
-        
+
         let { domain, email, apiToken } = user.jiraConfig;
         // Remove .atlassian.net if user included it
         domain = domain.replace(/\.atlassian\.net$/i, '');
         const authToken = Buffer.from(`${email}:${apiToken}`).toString('base64');
-        
+
         // Test connection by fetching user info
         const response = await fetch(`https://${domain}.atlassian.net/rest/api/3/myself`, {
             headers: {
@@ -206,19 +206,19 @@ app.post('/api/integrations/jira/test', isAuthenticated, async (req, res) => {
                 'Accept': 'application/json'
             }
         });
-        
+
         if (!response.ok) {
             const errorText = await response.text();
-            return res.json({ 
-                connected: false, 
+            return res.json({
+                connected: false,
                 error: `Jira API error: ${response.status} ${response.statusText}`,
                 details: errorText
             });
         }
-        
+
         const userData = await response.json();
-        res.json({ 
-            connected: true, 
+        res.json({
+            connected: true,
             message: 'Successfully connected to Jira',
             accountId: userData.accountId,
             displayName: userData.displayName,
@@ -226,8 +226,8 @@ app.post('/api/integrations/jira/test', isAuthenticated, async (req, res) => {
         });
     } catch (error) {
         console.error('Error testing Jira connection:', error);
-        res.json({ 
-            connected: false, 
+        res.json({
+            connected: false,
             error: 'Failed to connect to Jira',
             details: error.message
         });
@@ -239,33 +239,33 @@ app.post('/api/integrations/trello/test', isAuthenticated, async (req, res) => {
     try {
         const user = await User.findById(req.user._id);
         if (!user || !user.trelloConfig || !user.trelloConfig.apiKey || !user.trelloConfig.apiToken) {
-            return res.status(400).json({ 
-                connected: false, 
-                error: 'Trello not configured. Please set API key and token.' 
+            return res.status(400).json({
+                connected: false,
+                error: 'Trello not configured. Please set API key and token.'
             });
         }
-        
+
         const { apiKey, apiToken } = user.trelloConfig;
-        
+
         // Test connection by fetching user info
         const response = await fetch(`https://api.trello.com/1/members/me?key=${apiKey}&token=${apiToken}`, {
             headers: {
                 'Accept': 'application/json'
             }
         });
-        
+
         if (!response.ok) {
             const errorText = await response.text();
-            return res.json({ 
-                connected: false, 
+            return res.json({
+                connected: false,
                 error: `Trello API error: ${response.status} ${response.statusText}`,
                 details: errorText
             });
         }
-        
+
         const userData = await response.json();
-        res.json({ 
-            connected: true, 
+        res.json({
+            connected: true,
             message: 'Successfully connected to Trello',
             id: userData.id,
             fullName: userData.fullName,
@@ -273,8 +273,8 @@ app.post('/api/integrations/trello/test', isAuthenticated, async (req, res) => {
         });
     } catch (error) {
         console.error('Error testing Trello connection:', error);
-        res.json({ 
-            connected: false, 
+        res.json({
+            connected: false,
             error: 'Failed to connect to Trello',
             details: error.message
         });
@@ -285,26 +285,26 @@ app.post('/api/integrations/trello/test', isAuthenticated, async (req, res) => {
 app.post('/api/test/extract-tasks', isAuthenticated, async (req, res) => {
     try {
         const { transcript } = req.body;
-        
+
         if (!transcript || typeof transcript !== 'string') {
             return res.status(400).json({ error: 'Transcript is required' });
         }
 
         console.log('[TestExtraction] Extracting tasks from transcript...');
-        
+
         // Use the task extraction service
         const tasks = await extractTasksFromTranscript(transcript);
-        
+
         console.log(`[TestExtraction] Extracted ${tasks.length} tasks`);
-        
-        res.json({ 
-            success: true, 
+
+        res.json({
+            success: true,
             tasks,
             message: `Successfully extracted ${tasks.length} task${tasks.length !== 1 ? 's' : ''}`
         });
     } catch (error) {
         console.error('[TestExtraction] Error:', error);
-        res.status(500).json({ 
+        res.status(500).json({
             error: 'Failed to extract tasks',
             details: error.message
         });
@@ -376,21 +376,21 @@ app.post('/api/meetings/:meetingId/tasks/:taskIndex/add-to-jira', isAuthenticate
         if (!response.ok) {
             const errorText = await response.text();
             console.error('Jira API error:', errorText);
-            return res.status(response.status).json({ 
+            return res.status(response.status).json({
                 error: `Failed to create Jira issue: ${response.statusText}`,
                 details: errorText
             });
         }
 
         const jiraIssue = await response.json();
-        
+
         // Update task in meeting
         meeting.extractedTasks[taskIndex].addedToJira = true;
         meeting.extractedTasks[taskIndex].jiraIssueId = jiraIssue.key;
         await meeting.save();
 
-        res.json({ 
-            success: true, 
+        res.json({
+            success: true,
             jiraIssueId: jiraIssue.key,
             jiraIssueUrl: `https://${domain}.atlassian.net/browse/${jiraIssue.key}`,
             task: meeting.extractedTasks[taskIndex]
@@ -415,31 +415,31 @@ app.post('/api/meetings/:meetingId/tasks/:taskIndex/add-to-trello', isAuthentica
         // Check Trello configuration with detailed error
         if (!user.trelloConfig) {
             console.log('[Trello] User has no trelloConfig');
-            return res.status(400).json({ 
+            return res.status(400).json({
                 error: 'Trello not configured',
                 details: 'Please configure Trello in your Profile page. You need: API Key, API Token, and List ID.'
             });
         }
-        
+
         if (!user.trelloConfig.apiKey) {
             console.log('[Trello] Missing API Key');
-            return res.status(400).json({ 
+            return res.status(400).json({
                 error: 'Trello API Key missing',
                 details: 'Please add your Trello API Key in your Profile page.'
             });
         }
-        
+
         if (!user.trelloConfig.apiToken) {
             console.log('[Trello] Missing API Token');
-            return res.status(400).json({ 
+            return res.status(400).json({
                 error: 'Trello API Token missing',
                 details: 'Please add your Trello API Token in your Profile page.'
             });
         }
-        
+
         if (!user.trelloConfig.listId) {
             console.log('[Trello] Missing List ID');
-            return res.status(400).json({ 
+            return res.status(400).json({
                 error: 'Trello List ID missing',
                 details: 'Please add your Trello List ID in your Profile page. This is the ID of the list where cards will be created.'
             });
@@ -451,7 +451,7 @@ app.post('/api/meetings/:meetingId/tasks/:taskIndex/add-to-trello', isAuthentica
         }
 
         const { apiKey, apiToken, listId } = user.trelloConfig;
-        
+
         console.log(`[Trello] Creating card for task: "${task.task}"`);
 
         // Create Trello card
@@ -492,7 +492,7 @@ app.post('/api/meetings/:meetingId/tasks/:taskIndex/add-to-trello', isAuthentica
         if (!response.ok) {
             const errorText = await response.text();
             console.error('[Trello] API error:', response.status, errorText);
-            return res.status(response.status).json({ 
+            return res.status(response.status).json({
                 error: `Trello API Error (${response.status})`,
                 details: `Failed to create card: ${response.statusText}. Please check your API Key, Token, and List ID are correct.`
             });
@@ -500,14 +500,14 @@ app.post('/api/meetings/:meetingId/tasks/:taskIndex/add-to-trello', isAuthentica
 
         const trelloCard = await response.json();
         console.log(`[Trello] ✅ Card created: ${trelloCard.id}`);
-        
+
         // Update task in meeting
         meeting.extractedTasks[taskIndex].addedToTrello = true;
         meeting.extractedTasks[taskIndex].trelloCardId = trelloCard.id;
         await meeting.save();
 
-        res.json({ 
-            success: true, 
+        res.json({
+            success: true,
             trelloCardId: trelloCard.id,
             trelloCardUrl: trelloCard.url,
             task: meeting.extractedTasks[taskIndex]
@@ -611,7 +611,7 @@ app.patch('/api/meetings/:id', isAuthenticated, async (req, res) => {
         }
 
         Object.assign(meeting, updateData);
-        
+
         // Extract tasks when meeting is completed and has transcription
         if (status === 'completed' && transcription && transcription.trim().length > 0) {
             try {
@@ -624,7 +624,7 @@ app.patch('/api/meetings/:id', isAuthenticated, async (req, res) => {
                 // Don't fail the update if task extraction fails
             }
         }
-        
+
         await meeting.save();
         res.json(meeting);
     } catch (err) {
@@ -801,7 +801,7 @@ app.post('/api/meetings/:id/transcribe', isAuthenticated, async (req, res) => {
         // Save to database
         const updatedMeeting = await Meeting.findByIdAndUpdate(
             meeting._id,
-            { 
+            {
                 transcription,
                 extractedTasks
             },

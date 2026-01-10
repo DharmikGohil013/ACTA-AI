@@ -149,7 +149,7 @@ const ANALYSIS_SCHEMA = {
         },
         progress: { type: Type.NUMBER }
     },
-    required: ["title", "summary", "participants", "actionItems", "decisions", "keyTopics", "progress", "risks", "followUpDrafts", "topPriorities", "timeline", "importantDates", "topicBreakdown"]
+    required: ["title", "summary", "participants", "actionItems", "decisions", "keyTopics", "progress", "risks", "followUpDrafts", "topPriorities", "timeline", "importantDates", "topicBreakdown", "transcriptTimeline"]
 };
 
 /**
@@ -191,6 +191,100 @@ const extractTimelineFromSegments = (speakerSegments) => {
         speaker: segment.speaker || 'Unknown',
         text: segment.text || ''
     }));
+};
+
+/**
+ * Generate timeline from raw transcript text
+ * Used as a fallback when no speaker segments or AI-generated timeline exists
+ */
+const generateTimelineFromTranscript = (transcript) => {
+    if (!transcript || transcript.trim().length === 0) {
+        return [];
+    }
+
+    const segments = [];
+    let currentTime = 0;
+    const wordsPerSecond = 2.5; // Average speaking rate
+
+    // Try to detect speaker patterns like "Speaker 1:", "John:", etc.
+    const speakerPattern = /^(Speaker\s*\d+|[A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\s*:/gm;
+
+    // Split by speaker patterns or by sentences if no speakers found
+    const parts = transcript.split(speakerPattern).filter(p => p && p.trim());
+
+    // Check if we found speaker patterns
+    let hasSpeakers = false;
+    for (let i = 0; i < parts.length; i++) {
+        if (speakerPattern.test(parts[i] + ':')) {
+            hasSpeakers = true;
+            break;
+        }
+    }
+
+    if (hasSpeakers && parts.length >= 2) {
+        // Process speaker-based segments
+        for (let i = 0; i < parts.length - 1; i += 2) {
+            const speaker = parts[i].trim();
+            const text = parts[i + 1]?.trim() || '';
+
+            if (text.length > 0) {
+                const wordCount = text.split(/\s+/).length;
+                const duration = wordCount / wordsPerSecond;
+
+                segments.push({
+                    startTime: formatTime(currentTime),
+                    endTime: formatTime(currentTime + duration),
+                    speaker: speaker,
+                    text: text
+                });
+
+                currentTime += duration;
+            }
+        }
+    } else {
+        // No speakers detected, split by sentences/paragraphs
+        const sentences = transcript.split(/(?<=[.!?])\s+/).filter(s => s.trim().length > 10);
+
+        // Group sentences into ~30-second chunks
+        let accumText = '';
+        let chunkWordCount = 0;
+        const maxChunkDuration = 30; // seconds
+
+        sentences.forEach((sentence, idx) => {
+            const sentenceWords = sentence.split(/\s+/).length;
+            const sentenceDuration = sentenceWords / wordsPerSecond;
+
+            if (chunkWordCount / wordsPerSecond + sentenceDuration > maxChunkDuration && accumText.length > 0) {
+                // Save current chunk
+                const duration = chunkWordCount / wordsPerSecond;
+                segments.push({
+                    startTime: formatTime(currentTime),
+                    endTime: formatTime(currentTime + duration),
+                    speaker: 'Transcript',
+                    text: accumText.trim()
+                });
+                currentTime += duration;
+                accumText = '';
+                chunkWordCount = 0;
+            }
+
+            accumText += sentence + ' ';
+            chunkWordCount += sentenceWords;
+        });
+
+        // Don't forget the last chunk
+        if (accumText.trim().length > 0) {
+            const duration = chunkWordCount / wordsPerSecond;
+            segments.push({
+                startTime: formatTime(currentTime),
+                endTime: formatTime(currentTime + duration),
+                speaker: 'Transcript',
+                text: accumText.trim()
+            });
+        }
+    }
+
+    return segments;
 };
 
 exports.generateDashboard = async (req, res) => {
@@ -269,14 +363,32 @@ exports.getDashboard = async (req, res) => {
         }
 
         let analysis = meeting.analysis || null;
-        
-        // If analysis exists and we have speaker segments, add real timeline
-        if (analysis && meeting.speakerSegments && meeting.speakerSegments.length > 0) {
-            const realTimeline = extractTimelineFromSegments(meeting.speakerSegments);
-            analysis = {
-                ...analysis,
-                transcriptTimeline: realTimeline
-            };
+
+        // If analysis exists, check for timeline data
+        if (analysis) {
+            // Priority: Use real speaker segments if available
+            if (meeting.speakerSegments && meeting.speakerSegments.length > 0) {
+                const realTimeline = extractTimelineFromSegments(meeting.speakerSegments);
+                analysis = {
+                    ...analysis,
+                    transcriptTimeline: realTimeline
+                };
+                console.log(`[Dashboard] Using real speaker segments for timeline: ${realTimeline.length} segments`);
+            }
+            // Fallback: Use AI-generated transcriptTimeline if it exists
+            else if (analysis.transcriptTimeline && analysis.transcriptTimeline.length > 0) {
+                console.log(`[Dashboard] Using AI-generated timeline: ${analysis.transcriptTimeline.length} segments`);
+            }
+            // Last resort: Generate timeline from raw transcript
+            else if (meeting.transcription) {
+                console.log(`[Dashboard] Generating timeline from transcript...`);
+                const segments = generateTimelineFromTranscript(meeting.transcription);
+                analysis = {
+                    ...analysis,
+                    transcriptTimeline: segments
+                };
+                console.log(`[Dashboard] Generated ${segments.length} segments from transcript`);
+            }
         }
 
         res.json({ success: true, analysis });

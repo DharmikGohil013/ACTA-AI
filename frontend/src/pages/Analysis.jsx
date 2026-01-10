@@ -394,7 +394,6 @@ const Analysis = () => {
                         label="Team Members"
                         change={`${stats.speakersChange > 0 ? '+' : ''}${stats.speakersChange}%`}
                         changeType={stats.speakersChange >= 0 ? 'positive' : 'negative'}
-                        change="+2"
                     />
                 </div>
 

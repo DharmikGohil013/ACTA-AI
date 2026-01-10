@@ -45,32 +45,74 @@ function stopScheduler() {
 
 /**
  * Clean up expired scheduled meetings (older than 30 minutes)
+ * Also clean up old completed meetings (older than 7 days)
+ * Works for ALL meeting types: Zoom, Google Meet, Microsoft Teams
+ * 
+ * Cleanup Rules:
+ * - Scheduled meetings: Remove after 30 minutes past scheduled time
+ * - Completed meetings: Remove after 7 days
+ * - Cancelled meetings: Remove after 1 day
  */
 async function cleanupExpiredMeetings() {
     try {
         const now = new Date();
         const thirtyMinutesAgo = new Date(now.getTime() - 30 * 60000); // 30 minutes ago
+        const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60000); // 7 days ago
+        
+        let totalDeleted = 0;
 
-        // Find expired scheduled meetings
-        const expiredMeetings = await ScheduledMeeting.find({
+        // 1. Clean up expired SCHEDULED meetings (older than 30 minutes)
+        // Applies to all meeting types: Zoom, Meet, Teams
+        const expiredScheduled = await ScheduledMeeting.find({
             status: 'scheduled',
             scheduledTime: { $lt: thirtyMinutesAgo }
         });
 
-        if (expiredMeetings.length > 0) {
-            console.log(`[Scheduler] 🗑️ Cleaning up ${expiredMeetings.length} expired meeting(s)`);
+        if (expiredScheduled.length > 0) {
+            console.log(`[Scheduler] 🗑️ Cleaning up ${expiredScheduled.length} expired scheduled meeting(s)`);
             
-            // Delete expired meetings
-            const result = await ScheduledMeeting.deleteMany({
+            const scheduledResult = await ScheduledMeeting.deleteMany({
                 status: 'scheduled',
                 scheduledTime: { $lt: thirtyMinutesAgo }
             });
             
-            console.log(`[Scheduler] ✅ Deleted ${result.deletedCount} expired meeting(s)`);
-            return result.deletedCount;
+            console.log(`[Scheduler] ✅ Deleted ${scheduledResult.deletedCount} expired scheduled meeting(s)`);
+            totalDeleted += scheduledResult.deletedCount;
+        }
+
+        // 2. Clean up old COMPLETED meetings (older than 7 days)
+        // Applies to all meeting types: Zoom, Meet, Teams
+        const oldCompleted = await ScheduledMeeting.find({
+            status: 'completed',
+            scheduledTime: { $lt: sevenDaysAgo }
+        });
+
+        if (oldCompleted.length > 0) {
+            console.log(`[Scheduler] 🗑️ Cleaning up ${oldCompleted.length} old completed meeting(s)`);
+            
+            const completedResult = await ScheduledMeeting.deleteMany({
+                status: 'completed',
+                scheduledTime: { $lt: sevenDaysAgo }
+            });
+            
+            console.log(`[Scheduler] ✅ Deleted ${completedResult.deletedCount} old completed meeting(s)`);
+            totalDeleted += completedResult.deletedCount;
+        }
+
+        // 3. Clean up CANCELLED meetings (older than 1 day)
+        // Applies to all meeting types: Zoom, Meet, Teams
+        const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60000);
+        const cancelledResult = await ScheduledMeeting.deleteMany({
+            status: 'cancelled',
+            scheduledTime: { $lt: oneDayAgo }
+        });
+
+        if (cancelledResult.deletedCount > 0) {
+            console.log(`[Scheduler] 🗑️ Deleted ${cancelledResult.deletedCount} cancelled meeting(s)`);
+            totalDeleted += cancelledResult.deletedCount;
         }
         
-        return 0;
+        return totalDeleted;
     } catch (error) {
         console.error('[Scheduler] Error cleaning up expired meetings:', error);
         return 0;

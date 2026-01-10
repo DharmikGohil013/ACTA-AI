@@ -57,14 +57,28 @@ const ScheduledMeetings = () => {
         try {
             const res = await axios.get(`${API_URL}/api/scheduled-meetings`);
             if (res.data.success) {
-                // Filter out expired meetings (older than 30 minutes)
+                // Filter meetings based on status and time
                 const now = new Date();
                 const thirtyMinutesAgo = new Date(now.getTime() - 30 * 60000);
+                const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60000);
+                const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60000);
                 
                 const activeMeetings = res.data.meetings.filter(meeting => {
                     const scheduledTime = new Date(meeting.scheduledTime);
-                    // Only show scheduled meetings that are not expired
-                    return meeting.status === 'scheduled' && scheduledTime >= thirtyMinutesAgo;
+                    
+                    // Filter logic for all meeting types (Zoom, Meet, Teams)
+                    if (meeting.status === 'scheduled') {
+                        // Show scheduled meetings that are NOT expired (within 30 min grace period)
+                        return scheduledTime >= thirtyMinutesAgo;
+                    } else if (meeting.status === 'completed') {
+                        // Show completed meetings for up to 7 days
+                        return scheduledTime >= sevenDaysAgo;
+                    } else if (meeting.status === 'cancelled') {
+                        // Show cancelled meetings for up to 1 day
+                        return scheduledTime >= oneDayAgo;
+                    }
+                    
+                    return true; // Keep other statuses
                 });
                 
                 setScheduledMeetings(activeMeetings);
@@ -295,7 +309,25 @@ const ScheduledMeetings = () => {
                                     <h3 className="text-lg font-bold text-white mb-1">
                                         {meeting.title || 'Scheduled Meeting'}
                                     </h3>
-                                    <p className={`text-sm ${details.color} mb-4`}>{details.name}</p>
+                                    <div className="flex items-center gap-2 mb-3">
+                                        <p className={`text-sm ${details.color}`}>{details.name}</p>
+                                        {/* Status Badge */}
+                                        {meeting.status === 'completed' && (
+                                            <span className="px-2 py-0.5 text-xs font-semibold bg-green-500/20 text-green-400 rounded-full border border-green-500/30">
+                                                Completed
+                                            </span>
+                                        )}
+                                        {meeting.status === 'cancelled' && (
+                                            <span className="px-2 py-0.5 text-xs font-semibold bg-red-500/20 text-red-400 rounded-full border border-red-500/30">
+                                                Cancelled
+                                            </span>
+                                        )}
+                                        {meeting.status === 'scheduled' && (
+                                            <span className="px-2 py-0.5 text-xs font-semibold bg-blue-500/20 text-blue-400 rounded-full border border-blue-500/30">
+                                                Scheduled
+                                            </span>
+                                        )}
+                                    </div>
 
                                     <div className="space-y-2 mb-4">
                                         <div className="flex items-center gap-2 text-sm text-gray-400">

@@ -1,15 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import {
     Save, CheckCircle, XCircle, Loader2, Link as LinkIcon,
     AlertCircle, ExternalLink, RefreshCw, X, Bot, Trello, Box,
-    ChevronRight, Globe, Lock, Key
+    ChevronRight, Globe, Lock, Key, Presentation as PresentationIcon
 } from 'lucide-react';
 import axios from 'axios';
 
 const API_URL = 'http://localhost:3000';
 
 const Settings = () => {
+    const navigate = useNavigate();
     const [loading, setLoading] = useState(true);
     const [activeModal, setActiveModal] = useState(null); // 'jira', 'trello', 'bot'
 
@@ -301,6 +303,15 @@ const Settings = () => {
                     icon={Bot}
                     connected={botConfigured}
                     onClick={() => setActiveModal('bot')}
+                />
+
+                <IntegrationCard
+                    id="about"
+                    title="About ACTA-AI"
+                    description="Learn about our platform's features, architecture, and business impact through an interactive presentation."
+                    icon={PresentationIcon}
+                    connected={false}
+                    onClick={() => navigate('/presentation')}
                 />
             </div>
 

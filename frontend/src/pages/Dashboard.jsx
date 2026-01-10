@@ -1013,20 +1013,44 @@ const Dashboard = () => {
                                                                 <span className="text-gray-500">Deadline:</span> {task.deadline}
                                                             </p>
                                                         )}
-                                                        <div className="flex gap-2 mt-2">
-                                                            {task.priority && (
-                                                                <span className={`text-xs px-2 py-1 rounded-full ${task.priority === 'high' ? 'bg-red-500/20 text-red-400' :
-                                                                    task.priority === 'medium' ? 'bg-yellow-500/20 text-yellow-400' :
-                                                                        'bg-green-500/20 text-green-400'
-                                                                    }`}>
-                                                                    {task.priority}
-                                                                </span>
-                                                            )}
-                                                            {task.category && (
-                                                                <span className="text-xs px-2 py-1 rounded-full bg-blue-500/20 text-blue-400">
-                                                                    {task.category}
-                                                                </span>
-                                                            )}
+                                                        <div className="flex flex-wrap gap-2 mt-3">
+                                                            <div className="flex gap-2">
+                                                                {task.priority && (
+                                                                    <span className={`text-xs px-2 py-1 rounded-full ${task.priority === 'high' ? 'bg-red-500/20 text-red-400' :
+                                                                        task.priority === 'medium' ? 'bg-yellow-500/20 text-yellow-400' :
+                                                                            'bg-green-500/20 text-green-400'
+                                                                        }`}>
+                                                                        {task.priority}
+                                                                    </span>
+                                                                )}
+                                                                {task.category && (
+                                                                    <span className="text-xs px-2 py-1 rounded-full bg-blue-500/20 text-blue-400">
+                                                                        {task.category}
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                            <div className="flex gap-2 ml-auto">
+                                                                <button
+                                                                    onClick={() => {
+                                                                        // TODO: Add to Jira
+                                                                        alert('Add to Jira: ' + (task.task || task));
+                                                                    }}
+                                                                    className="text-xs px-3 py-1.5 rounded-lg bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/30 hover:border-blue-500/50 text-blue-400 hover:text-blue-300 font-medium transition-all"
+                                                                    title="Add this task to Jira"
+                                                                >
+                                                                    + Jira
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => {
+                                                                        // TODO: Add to Trello
+                                                                        alert('Add to Trello: ' + (task.task || task));
+                                                                    }}
+                                                                    className="text-xs px-3 py-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/30 hover:border-emerald-500/50 text-emerald-400 hover:text-emerald-300 font-medium transition-all"
+                                                                    title="Add this task to Trello"
+                                                                >
+                                                                    + Trello
+                                                                </button>
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 </div>

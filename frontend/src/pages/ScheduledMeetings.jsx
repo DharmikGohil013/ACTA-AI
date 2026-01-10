@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { Calendar, Clock, Plus, X, Trash2, ExternalLink, Video, Loader2, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import Loader from '../components/Loader';
 
 // Import Platform Logos
 import googleMeetLogo from '../assets/google-meet.png';
@@ -263,8 +264,12 @@ const ScheduledMeetings = () => {
         };
     };
 
+    if (loading) {
+        return <Loader message="Loading scheduled meetings..." />;
+    }
+
     return (
-        <div className="min-h-screen bg-[#0B0E14] text-slate-100">
+        <div className="min-h-screen text-slate-100">
             {/* Header */}
             <header className="sticky top-0 z-50 bg-[#0B0E14]/80 backdrop-blur-xl border-b border-white/5">
                 <div className="container mx-auto px-6 h-16 flex items-center justify-between">
@@ -304,11 +309,7 @@ const ScheduledMeetings = () => {
 
             {/* Main Content */}
             <main className="container mx-auto px-6 py-8">
-                {loading ? (
-                    <div className="flex items-center justify-center py-20">
-                        <Loader2 size={40} className="animate-spin text-emerald-400" />
-                    </div>
-                ) : scheduledMeetings.length === 0 ? (
+                {scheduledMeetings.length === 0 ? (
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}

@@ -3,6 +3,7 @@ import axios from 'axios';
 import { io } from 'socket.io-client';
 import { Upload as UploadIcon, File, FileAudio, FileVideo, X, Loader2, CheckCircle2, AlertCircle, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import Loader from '../components/Loader';
 
 const API_URL = 'http://localhost:3000';
 

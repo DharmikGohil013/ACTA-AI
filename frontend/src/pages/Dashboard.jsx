@@ -4,6 +4,7 @@ import axios from 'axios';
 import { io } from 'socket.io-client';
 import { Play, Pause, Mic, X, Trash2, Calendar, Clock, ExternalLink, StopCircle, Loader2, Volume2, Download, FileAudio, Wifi, WifiOff, FileText, Sparkles, Users, MoreVertical, CheckCircle2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import Loader from '../components/Loader';
 
 // Import Platform Logos
 import googleMeetLogo from '../assets/google-meet.png';
@@ -511,6 +512,10 @@ const Dashboard = () => {
 
         return false;
     });
+
+    if (loading) {
+        return <Loader message="Loading meetings..." />;
+    }
 
     return (
         <div className="max-w-[1400px] mx-auto w-full px-6 py-8">

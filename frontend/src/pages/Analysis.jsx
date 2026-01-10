@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import Loader from '../components/Loader';
 
 const API_URL = 'http://localhost:3000';
 
@@ -329,15 +330,11 @@ const Analysis = () => {
     ];
 
     if (loading) {
-        return (
-            <div className="min-h-screen bg-gradient-to-br from-[#0B0E14] via-[#0F1419] to-[#0B0E14] flex items-center justify-center">
-                <div className="text-cyan-400 text-xl">Loading analytics...</div>
-            </div>
-        );
+        return <Loader message="Loading analytics..." />;
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-[#0B0E14] via-[#0F1419] to-[#0B0E14]">
+        <div className="min-h-screen">
             <div className="max-w-7xl mx-auto px-6 py-8">
                 {/* Header */}
                 <div className="mb-8">

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { Users, Calendar, Clock, ExternalLink, Loader2, Mail, ArrowLeft, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import Loader from '../components/Loader';
 
 const API_URL = 'http://localhost:3000';
 
@@ -96,7 +97,7 @@ const CollaborateDashboard = () => {
 
     if (!emailEntered) {
         return (
-            <div className="min-h-screen bg-[#0B0E14] text-slate-100 flex items-center justify-center p-6">
+            <div className="min-h-screen text-slate-100 flex items-center justify-center p-6">
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -151,10 +152,14 @@ const CollaborateDashboard = () => {
         );
     }
 
+    if (loading) {
+        return <Loader message="Loading shared meetings..." />;
+    }
+
     return (
-        <div className="min-h-screen bg-[#0B0E14] text-slate-100">
+        <div className="min-h-screen text-slate-100">
             {/* Header */}
-            <header className="sticky top-0 z-50 bg-[#0B0E14]/80 backdrop-blur-xl border-b border-white/5">
+            <header className="sticky top-0 z-50 bg-black/80 backdrop-blur-xl border-b border-white/5">
                 <div className="container mx-auto px-6 h-16 flex items-center justify-between">
                     <div className="flex items-center gap-4">
                         <h1 className="text-lg font-bold text-white flex items-center gap-2">
@@ -202,49 +207,68 @@ const CollaborateDashboard = () => {
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: index * 0.05 }}
                                 onClick={() => navigate(`/dashboard/${meeting._id}`)}
-                                className="bg-[#1C1F2E] rounded-2xl p-6 border border-white/5 hover:border-emerald-500/30 transition-all cursor-pointer group hover:shadow-lg hover:shadow-emerald-500/10"
+                                className="group relative cursor-pointer"
                             >
-                                <div className="flex items-start justify-between mb-4">
-                                    <div className="flex-1">
-                                        <h3 className="text-lg font-bold text-white mb-1 group-hover:text-emerald-400 transition-colors">
-                                            {meeting.meetingName || 'Meeting'}
-                                        </h3>
-                                        <p className="text-xs text-gray-500">
-                                            Shared by: {meeting.userEmail || 'Unknown'}
-                                        </p>
-                                    </div>
-                                    <div className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                                        meeting.status === 'completed'
-                                            ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                                            : 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
-                                    }`}>
-                                        {meeting.status}
-                                    </div>
-                                </div>
+                                {/* Glow Effect */}
+                                <div className="absolute -inset-0.5 rounded-2xl bg-gradient-to-br from-emerald-500 to-green-900 opacity-0 group-hover:opacity-50 blur transition duration-500"></div>
 
-                                <div className="space-y-2 mb-4">
-                                    <div className="flex items-center gap-2 text-sm text-gray-400">
-                                        <Calendar size={14} className="text-emerald-400" />
-                                        {formatDate(meeting.createdAt)}
-                                    </div>
-                                    <div className="flex items-center gap-2 text-sm text-gray-400">
-                                        <Clock size={14} className="text-blue-400" />
-                                        {formatTime(meeting.createdAt)}
-                                    </div>
-                                </div>
+                                <div className="relative bg-[#0B0E14] rounded-2xl overflow-hidden border border-white/10 group-hover:border-white/20 transition-colors">
+                                    {/* Header */}
+                                    <div className="p-6">
+                                        <div className="flex items-start justify-between mb-4">
+                                            <div className="flex items-center gap-3 flex-1">
+                                                <div className="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
+                                                    <Users size={24} className="text-emerald-400" />
+                                                </div>
+                                                <div className="flex-1">
+                                                    <h3 className="font-bold text-white text-lg leading-tight line-clamp-2 group-hover:text-emerald-400 transition-colors">
+                                                        {meeting.meetingName || 'Meeting'}
+                                                    </h3>
+                                                    <p className="text-xs text-gray-500 mt-1">
+                                                        Shared by: {meeting.userEmail?.split('@')[0] || 'Unknown'}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${
+                                                meeting.status === 'completed'
+                                                    ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'
+                                                    : 'bg-blue-500/10 text-blue-500 border-blue-500/20'
+                                            }`}>
+                                                <div className={`w-1.5 h-1.5 rounded-full ${
+                                                    meeting.status === 'completed' ? 'bg-emerald-500' : 'bg-blue-500'
+                                                }`} />
+                                                {meeting.status}
+                                            </div>
+                                        </div>
 
-                                {meeting.analysis && (
-                                    <div className="flex items-center gap-2 text-xs text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-lg px-3 py-2">
-                                        <Sparkles size={14} />
-                                        <span>AI Analysis Available</span>
-                                    </div>
-                                )}
+                                        {/* Meeting Details */}
+                                        <div className="space-y-2.5 mb-4">
+                                            <div className="flex items-center gap-2 text-sm">
+                                                <Calendar size={14} className="text-emerald-400" />
+                                                <span className="text-gray-400">{formatDate(meeting.createdAt)}</span>
+                                            </div>
+                                            <div className="flex items-center gap-2 text-sm">
+                                                <Clock size={14} className="text-blue-400" />
+                                                <span className="text-gray-400">{formatTime(meeting.createdAt)}</span>
+                                            </div>
+                                        </div>
 
-                                <div className="mt-4 pt-4 border-t border-white/5 flex items-center justify-between">
-                                    <span className="text-xs text-gray-500">
-                                        Click to view dashboard
-                                    </span>
-                                    <ExternalLink size={14} className="text-gray-500 group-hover:text-emerald-400 transition-colors" />
+                                        {/* AI Analysis Badge */}
+                                        {meeting.analysis && (
+                                            <div className="flex items-center gap-2 text-xs text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-lg px-3 py-2.5 mb-4">
+                                                <Sparkles size={14} />
+                                                <span className="font-medium">AI Analysis Available</span>
+                                            </div>
+                                        )}
+
+                                        {/* Footer */}
+                                        <div className="pt-4 border-t border-white/5 flex items-center justify-between">
+                                            <span className="text-xs text-gray-500 font-medium">
+                                                Click to view dashboard
+                                            </span>
+                                            <ExternalLink size={14} className="text-gray-500 group-hover:text-emerald-400 transition-colors" />
+                                        </div>
+                                    </div>
                                 </div>
                             </motion.div>
                         ))}

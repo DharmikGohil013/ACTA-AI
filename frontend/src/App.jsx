@@ -10,6 +10,7 @@ import Profile from './pages/Profile';
 import Analysis from './pages/Analysis';
 import Upload from './pages/Upload';
 import Presentation from './pages/Presentation';
+import Loader from './components/Loader';
 
 import axios from 'axios';
 
@@ -84,6 +85,11 @@ const Navigation = () => {
         checkAuth();
     }, []);
 
+    // Show loader while checking authentication
+    if (loading) {
+        return <Loader message="Initializing..." />;
+    }
+
     const handleLogin = () => {
         window.location.href = `${API_URL}/api/auth/google`;
     };
@@ -103,7 +109,11 @@ const Navigation = () => {
             <div className="max-w-7xl mx-auto px-6 h-16 flex justify-between items-center">
                 {/* Logo Section */}
                 <Link to="/" className="flex items-center gap-2 group">
-                    <span className="font-bold text-xl tracking-tight text-white group-hover:text-blue-400 transition-colors">ACTA</span>
+                    <img 
+                        src="/logo.svg" 
+                        alt="ACTA Logo" 
+                        className="h-8 w-auto transition-transform group-hover:scale-105"
+                    />
                 </Link>
 
                 {/* Center Links */}

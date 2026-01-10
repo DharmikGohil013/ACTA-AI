@@ -208,12 +208,12 @@ const Dashboard = () => {
             await axios.put(`${API_URL}/api/meetings/${editingMeeting}/name`, {
                 meetingName: newMeetingName.trim()
             });
-            
+
             // Update local state
-            setMeetings(prev => prev.map(m => 
+            setMeetings(prev => prev.map(m =>
                 m._id === editingMeeting ? { ...m, meetingName: newMeetingName.trim() } : m
             ));
-            
+
             setEditingMeeting(null);
             setNewMeetingName('');
         } catch (err) {
@@ -239,7 +239,7 @@ const Dashboard = () => {
                 meetingId: selectedTasksMeeting._id,
                 taskIndex: taskIndex
             });
-            
+
             if (response.data.success) {
                 const taskKey = `${selectedTasksMeeting._id}-${taskIndex}`;
                 setAddedTasks(prev => ({
@@ -265,7 +265,7 @@ const Dashboard = () => {
                 meetingId: selectedTasksMeeting._id,
                 taskIndex: taskIndex
             });
-            
+
             if (response.data.success) {
                 const taskKey = `${selectedTasksMeeting._id}-${taskIndex}`;
                 setAddedTasks(prev => ({
@@ -455,7 +455,7 @@ const Dashboard = () => {
 
     // Toggle filter
     const toggleFilter = (filter) => {
-        setActiveFilters(prev => 
+        setActiveFilters(prev =>
             prev.includes(filter) ? prev.filter(f => f !== filter) : [...prev, filter]
         );
     };
@@ -464,11 +464,11 @@ const Dashboard = () => {
     const filteredMeetings = meetings.filter(meeting => {
         const platform = getPlatformDetails(meeting.meetingLink);
         const statusInfo = getStatusInfo(meeting);
-        
+
         // Apply active filters
         if (activeFilters.length > 0) {
             const matchesFilter = activeFilters.some(filter => {
-                switch(filter) {
+                switch (filter) {
                     case 'zoom':
                         return meeting.meetingLink?.includes('zoom.us');
                     case 'meet':
@@ -487,28 +487,28 @@ const Dashboard = () => {
             });
             if (!matchesFilter) return false;
         }
-        
+
         // Apply search query
         if (!searchQuery.trim()) return true;
-        
+
         const query = searchQuery.toLowerCase();
-        
+
         // Search by meeting name
         if (meeting.meetingName?.toLowerCase().includes(query)) return true;
-        
+
         // Search by platform
         if (platform.name.toLowerCase().includes(query)) return true;
-        
+
         // Search by participant count
         if (meeting.participants?.toString().includes(query)) return true;
-        
+
         // Search by status
         if (statusInfo.text.toLowerCase().includes(query)) return true;
-        
+
         // Search by date
         const date = new Date(meeting.createdAt).toLocaleDateString();
         if (date.includes(query)) return true;
-        
+
         return false;
     });
 
@@ -569,83 +569,77 @@ const Dashboard = () => {
             {/* Filter Chips */}
             <div className="mb-6 flex flex-wrap items-center gap-2">
                 <span className="text-sm text-gray-500 font-medium mr-2">Quick Filters:</span>
-                
+
                 {/* Platform Filters */}
                 <button
                     onClick={() => toggleFilter('zoom')}
-                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1.5 ${
-                        activeFilters.includes('zoom')
+                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1.5 ${activeFilters.includes('zoom')
                             ? 'bg-blue-500/20 border-2 border-blue-500/50 text-blue-400'
                             : 'bg-white/5 border border-white/10 text-gray-400 hover:bg-white/10'
-                    }`}
+                        }`}
                 >
                     <img src={zoomLogo} alt="Zoom" className="w-3 h-3" />
                     Zoom
                 </button>
-                
+
                 <button
                     onClick={() => toggleFilter('meet')}
-                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1.5 ${
-                        activeFilters.includes('meet')
+                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1.5 ${activeFilters.includes('meet')
                             ? 'bg-emerald-500/20 border-2 border-emerald-500/50 text-emerald-400'
                             : 'bg-white/5 border border-white/10 text-gray-400 hover:bg-white/10'
-                    }`}
+                        }`}
                 >
                     <img src={googleMeetLogo} alt="Meet" className="w-3 h-3" />
                     Meet
                 </button>
-                
+
                 <button
                     onClick={() => toggleFilter('teams')}
-                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1.5 ${
-                        activeFilters.includes('teams')
+                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1.5 ${activeFilters.includes('teams')
                             ? 'bg-indigo-500/20 border-2 border-indigo-500/50 text-indigo-400'
                             : 'bg-white/5 border border-white/10 text-gray-400 hover:bg-white/10'
-                    }`}
+                        }`}
                 >
                     <img src={teamsLogo} alt="Teams" className="w-3 h-3" />
                     Teams
                 </button>
-                
+
                 <div className="h-5 w-px bg-white/10 mx-1"></div>
-                
+
                 {/* Status Filters */}
                 <button
                     onClick={() => toggleFilter('transcript')}
-                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1.5 ${
-                        activeFilters.includes('transcript')
+                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1.5 ${activeFilters.includes('transcript')
                             ? 'bg-purple-500/20 border-2 border-purple-500/50 text-purple-400'
                             : 'bg-white/5 border border-white/10 text-gray-400 hover:bg-white/10'
-                    }`}
+                        }`}
                 >
                     <FileText size={12} />
                     Has Transcript
                 </button>
-                
+
                 <button
                     onClick={() => toggleFilter('completed')}
-                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1.5 ${
-                        activeFilters.includes('completed')
+                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1.5 ${activeFilters.includes('completed')
                             ? 'bg-green-500/20 border-2 border-green-500/50 text-green-400'
                             : 'bg-white/5 border border-white/10 text-gray-400 hover:bg-white/10'
-                    }`}
+                        }`}
                 >
                     <CheckCircle2 size={12} />
                     Completed
                 </button>
-                
+
                 <button
                     onClick={() => toggleFilter('failed')}
-                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1.5 ${
-                        activeFilters.includes('failed')
+                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1.5 ${activeFilters.includes('failed')
                             ? 'bg-red-500/20 border-2 border-red-500/50 text-red-400'
                             : 'bg-white/5 border border-white/10 text-gray-400 hover:bg-white/10'
-                    }`}
+                        }`}
                 >
                     <X size={12} />
                     Failed
                 </button>
-                
+
                 {activeFilters.length > 0 && (
                     <>
                         <div className="h-5 w-px bg-white/10 mx-1"></div>
@@ -843,6 +837,15 @@ const Dashboard = () => {
                                                     <div className="flex items-center gap-2 text-xs text-gray-500 px-2 py-1 bg-white/5 rounded-lg border border-white/5">
                                                         <Users size={12} />
                                                         <span>No speakers yet</span>
+                                                    </div>
+                                                )}
+
+                                                {meeting.extractedTasks && meeting.extractedTasks.length > 0 && (
+                                                    <div className="flex items-center gap-2 pl-2 pr-3 py-1.5 bg-gradient-to-r from-emerald-500/10 to-cyan-500/10 border border-emerald-500/20 rounded-full hover:border-emerald-500/40 transition-colors">
+                                                        <CheckCircle2 size={12} className="text-emerald-400" />
+                                                        <span className="text-xs font-semibold text-emerald-300">
+                                                            {meeting.extractedTasks.length} {meeting.extractedTasks.length === 1 ? 'Task' : 'Tasks'}
+                                                        </span>
                                                     </div>
                                                 )}
                                             </div>
@@ -1299,11 +1302,10 @@ const Dashboard = () => {
                                                                             <button
                                                                                 onClick={() => !taskStatus.jira && addTaskToJira(task, index)}
                                                                                 disabled={taskStatus.jira}
-                                                                                className={`relative group text-xs px-3 py-1.5 rounded-lg font-medium transition-all overflow-hidden ${
-                                                                                    taskStatus.jira
+                                                                                className={`relative group text-xs px-3 py-1.5 rounded-lg font-medium transition-all overflow-hidden ${taskStatus.jira
                                                                                         ? 'bg-green-500/20 border border-green-500/50 text-green-400 cursor-default'
                                                                                         : 'bg-[#0B0E14] hover:bg-[#151820] border border-blue-500/30 hover:border-blue-500/50 text-blue-400 hover:text-blue-300'
-                                                                                }`}
+                                                                                    }`}
                                                                                 title={taskStatus.jira ? `Added to Jira: ${taskStatus.issueKey}` : 'Add this task to Jira'}
                                                                             >
                                                                                 {!taskStatus.jira && <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-lg blur opacity-0 group-hover:opacity-20 transition duration-500"></div>}
@@ -1312,11 +1314,10 @@ const Dashboard = () => {
                                                                             <button
                                                                                 onClick={() => !taskStatus.trello && addTaskToTrello(task, index)}
                                                                                 disabled={taskStatus.trello}
-                                                                                className={`relative group text-xs px-3 py-1.5 rounded-lg font-medium transition-all overflow-hidden ${
-                                                                                    taskStatus.trello
+                                                                                className={`relative group text-xs px-3 py-1.5 rounded-lg font-medium transition-all overflow-hidden ${taskStatus.trello
                                                                                         ? 'bg-green-500/20 border border-green-500/50 text-green-400 cursor-default'
                                                                                         : 'bg-[#0B0E14] hover:bg-[#151820] border border-emerald-500/30 hover:border-emerald-500/50 text-emerald-400 hover:text-emerald-300'
-                                                                                }`}
+                                                                                    }`}
                                                                                 title={taskStatus.trello ? 'Already added to Trello' : 'Add this task to Trello'}
                                                                             >
                                                                                 {!taskStatus.trello && <div className="absolute -inset-0.5 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-lg blur opacity-0 group-hover:opacity-20 transition duration-500"></div>}

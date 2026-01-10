@@ -162,7 +162,6 @@ const MeetingDashboard = () => {
 
     const tabs = [
         { id: 'overview', label: 'Overview', icon: LayoutDashboard },
-        { id: 'tasks', label: 'Tasks & Actions', icon: CheckCircle2 },
         { id: 'calendar', label: 'Calendar', icon: Calendar },
         { id: 'analytics', label: 'Analytics', icon: BarChart2 },
         { id: 'ask-ai', label: 'Ask AI', icon: MessageSquare },
@@ -239,7 +238,6 @@ const MeetingDashboard = () => {
                             transition={{ duration: 0.2 }}
                         >
                             {activeTab === 'overview' && <OverviewTab data={data} />}
-                            {activeTab === 'tasks' && <TasksTab data={data} />}
                             {activeTab === 'calendar' && <CalendarTab data={data} />}
                             {activeTab === 'analytics' && <AnalyticsTab data={data} />}
                             {activeTab === 'ask-ai' && (
@@ -403,15 +401,10 @@ const TasksTab = ({ data }) => {
 
     return (
         <div className="bg-[#1C1F2E] rounded-[2.5rem] border border-white/5 shadow-sm overflow-hidden min-h-[600px] flex flex-col">
-            <div className="p-8 border-b border-white/5 flex justify-between items-center">
+            <div className="p-8 border-b border-white/5">
                 <div>
                     <h2 className="text-2xl font-bold text-white mb-1">Tasks & Actions</h2>
                     <p className="text-gray-400 text-sm">Track progress and accountability</p>
-                </div>
-                <div className="flex gap-2">
-                    <button className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold rounded-xl transition-colors flex items-center gap-2">
-                        <Plus size={16} /> Add Task
-                    </button>
                 </div>
             </div>
 
@@ -428,8 +421,8 @@ const TasksTab = ({ data }) => {
                                         <p className="text-base font-medium text-slate-100 mb-1">{task.task}</p>
                                         <div className="flex items-center gap-3 text-xs text-gray-400">
                                             <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${task.priority === 'High' ? 'bg-red-500/10 text-red-400' :
-                                                    task.priority === 'Medium' ? 'bg-amber-500/10 text-amber-400' :
-                                                        'bg-blue-500/10 text-blue-400'
+                                                task.priority === 'Medium' ? 'bg-amber-500/10 text-amber-400' :
+                                                    'bg-blue-500/10 text-blue-400'
                                                 }`}>
                                                 {task.priority || 'Normal'}
                                             </span>
@@ -619,8 +612,8 @@ const AskAiTab = ({ chatHistory, chatQuery, setChatQuery, handleAskAi, askingAi,
                             </div>
                         )}
                         <div className={`max-w-[80%] p-4 rounded-2xl text-sm leading-relaxed ${msg.role === 'user'
-                                ? 'bg-emerald-600 text-white rounded-br-none'
-                                : 'bg-[#0B0E14] text-slate-200 border border-white/10 rounded-bl-none'
+                            ? 'bg-emerald-600 text-white rounded-br-none'
+                            : 'bg-[#0B0E14] text-slate-200 border border-white/10 rounded-bl-none'
                             }`}>
                             {msg.content}
                         </div>

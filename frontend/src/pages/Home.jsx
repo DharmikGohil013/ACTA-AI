@@ -172,7 +172,7 @@ const Home = () => {
                             >
                                 {loading ? <Loader size={18} className="animate-spin" /> :
                                     <>
-                                        <span>Summon Bot</span>
+                                        <span>ACTA AI Bot</span>
                                         <ArrowRight size={16} />
                                     </>
                                 }

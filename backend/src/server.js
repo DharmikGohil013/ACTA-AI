@@ -776,6 +776,122 @@ app.delete('/api/bot/setup', verifyToken, async (req, res) => {
     }
 });
 
+// ===== MS TEAMS BOT SETUP ENDPOINTS =====
+
+// Launch browser for user to setup Microsoft account
+app.post('/api/bot/teams/setup/start', verifyToken, async (req, res) => {
+    try {
+        const userId = req.user._id.toString();
+        const profilePath = path.join(__dirname, '../browser-profiles/teams', userId);
+
+        // Create profile directory if it doesn't exist
+        if (!require('fs').existsSync(profilePath)) {
+            require('fs').mkdirSync(profilePath, { recursive: true });
+        }
+
+        console.log('[Teams Bot Setup] Launching browser for setup:', userId);
+
+        // Launch browser with user data dir to save session
+        const browser = await puppeteer.launch({
+            headless: false,
+            userDataDir: profilePath,
+            args: [
+                '--no-sandbox',
+                '--disable-setuid-sandbox',
+                '--start-maximized',
+                '--disable-blink-features=AutomationControlled',
+                '--disable-dev-shm-usage',
+                '--user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+            ],
+            ignoreDefaultArgs: ['--enable-automation'],
+        });
+
+        const pages = await browser.pages();
+        const page = pages[0] || await browser.newPage();
+
+        // Set additional properties to avoid detection
+        await page.evaluateOnNewDocument(() => {
+            Object.defineProperty(navigator, 'webdriver', {
+                get: () => false,
+            });
+        });
+
+        // Navigate to Microsoft login
+        await page.goto('https://login.microsoftonline.com/', { waitUntil: 'domcontentloaded' });
+
+        console.log('[Teams Bot Setup] Browser opened - waiting for user to login');
+
+        // Monitor when browser closes
+        browser.on('disconnected', async () => {
+            console.log('[Teams Bot Setup] Browser closed - saving profile');
+
+            // Mark as configured
+            await User.findByIdAndUpdate(userId, {
+                teamsBotConfig: {
+                    browserProfilePath: profilePath,
+                    isConfigured: true
+                }
+            });
+
+            console.log('[Teams Bot Setup] Profile saved for user:', userId);
+        });
+
+        res.json({
+            success: true,
+            message: 'Browser launched. Please log into your Microsoft account and close the browser when done.'
+        });
+
+    } catch (err) {
+        console.error('[Teams Bot Setup] Launch error:', err);
+        res.status(500).json({ error: 'Failed to launch setup browser' });
+    }
+});
+
+// Get Teams bot setup status
+app.get('/api/bot/teams/setup', verifyToken, async (req, res) => {
+    try {
+        const user = await User.findById(req.user._id);
+
+        if (!user.teamsBotConfig || !user.teamsBotConfig.isConfigured) {
+            return res.json({
+                isConfigured: false
+            });
+        }
+
+        res.json({
+            isConfigured: user.teamsBotConfig.isConfigured
+        });
+    } catch (err) {
+        console.error('[Teams Bot Setup] Get status error:', err);
+        res.status(500).json({ error: 'Failed to fetch Teams bot setup status' });
+    }
+});
+
+// Delete Teams bot credentials
+app.delete('/api/bot/teams/setup', verifyToken, async (req, res) => {
+    try {
+        const user = await User.findByIdAndUpdate(
+            req.user._id,
+            {
+                teamsBotConfig: {
+                    browserProfilePath: '',
+                    isConfigured: false
+                }
+            },
+            { new: true }
+        );
+
+        res.json({
+            success: true,
+            message: 'Teams bot credentials removed successfully'
+        });
+    } catch (err) {
+        console.error('[Teams Bot Setup] Delete error:', err);
+        res.status(500).json({ error: 'Failed to remove Teams bot credentials' });
+    }
+});
+
+
 // Routes
 
 // 1. Join Meeting
@@ -788,6 +904,12 @@ app.post('/api/join', optionalAuth, async (req, res) => {
         const userId = req.user?._id || null;  // Get userId if authenticated
         const userEmail = req.user?.email || null;  // Get userEmail if authenticated
 
+        // Detect platform from meeting link
+        let platform = 'unknown';
+        if (link.includes('zoom.us')) platform = 'zoom';
+        else if (link.includes('meet.google.com')) platform = 'google-meet';
+        else if (link.includes('teams.microsoft.com') || link.includes('teams.live.com')) platform = 'teams';
+
         // Auto-generate meeting name if not provided
         let finalMeetingName = meetingName || 'Meeting';
         if (!meetingName || meetingName.trim() === '') {
@@ -796,11 +918,12 @@ app.post('/api/join', optionalAuth, async (req, res) => {
             finalMeetingName = `AI Meeting Bot ${count + 1}`;
         }
 
-        console.log('[Server] Creating new meeting:', { link, zoomMeetingId, userId, userEmail, meetingName: finalMeetingName, botName });
+        console.log('[Server] Creating new meeting:', { link, zoomMeetingId, platform, userId, userEmail, meetingName: finalMeetingName, botName });
 
         const newMeeting = new Meeting({
             meetingLink: link,
             zoomMeetingId: zoomMeetingId || '',
+            platform: platform,
             status: 'joining',
             userId: userId,
             userEmail: userEmail,

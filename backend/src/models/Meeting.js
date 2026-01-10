@@ -17,6 +17,11 @@ const MeetingSchema = new mongoose.Schema({
     type: String,
     default: 'Zoom Meeting',
   },
+  platform: {
+    type: String,
+    enum: ['zoom', 'google-meet', 'teams', 'upload', 'unknown'],
+    default: 'unknown',
+  },
   status: {
     type: String,
     enum: ['pending', 'starting', 'navigating', 'joining', 'waiting', 'in-meeting', 'recording', 'processing', 'completed', 'failed'],

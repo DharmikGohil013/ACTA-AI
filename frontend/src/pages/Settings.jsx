@@ -27,10 +27,15 @@ const Settings = () => {
     const [testingTrello, setTestingTrello] = useState(false);
     const [savingTrello, setSavingTrello] = useState(false);
 
-    // Bot Setup State
+    // Google Meet Bot Setup State
     const [botConfigured, setBotConfigured] = useState(false);
     const [botLoading, setBotLoading] = useState(false);
     const [botStatus, setBotStatus] = useState({ type: null, message: '' });
+
+    // MS Teams Bot Setup State
+    const [teamsBotConfigured, setTeamsBotConfigured] = useState(false);
+    const [teamsBotLoading, setTeamsBotLoading] = useState(false);
+    const [teamsBotStatus, setTeamsBotStatus] = useState({ type: null, message: '' });
 
     // Load configurations
     useEffect(() => {
@@ -40,9 +45,10 @@ const Settings = () => {
     const loadAllConfigs = async () => {
         try {
             setLoading(true);
-            const [integrationsRes, botRes] = await Promise.all([
+            const [integrationsRes, botRes, teamsBotRes] = await Promise.all([
                 axios.get(`${API_URL}/api/integrations`),
-                axios.get(`${API_URL}/api/bot/setup`)
+                axios.get(`${API_URL}/api/bot/setup`),
+                axios.get(`${API_URL}/api/bot/teams/setup`).catch(() => ({ data: { isConfigured: false } }))
             ]);
 
             // Set Jira/Trello configs
@@ -63,8 +69,11 @@ const Settings = () => {
                 });
             }
 
-            // Set Bot config
+            // Set Google Meet Bot config
             setBotConfigured(botRes.data.isConfigured);
+
+            // Set Teams Bot config
+            setTeamsBotConfigured(teamsBotRes.data.isConfigured);
 
         } catch (err) {
             console.error('Failed to load configurations:', err);
@@ -191,6 +200,66 @@ const Settings = () => {
         }
     };
 
+    // --- MS TEAMS BOT SETUP LOGIC ---
+    const handleTeamsBotSetup = async () => {
+        setTeamsBotLoading(true);
+        setTeamsBotStatus({ type: 'info', message: 'Opening browser...' });
+
+        try {
+            const res = await axios.post(`${API_URL}/api/bot/teams/setup/start`);
+
+            if (res.data.success) {
+                setTeamsBotStatus({
+                    type: 'info',
+                    message: 'Browser opened! Log into Microsoft. Waiting for completion...'
+                });
+
+                // Poll for completion
+                const pollInterval = setInterval(async () => {
+                    try {
+                        const statusRes = await axios.get(`${API_URL}/api/bot/teams/setup`);
+                        if (statusRes.data.isConfigured) {
+                            clearInterval(pollInterval);
+                            setTeamsBotConfigured(true);
+                            setTeamsBotLoading(false);
+                            setTeamsBotStatus({ type: 'success', message: 'Setup complete!' });
+                            setTimeout(() => {
+                                setActiveModal(null);
+                                setTeamsBotStatus({ type: null, message: '' });
+                            }, 2000);
+                        }
+                    } catch (e) { console.error(e); }
+                }, 3000);
+
+                // Timeout
+                setTimeout(() => {
+                    clearInterval(pollInterval);
+                    if (teamsBotLoading) {
+                        setTeamsBotLoading(false);
+                        setTeamsBotStatus({ type: 'error', message: 'Setup timed out. Please try again.' });
+                    }
+                }, 300000);
+            }
+        } catch (err) {
+            setTeamsBotStatus({ type: 'error', message: 'Failed to launch browser' });
+            setTeamsBotLoading(false);
+        }
+    };
+
+    const handleTeamsBotDisconnect = async () => {
+        if (!window.confirm('Are you sure you want to remove the Teams bot configuration?')) return;
+        setTeamsBotLoading(true);
+        try {
+            await axios.delete(`${API_URL}/api/bot/teams/setup`);
+            setTeamsBotConfigured(false);
+            setTeamsBotStatus({ type: 'success', message: 'Configuration removed' });
+        } catch (err) {
+            setTeamsBotStatus({ type: 'error', message: 'Failed to remove configuration' });
+        } finally {
+            setTeamsBotLoading(false);
+        }
+    };
+
 
     // --- UI COMPONENTS ---
 
@@ -198,8 +267,8 @@ const Settings = () => {
         <motion.div
             whileHover={{ y: -3 }}
             className={`cursor-pointer overflow-hidden relative group rounded-xl border ${connected
-                    ? 'bg-blue-500/5 border-blue-500/20'
-                    : 'bg-white/5 border-white/10 hover:border-white/20'
+                ? 'bg-blue-500/5 border-blue-500/20'
+                : 'bg-white/5 border-white/10 hover:border-white/20'
                 }`}
             onClick={onClick}
         >
@@ -303,6 +372,15 @@ const Settings = () => {
                     icon={Bot}
                     connected={botConfigured}
                     onClick={() => setActiveModal('bot')}
+                />
+
+                <IntegrationCard
+                    id="teamsbot"
+                    title="MS Teams Bot"
+                    description="Teams supports guest joining - no setup required! Bot joins as guest automatically."
+                    icon={Bot}
+                    connected={true}
+                    onClick={() => setActiveModal('teamsbot')}
                 />
 
                 <IntegrationCard
@@ -544,13 +622,47 @@ const Settings = () => {
 
                             {botStatus.message && (
                                 <div className={`p-3 rounded-lg text-sm flex items-center gap-2 ${botStatus.type === 'success' ? 'bg-green-500/10 text-green-400' :
-                                        botStatus.type === 'error' ? 'bg-red-500/10 text-red-400' :
-                                            'bg-blue-500/10 text-blue-400'
+                                    botStatus.type === 'error' ? 'bg-red-500/10 text-red-400' :
+                                        'bg-blue-500/10 text-blue-400'
                                     }`}>
                                     {botLoading && <Loader2 size={14} className="animate-spin" />}
                                     {botStatus.message}
                                 </div>
                             )}
+                        </div>
+                    </Modal>
+                )}
+                {/* MS TEAMS BOT INFO MODAL */}
+                {activeModal === 'teamsbot' && (
+                    <Modal title="MS Teams Bot" onClose={() => setActiveModal(null)}>
+                        <div className="space-y-6">
+                            <div className="text-center py-6">
+                                <div className="w-16 h-16 bg-green-500/20 text-green-400 rounded-full flex items-center justify-center mx-auto mb-4">
+                                    <CheckCircle size={32} />
+                                </div>
+                                <h3 className="text-xl font-bold mb-2">Ready to Use!</h3>
+                                <p className="text-gray-400 mb-4">
+                                    Microsoft Teams supports <strong className="text-white">guest joining</strong> - no Microsoft account required!
+                                </p>
+                            </div>
+
+                            <div className="p-4 bg-purple-500/10 border border-purple-500/20 rounded-xl">
+                                <h4 className="flex items-center gap-2 font-semibold text-purple-400 mb-2">
+                                    <Bot size={16} />
+                                    How It Works
+                                </h4>
+                                <ul className="text-sm text-purple-200/80 leading-relaxed space-y-2">
+                                    <li>✓ Bot automatically joins as a guest</li>
+                                    <li>✓ Enters bot name and disables camera/mic</li>
+                                    <li>✓ Clicks "Join now" to enter meeting</li>
+                                    <li>✓ Records audio and provides live transcription</li>
+                                </ul>
+                            </div>
+
+                            <div className="p-3 rounded-lg text-sm bg-green-500/10 text-green-400 flex items-center gap-2">
+                                <CheckCircle size={16} />
+                                No setup needed - just paste a Teams meeting link!
+                            </div>
                         </div>
                     </Modal>
                 )}

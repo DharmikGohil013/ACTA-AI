@@ -31,6 +31,13 @@ const UserSchema = new mongoose.Schema({
             default: false
         }
     },
+    teamsBotConfig: {
+        browserProfilePath: String,  // Path to saved Teams browser session
+        isConfigured: {
+            type: Boolean,
+            default: false
+        }
+    },
     createdAt: {
         type: Date,
         default: Date.now

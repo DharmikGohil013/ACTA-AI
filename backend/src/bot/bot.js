@@ -4,6 +4,7 @@ const fs = require('fs');
 const crypto = require('crypto');
 const { createDeepgramLiveTranscriber } = require('../services/deepgramLiveService');
 const meetService = require('../services/meetService');
+const { joinMSTeams, checkMeetingEnded: checkTeamsMeetingEnded } = require('./msteamsBot');
 const User = require('../models/User');
 
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
@@ -85,9 +86,28 @@ async function runBot(meetingLink, meetingIdMongo, userId = null, botName = 'AI 
                     browserOptions.userDataDir = profilePath;
                     browserOptions.args.push('--disable-blink-features=AutomationControlled');
                     browserOptions.ignoreDefaultArgs = ['--enable-automation'];
-                    console.log(`[Bot] Using saved browser profile: ${profilePath}`);
+                    console.log(`[Bot] Using saved Google Meet browser profile: ${profilePath}`);
                 } catch (err) {
                     console.log(`[Bot] Warning: Could not use saved profile: ${err.message}`);
+                }
+            }
+        }
+    }
+
+    // If MS Teams and user is logged in, try to use saved Teams profile
+    if (platform === 'teams' && userId) {
+        const user = await User.findById(userId);
+        if (user && user.teamsBotConfig && user.teamsBotConfig.browserProfilePath) {
+            const profilePath = user.teamsBotConfig.browserProfilePath;
+            // Only use profile if it exists
+            if (fs.existsSync(profilePath)) {
+                try {
+                    browserOptions.userDataDir = profilePath;
+                    browserOptions.args.push('--disable-blink-features=AutomationControlled');
+                    browserOptions.ignoreDefaultArgs = ['--enable-automation'];
+                    console.log(`[Bot] Using saved Teams browser profile: ${profilePath}`);
+                } catch (err) {
+                    console.log(`[Bot] Warning: Could not use saved Teams profile: ${err.message}`);
                 }
             }
         }
@@ -147,7 +167,7 @@ async function runBot(meetingLink, meetingIdMongo, userId = null, botName = 'AI 
         // Install audio hooks BEFORE navigating to the page
         await page.evaluateOnNewDocument(() => {
             console.log('[Hook] Installing Google Meet audio hooks...');
-            
+
             // Track all audio nodes
             window.__audioNodes = [];
             window.__speakerNodes = [];
@@ -158,29 +178,29 @@ async function runBot(meetingLink, meetingIdMongo, userId = null, botName = 'AI 
             function AudioContextProxy(...args) {
                 const ctx = new OriginalAudioContext(...args);
                 if (!window.__mainAudioContext) window.__mainAudioContext = ctx;
-                
+
                 const origCreateMediaStreamSource = ctx.createMediaStreamSource;
-                ctx.createMediaStreamSource = function(stream) {
+                ctx.createMediaStreamSource = function (stream) {
                     const node = origCreateMediaStreamSource.call(ctx, stream);
                     window.__audioNodes.push({ node, stream, type: 'stream' });
                     console.log('[Hook] MediaStreamSource created:', stream.id);
                     return node;
                 };
-                
+
                 const origCreateMediaElementSource = ctx.createMediaElementSource;
-                ctx.createMediaElementSource = function(element) {
+                ctx.createMediaElementSource = function (element) {
                     const node = origCreateMediaElementSource.call(ctx, element);
                     window.__audioNodes.push({ node, element, type: 'element' });
                     console.log('[Hook] MediaElementSource created');
                     return node;
                 };
-                
+
                 return ctx;
             }
             AudioContextProxy.prototype = OriginalAudioContext.prototype;
             window.AudioContext = AudioContextProxy;
             if (window.webkitAudioContext) window.webkitAudioContext = AudioContextProxy;
-            
+
             console.log('[Hook] Google Meet audio hooks installed');
         });
 
@@ -216,7 +236,7 @@ async function runBot(meetingLink, meetingIdMongo, userId = null, botName = 'AI 
             // Disable camera/mic before joining
             console.log('[GoogleMeet] Disabling camera and mic...');
             await delay(2000); // Wait for controls to load
-            
+
             // Method 1: Click toggle buttons by aria-label
             await page.evaluate(() => {
                 const buttons = Array.from(document.querySelectorAll('div[role="button"], button'));
@@ -224,29 +244,29 @@ async function runBot(meetingLink, meetingIdMongo, userId = null, botName = 'AI 
                     const label = (btn.getAttribute('aria-label') || '').toLowerCase();
                     const dataTooltip = (btn.getAttribute('data-tooltip') || '').toLowerCase();
                     const combinedLabel = label + ' ' + dataTooltip;
-                    
+
                     // Turn off camera if it's on
-                    if ((combinedLabel.includes('camera') || combinedLabel.includes('video')) 
+                    if ((combinedLabel.includes('camera') || combinedLabel.includes('video'))
                         && (combinedLabel.includes('turn off') || combinedLabel.includes('stop'))) {
                         console.log('[GoogleMeet] Clicking camera off button');
                         btn.click();
                     }
-                    
+
                     // Turn off microphone if it's on
-                    if ((combinedLabel.includes('microphone') || combinedLabel.includes('mic')) 
+                    if ((combinedLabel.includes('microphone') || combinedLabel.includes('mic'))
                         && (combinedLabel.includes('turn off') || combinedLabel.includes('mute'))) {
                         console.log('[GoogleMeet] Clicking mic off button');
                         btn.click();
                     }
                 });
             });
-            
+
             // Method 2: Use keyboard shortcuts (more reliable)
             await page.keyboard.press('KeyD'); // Toggle camera off (Ctrl+E in Meet)
             await delay(500);
             await page.keyboard.press('KeyE'); // Toggle mic off (Ctrl+D in Meet)
             await delay(500);
-            
+
             console.log('[GoogleMeet] Camera and mic should now be disabled');
             await delay(1000);
 
@@ -410,13 +430,13 @@ async function runBot(meetingLink, meetingIdMongo, userId = null, botName = 'AI 
             // Check for specific error messages indicating invalid meeting
             const pageText = await page.evaluate(() => document.body?.innerText || '');
             const hasInvalidError = pageText.includes('Invalid meeting ID') ||
-                                   pageText.includes('This meeting ID is not valid') ||
-                                   pageText.includes('Meeting ID is invalid') ||
-                                   pageText.includes('Meeting not found') ||
-                                   pageText.includes('has been removed') ||
-                                   pageText.includes('Error Code: 3001') ||
-                                   pageText.includes('Error Code: 3,001');
-            
+                pageText.includes('This meeting ID is not valid') ||
+                pageText.includes('Meeting ID is invalid') ||
+                pageText.includes('Meeting not found') ||
+                pageText.includes('has been removed') ||
+                pageText.includes('Error Code: 3001') ||
+                pageText.includes('Error Code: 3,001');
+
             if (hasInvalidError) {
                 console.log('[Bot] ❌ Meeting link is invalid or expired');
                 console.log('[Bot] Page text:', pageText.substring(0, 500)); // Log first 500 chars for debugging
@@ -424,7 +444,7 @@ async function runBot(meetingLink, meetingIdMongo, userId = null, botName = 'AI 
                 await browser.close();
                 return { browser: null, page: null };
             }
-            
+
             console.log('[Bot] ✅ Meeting link appears valid, proceeding...');
         } catch (e) {
             console.log('[Bot] Navigation timeout, continuing...');
@@ -599,12 +619,133 @@ async function runBot(meetingLink, meetingIdMongo, userId = null, botName = 'AI 
         }
 
         return { browser, page };
-    } else {
-        // Generic / Teams fallback
-        console.log(`[Bot] ${platform === 'teams' ? 'Microsoft Teams' : 'Unknown Platform'} detected. Using generic flow.`);
+    } else if (platform === 'teams') {
+        // ===== MS TEAMS FLOW =====
+        console.log('[Bot] Starting Microsoft Teams flow...');
+
+        // Install audio hooks BEFORE navigating to the page
+        await page.evaluateOnNewDocument(() => {
+            console.log('[Hook] Installing Teams audio hooks (WebRTC enhanced)...');
+
+            // Track all audio sources
+            window.__audioNodes = [];
+            window.__speakerNodes = [];
+            window.__mainAudioContext = null;
+            window.__rtcStreams = []; // Track WebRTC streams
+
+            // Hook RTCPeerConnection to capture WebRTC audio (Teams uses this)
+            const OriginalRTCPeerConnection = window.RTCPeerConnection;
+            window.RTCPeerConnection = function (...args) {
+                const pc = new OriginalRTCPeerConnection(...args);
+
+                // Intercept ontrack to capture remote audio streams
+                const originalOnTrackSetter = Object.getOwnPropertyDescriptor(RTCPeerConnection.prototype, 'ontrack')?.set;
+                let ontrackHandler = null;
+
+                Object.defineProperty(pc, 'ontrack', {
+                    set: function (handler) {
+                        ontrackHandler = handler;
+                        if (originalOnTrackSetter) {
+                            originalOnTrackSetter.call(pc, function (event) {
+                                // Capture audio tracks from remote participants
+                                if (event.track && event.track.kind === 'audio') {
+                                    console.log('[Hook] WebRTC audio track received:', event.track.id);
+                                    const stream = event.streams?.[0] || new MediaStream([event.track]);
+                                    window.__rtcStreams.push(stream);
+                                }
+                                if (handler) handler.call(this, event);
+                            });
+                        }
+                    },
+                    get: function () { return ontrackHandler; }
+                });
+
+                // Also hook addEventListener for ontrack
+                const origAddEventListener = pc.addEventListener;
+                pc.addEventListener = function (type, listener, options) {
+                    if (type === 'track') {
+                        const wrappedListener = function (event) {
+                            if (event.track && event.track.kind === 'audio') {
+                                console.log('[Hook] WebRTC audio track (addEventListener):', event.track.id);
+                                const stream = event.streams?.[0] || new MediaStream([event.track]);
+                                window.__rtcStreams.push(stream);
+                            }
+                            listener.call(this, event);
+                        };
+                        return origAddEventListener.call(pc, type, wrappedListener, options);
+                    }
+                    return origAddEventListener.call(pc, type, listener, options);
+                };
+
+                return pc;
+            };
+            window.RTCPeerConnection.prototype = OriginalRTCPeerConnection.prototype;
+
+            // Hook AudioContext
+            const OriginalAudioContext = window.AudioContext || window.webkitAudioContext;
+            function AudioContextProxy(...args) {
+                const ctx = new OriginalAudioContext(...args);
+                if (!window.__mainAudioContext) window.__mainAudioContext = ctx;
+
+                const origCreateMediaStreamSource = ctx.createMediaStreamSource;
+                ctx.createMediaStreamSource = function (stream) {
+                    const node = origCreateMediaStreamSource.call(ctx, stream);
+                    window.__audioNodes.push({ node, stream, type: 'stream' });
+                    console.log('[Hook] MediaStreamSource created:', stream.id);
+                    return node;
+                };
+
+                const origCreateMediaElementSource = ctx.createMediaElementSource;
+                ctx.createMediaElementSource = function (element) {
+                    const node = origCreateMediaElementSource.call(ctx, element);
+                    window.__audioNodes.push({ node, element, type: 'element' });
+                    console.log('[Hook] MediaElementSource created');
+                    return node;
+                };
+
+                return ctx;
+            }
+            AudioContextProxy.prototype = OriginalAudioContext.prototype;
+            window.AudioContext = AudioContextProxy;
+            if (window.webkitAudioContext) window.webkitAudioContext = AudioContextProxy;
+
+            console.log('[Hook] Teams WebRTC audio hooks installed');
+        });
 
         try {
-            emitStatus(meetingIdMongo, 'navigating', { message: `Opening ${platform === 'teams' ? 'Teams' : 'Link'}...` });
+            // Use dedicated Teams join flow
+            const joined = await joinMSTeams(page, meetingLink, meetingIdMongo, botName);
+
+            if (!joined) {
+                console.log('[Bot] Teams join failed');
+                await browser.close();
+                return { browser: null, page: null };
+            }
+
+            // Teams joined successfully
+            await updateMeetingStatus(meetingIdMongo, 'in-meeting');
+            activeBots.set(meetingIdMongo.toString(), { browser, page, audioChunks, liveTranscriber });
+
+            console.log('[MSTeams] Bot is in meeting, setting up audio...');
+            await setupAudioCapture(page, meetingIdMongo, audioChunks);
+
+            // Monitor for Teams-specific meeting end
+            monitorMeetingEnd(page, meetingIdMongo, audioChunks, audioPath);
+            return { browser, page };
+
+        } catch (err) {
+            console.error('[MSTeams] Error:', err.message);
+            emitStatus(meetingIdMongo, 'failed', { message: `Teams failed: ${err.message}` });
+            await browser.close();
+            return { browser: null, page: null };
+        }
+
+    } else {
+        // Generic fallback for unknown platforms
+        console.log('[Bot] Unknown platform detected. Using generic flow.');
+
+        try {
+            emitStatus(meetingIdMongo, 'navigating', { message: 'Opening link...' });
             await page.goto(meetingLink, { waitUntil: 'domcontentloaded', timeout: 60000 });
             await delay(5000);
 
@@ -615,7 +756,7 @@ async function runBot(meetingLink, meetingIdMongo, userId = null, botName = 'AI 
             activeBots.set(meetingIdMongo.toString(), { browser, page, audioChunks });
 
             emitStatus(meetingIdMongo, 'in-meeting', {
-                message: platform === 'teams' ? 'Bot loaded Teams. Please join manually if needed.' : 'Bot loaded page.'
+                message: 'Bot loaded page. Please interact manually if needed.'
             });
 
             monitorMeetingEnd(page, meetingIdMongo, audioChunks, audioPath);
@@ -688,9 +829,15 @@ function monitorMeetingEnd(page, meetingIdMongo, audioChunks, audioPath) {
 
             const ended = await page.evaluate(() => {
                 const body = document.body?.innerText || '';
+                // Check for Zoom, Google Meet, AND Teams end indicators
                 return body.includes('meeting has been ended') ||
                     body.includes('host has ended') ||
-                    body.includes('Meeting Ended');
+                    body.includes('Meeting Ended') ||
+                    // Teams-specific indicators
+                    body.includes('call has ended') ||
+                    body.includes('You left the meeting') ||
+                    body.includes('The meeting ended') ||
+                    body.includes('Call ended');
             });
 
             if (ended) {
@@ -842,6 +989,21 @@ async function setupAudioCapture(page, meetingIdMongo, audioChunks) {
                 // Capture all sources
                 if (window.__speakerNodes) window.__speakerNodes.forEach(n => { try { n.connect(destination); sourcesConnected++; } catch (e) { } });
                 if (window.__audioNodes) window.__audioNodes.forEach(i => { try { if (i.node && !i.node._captured) { i.node.connect(destination); sourcesConnected++; } } catch (e) { } });
+
+                // Capture WebRTC streams (Teams uses these for remote audio)
+                if (window.__rtcStreams && window.__rtcStreams.length > 0) {
+                    window.onAudioDebug(`Found ${window.__rtcStreams.length} WebRTC streams`);
+                    window.__rtcStreams.forEach((stream, idx) => {
+                        try {
+                            const source = audioContext.createMediaStreamSource(stream);
+                            source.connect(destination);
+                            sourcesConnected++;
+                            console.log('[Recording] Connected WebRTC stream', idx);
+                        } catch (e) {
+                            console.log('[Recording] Failed to connect WebRTC stream', idx, e.message);
+                        }
+                    });
+                }
 
                 const captureElement = (el) => {
                     try {

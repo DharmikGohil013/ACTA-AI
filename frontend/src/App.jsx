@@ -5,6 +5,7 @@ import Dashboard from './pages/Dashboard';
 import Settings from './pages/Settings';
 import Profile from './pages/Profile';
 import Analysis from './pages/Analysis';
+import Upload from './pages/Upload';
 
 import axios from 'axios';
 
@@ -85,6 +86,7 @@ const Navigation = () => {
     const navItems = [
         { path: '/', label: 'Home' },
         { path: '/analysis', label: 'Analysis' },
+        { path: '/upload', label: 'Upload' },
         { path: '/dashboard', label: 'Archive Meetings' },
 
     ];
@@ -175,6 +177,7 @@ function App() {
                 <Routes>
                     <Route path="/" element={<Home />} />
                     <Route path="/analysis" element={<Analysis />} />
+                    <Route path="/upload" element={<Upload />} />
                     <Route path="/dashboard" element={<Dashboard />} />
                     <Route path="/settings" element={<Settings />} />
                     <Route path="/profile" element={<Profile />} />

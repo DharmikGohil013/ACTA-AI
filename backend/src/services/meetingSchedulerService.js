@@ -2,12 +2,16 @@ const cron = require('node-cron');
 const ScheduledMeeting = require('../models/ScheduledMeeting');
 const Meeting = require('../models/Meeting');
 const { runBot } = require('../bot/bot');
+const { sendMeetingReminder } = require('./emailService');
 
 // Store active scheduled jobs
 const activeJobs = new Map();
 
 // Check for meetings to join every minute
 let schedulerJob = null;
+
+// Reminder job for sending emails at 8 PM
+let reminderJob = null;
 
 /**
  * Start the meeting scheduler service
@@ -29,7 +33,17 @@ function startScheduler() {
         }
     });
 
+    // Run daily at 8 PM (20:00) to send reminders for tomorrow's meetings
+    reminderJob = cron.schedule('0 20 * * *', async () => {
+        try {
+            await sendTomorrowMeetingReminders();
+        } catch (error) {
+            console.error('[Scheduler] Error sending reminders:', error);
+        }
+    });
+
     console.log('[Scheduler] ✅ Scheduler started - checking every minute');
+    console.log('[Scheduler] ✅ Reminder service started - running daily at 8 PM');
 }
 
 /**
@@ -40,6 +54,11 @@ function stopScheduler() {
         schedulerJob.stop();
         schedulerJob = null;
         console.log('[Scheduler] ⏹️ Scheduler stopped');
+    }
+    if (reminderJob) {
+        reminderJob.stop();
+        reminderJob = null;
+        console.log('[Scheduler] ⏹️ Reminder service stopped');
     }
 }
 
@@ -252,11 +271,64 @@ async function triggerScheduledMeeting(scheduledMeetingId) {
 }
 
 /**
+ * Send meeting reminders for tomorrow's meetings
+ * Runs daily at 8 PM (20:00)
+ */
+async function sendTomorrowMeetingReminders() {
+    try {
+        console.log('[Scheduler] 📧 Checking for tomorrow\'s meetings to send reminders...');
+        
+        const now = new Date();
+        const tomorrow = new Date(now);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        
+        // Set to start of tomorrow (00:00:00)
+        const tomorrowStart = new Date(tomorrow);
+        tomorrowStart.setHours(0, 0, 0, 0);
+        
+        // Set to end of tomorrow (23:59:59)
+        const tomorrowEnd = new Date(tomorrow);
+        tomorrowEnd.setHours(23, 59, 59, 999);
+        
+        // Find all scheduled meetings for tomorrow
+        const tomorrowMeetings = await ScheduledMeeting.find({
+            status: 'scheduled',
+            scheduledTime: {
+                $gte: tomorrowStart,
+                $lte: tomorrowEnd
+            }
+        });
+        
+        if (tomorrowMeetings.length === 0) {
+            console.log('[Scheduler] 📭 No meetings scheduled for tomorrow');
+            return;
+        }
+        
+        console.log(`[Scheduler] 📬 Found ${tomorrowMeetings.length} meeting(s) for tomorrow`);
+        
+        // Send reminder for each meeting
+        for (const meeting of tomorrowMeetings) {
+            try {
+                await sendMeetingReminder(meeting);
+                console.log(`[Scheduler] ✅ Reminder sent for: ${meeting.title || 'Scheduled Meeting'}`);
+            } catch (error) {
+                console.error(`[Scheduler] ❌ Failed to send reminder for meeting ${meeting._id}:`, error);
+            }
+        }
+        
+        console.log('[Scheduler] 📧 Reminder sending complete');
+    } catch (error) {
+        console.error('[Scheduler] Error in sendTomorrowMeetingReminders:', error);
+    }
+}
+
+/**
  * Get scheduler status
  */
 function getSchedulerStatus() {
     return {
         running: schedulerJob !== null,
+        reminderServiceRunning: reminderJob !== null,
         activeJobs: activeJobs.size,
         activeJobIds: Array.from(activeJobs.keys())
     };
@@ -268,5 +340,6 @@ module.exports = {
     checkAndJoinScheduledMeetings,
     triggerScheduledMeeting,
     getSchedulerStatus,
-    cleanupExpiredMeetings
+    cleanupExpiredMeetings,
+    sendTomorrowMeetingReminders
 };

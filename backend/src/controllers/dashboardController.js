@@ -1,5 +1,6 @@
 const { GoogleGenAI, Type } = require("@google/genai");
 const Meeting = require('../models/Meeting');
+const { sendDashboardSummary, sendDashboardToCollaborators, sendCollaboratorInvite } = require('../services/emailService');
 
 // Initialize Gemini
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
@@ -410,6 +411,21 @@ exports.generateDashboard = async (req, res) => {
         await meeting.save();
 
         console.log(`[Dashboard] Analysis saved for meeting ${id}`);
+        
+        // Automatically send dashboard summary email to owner
+        console.log(`[Dashboard] Sending dashboard summary email...`);
+        sendDashboardSummary(meeting._id, analysisData).catch(err => {
+            console.error('[Dashboard] Email sending failed (non-blocking):', err);
+        });
+
+        // Send dashboard to all collaborators
+        if (meeting.collaborators && meeting.collaborators.length > 0) {
+            console.log(`[Dashboard] Sending dashboard to ${meeting.collaborators.length} collaborator(s)...`);
+            sendDashboardToCollaborators(meeting._id, analysisData, meeting.collaborators).catch(err => {
+                console.error('[Dashboard] Collaborator email sending failed (non-blocking):', err);
+            });
+        }
+
         res.json({ success: true, analysis: analysisData });
 
     } catch (err) {
@@ -502,6 +518,20 @@ exports.addCollaborator = async (req, res) => {
         // Add email to collaborators array
         meeting.collaborators.push(email);
         await meeting.save();
+
+        // Send invitation email to the new collaborator
+        const meetingTitle = meeting.title || meeting.meetingId || 'Meeting Dashboard';
+        sendCollaboratorInvite(email, meetingTitle, meeting._id).catch(err => {
+            console.error('[Dashboard] Failed to send invite email (non-blocking):', err);
+        });
+
+        // If dashboard already exists, send it to the new collaborator
+        if (meeting.analysis) {
+            console.log(`[Dashboard] Sending existing dashboard to new collaborator: ${email}`);
+            sendDashboardSummary(meeting._id, meeting.analysis, email).catch(err => {
+                console.error('[Dashboard] Failed to send dashboard to collaborator (non-blocking):', err);
+            });
+        }
 
         res.json({ success: true, collaborators: meeting.collaborators });
 

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { Calendar, Clock, Plus, X, Trash2, ExternalLink, Video, Loader2 } from 'lucide-react';
+import { Calendar, Clock, Plus, X, Trash2, ExternalLink, Video, Loader2, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // Import Platform Logos
@@ -18,6 +18,11 @@ const ScheduledMeetings = () => {
     const [showCreateForm, setShowCreateForm] = useState(false);
     const [creating, setCreating] = useState(false);
     const [schedulerStatus, setSchedulerStatus] = useState(null);
+    
+    // Gemini AI state
+    const [showGeminiModal, setShowGeminiModal] = useState(false);
+    const [geminiPrompt, setGeminiPrompt] = useState('');
+    const [generatingWithGemini, setGeneratingWithGemini] = useState(false);
     
     // Form state
     const [formData, setFormData] = useState({
@@ -143,6 +148,43 @@ const ScheduledMeetings = () => {
         }
     };
 
+    const handleGenerateWithGemini = async () => {
+        if (!geminiPrompt.trim()) {
+            alert('Please enter a prompt for Gemini AI');
+            return;
+        }
+
+        setGeneratingWithGemini(true);
+        try {
+            const res = await axios.post(`${API_URL}/api/scheduled-meetings/gemini/generate`, {
+                prompt: geminiPrompt
+            });
+
+            if (res.data.success) {
+                const generatedMeeting = res.data.meeting;
+                
+                // Directly create the meeting without showing the form
+                const createRes = await axios.post(`${API_URL}/api/scheduled-meetings`, {
+                    title: generatedMeeting.title || 'Scheduled Meeting',
+                    meetingType: generatedMeeting.meetingType || 'zoom',
+                    meetingLink: generatedMeeting.meetingLink || '',
+                    scheduledTime: generatedMeeting.scheduledTime
+                });
+
+                if (createRes.data.success) {
+                    setScheduledMeetings([...scheduledMeetings, createRes.data.meeting]);
+                    setShowGeminiModal(false);
+                    setGeminiPrompt('');
+                    alert('✨ Meeting scheduled successfully!');
+                }
+            }
+        } catch (err) {
+            alert(err.response?.data?.error || 'Failed to generate meeting with AI Bot');
+        } finally {
+            setGeneratingWithGemini(false);
+        }
+    };
+
     const handleDeleteMeeting = async (id) => {
         if (!confirm('Delete this scheduled meeting?')) return;
 
@@ -240,13 +282,23 @@ const ScheduledMeetings = () => {
                             </div>
                         )}
                     </div>
-                    <button
-                        onClick={() => setShowCreateForm(true)}
-                        className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-lg transition-colors"
-                    >
-                        <Plus size={18} />
-                        Create Schedule
-                    </button>
+                    <div className="flex items-center gap-3">
+                        <button
+                            onClick={() => setShowGeminiModal(true)}
+                            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-semibold rounded-lg transition-all shadow-lg shadow-purple-500/20"
+                            title="Generate with Gemini AI"
+                        >
+                            <Sparkles size={18} />
+                            <span className="hidden sm:inline">AI Bot</span>
+                        </button>
+                        <button
+                            onClick={() => setShowCreateForm(true)}
+                            className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-lg transition-colors"
+                        >
+                            <Plus size={18} />
+                            Create Schedule
+                        </button>
+                    </div>
                 </div>
             </header>
 
@@ -482,6 +534,100 @@ const ScheduledMeetings = () => {
                                     </button>
                                 </div>
                             </form>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Gemini AI Modal */}
+            <AnimatePresence>
+                {showGeminiModal && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+                        onClick={() => setShowGeminiModal(false)}
+                    >
+                        <motion.div
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.9, opacity: 0 }}
+                            onClick={(e) => e.stopPropagation()}
+                            className="bg-gradient-to-br from-[#1C1F2E] to-[#252940] rounded-2xl p-6 border border-purple-500/20 max-w-md w-full shadow-2xl shadow-purple-500/10"
+                        >
+                            <div className="flex items-center justify-between mb-6">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+                                        <Sparkles size={20} className="text-white" />
+                                    </div>
+                                    <h2 className="text-xl font-bold text-white">AI Bot</h2>
+                                </div>
+                                <button
+                                    onClick={() => setShowGeminiModal(false)}
+                                    className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+                                >
+                                    <X size={20} className="text-gray-400" />
+                                </button>
+                            </div>
+
+                            <div className="mb-6">
+                                <p className="text-gray-300 text-sm mb-4">
+                                    Describe the meeting you want to schedule, and I'll generate it for you!
+                                </p>
+                                <div className="bg-purple-500/10 border border-purple-500/20 rounded-lg p-3 mb-4">
+                                    <p className="text-xs text-purple-300 font-medium mb-2">💡 Example prompts:</p>
+                                    <ul className="text-xs text-gray-400 space-y-1">
+                                        <li>• "Schedule a team standup tomorrow at 10 AM on Zoom"</li>
+                                        <li>• "Create a client review meeting on Google Meet in 2 hours"</li>
+                                        <li>• "Set up a project kickoff on Teams next Monday at 2 PM"</li>
+                                    </ul>
+                                </div>
+                                
+                                <label className="block text-sm font-medium text-gray-400 mb-2">
+                                    Your Prompt
+                                </label>
+                                <textarea
+                                    value={geminiPrompt}
+                                    onChange={(e) => setGeminiPrompt(e.target.value)}
+                                    placeholder="e.g., Schedule a team meeting tomorrow at 3 PM on Zoom to discuss Q1 goals"
+                                    className="w-full px-4 py-3 bg-[#0B0E14] border border-purple-500/20 rounded-lg text-white placeholder:text-gray-500 focus:outline-none focus:border-purple-500/50 transition-colors resize-none"
+                                    rows="4"
+                                    disabled={generatingWithGemini}
+                                />
+                            </div>
+
+                            <div className="flex gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowGeminiModal(false)}
+                                    className="flex-1 px-4 py-3 bg-white/5 hover:bg-white/10 text-white rounded-lg transition-colors"
+                                    disabled={generatingWithGemini}
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleGenerateWithGemini}
+                                    disabled={generatingWithGemini || !geminiPrompt.trim()}
+                                    className="flex-1 px-4 py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-semibold rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-purple-500/20"
+                                >
+                                    {generatingWithGemini ? (
+                                        <>
+                                            <Loader2 size={18} className="animate-spin" />
+                                            Generating...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Sparkles size={18} />
+                                            Generate
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+
+                            <p className="text-xs text-center text-gray-500 mt-4">
+                                Powered by Google Gemini AI
+                            </p>
                         </motion.div>
                     </motion.div>
                 )}

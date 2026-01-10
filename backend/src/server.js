@@ -11,9 +11,13 @@ const crypto = require('crypto');
 const puppeteer = require('puppeteer');
 const multer = require('multer');
 const fs = require('fs').promises;
+const { GoogleGenAI, Type } = require("@google/genai");
 
 // Load environment variables FIRST
 dotenv.config();
+
+// Initialize Gemini AI
+const geminiAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
 // Import passport AFTER env vars are loaded
 const passport = require('./config/passport');
@@ -1325,6 +1329,120 @@ app.post('/api/scheduler/cleanup', optionalAuth, async (req, res) => {
     } catch (err) {
         console.error('Cleanup error:', err);
         res.status(500).json({ error: 'Failed to cleanup expired meetings' });
+    }
+});
+
+// 7. Generate scheduled meeting with Gemini AI
+app.post('/api/scheduled-meetings/gemini/generate', optionalAuth, async (req, res) => {
+    try {
+        const { prompt } = req.body;
+
+        if (!prompt) {
+            return res.status(400).json({ error: 'Prompt is required' });
+        }
+
+        if (!process.env.GEMINI_API_KEY) {
+            return res.status(500).json({ error: 'Gemini API key not configured' });
+        }
+
+        // Define schema for meeting generation
+        const meetingSchema = {
+            type: Type.OBJECT,
+            properties: {
+                title: { type: Type.STRING },
+                meetingType: { type: Type.STRING }, // zoom, meet, teams
+                meetingLink: { type: Type.STRING },
+                scheduledTime: { type: Type.STRING }, // ISO format
+                description: { type: Type.STRING }
+            },
+            required: ['title', 'meetingType', 'scheduledTime']
+        };
+
+        // Create prompt for Gemini
+        const systemPrompt = `You are an AI assistant that helps users create scheduled meetings. 
+Based on the user's request, generate a meeting schedule with the following details:
+- title: A clear, professional meeting title
+- meetingType: One of "zoom", "meet", or "teams" (default to "zoom" if not specified)
+- meetingLink: Generate a placeholder link based on the meeting type (e.g., "https://zoom.us/j/PLACEHOLDER" for Zoom, "https://meet.google.com/PLACEHOLDER" for Meet, "https://teams.microsoft.com/l/meetup-join/PLACEHOLDER" for Teams)
+- scheduledTime: Convert the user's time request to ISO 8601 format. If only time is mentioned, assume today's date. If relative time like "in 2 hours" or "tomorrow at 3pm", calculate from now: ${new Date().toISOString()}
+- description: A brief description of what the meeting is about
+
+User Request: ${prompt}
+
+IMPORTANT: 
+- For scheduledTime, ensure it's a valid ISO 8601 datetime string
+- If user mentions "in X hours/minutes", add that to the current time
+- If user mentions "tomorrow" or specific dates, calculate correctly
+- Use 24-hour format for times`;
+
+        const response = await geminiAI.models.generateContent({
+            model: 'gemini-flash-latest',
+            contents: systemPrompt,
+            config: {
+                responseMimeType: 'application/json',
+                responseSchema: meetingSchema
+            }
+        });
+
+        const rawText = response.candidates?.[0]?.content?.parts?.[0]?.text || response.text?.() || '{}';
+        const meetingData = JSON.parse(rawText);
+
+        // Validate the generated data
+        if (!meetingData.title || !meetingData.scheduledTime) {
+            return res.status(400).json({ error: 'Failed to generate valid meeting data' });
+        }
+
+        res.json({ 
+            success: true, 
+            meeting: meetingData,
+            message: 'Meeting schedule generated successfully'
+        });
+
+    } catch (err) {
+        console.error('Gemini generation error:', err);
+        res.status(500).json({ 
+            error: 'Failed to generate meeting schedule',
+            details: err.message 
+        });
+    }
+});
+
+// 8. Test email reminder (for testing purposes)
+app.post('/api/scheduler/test-reminder', optionalAuth, async (req, res) => {
+    try {
+        const { meetingId } = req.body;
+        
+        if (!meetingId) {
+            return res.status(400).json({ error: 'Meeting ID is required' });
+        }
+        
+        const meeting = await ScheduledMeeting.findById(meetingId);
+        if (!meeting) {
+            return res.status(404).json({ error: 'Meeting not found' });
+        }
+        
+        const { sendMeetingReminder } = require('./services/emailService');
+        const result = await sendMeetingReminder(meeting);
+        
+        if (result.success) {
+            res.json({ success: true, message: 'Test reminder email sent successfully', messageId: result.messageId });
+        } else {
+            res.status(500).json({ error: 'Failed to send test email', details: result.error });
+        }
+    } catch (err) {
+        console.error('Test reminder error:', err);
+        res.status(500).json({ error: 'Failed to send test reminder' });
+    }
+});
+
+// 9. Manually trigger reminder check (for testing)
+app.post('/api/scheduler/send-reminders', optionalAuth, async (req, res) => {
+    try {
+        await meetingSchedulerService.sendTomorrowMeetingReminders();
+        res.json({ success: true, message: 'Reminder check triggered successfully' });
+    } catch (err) {
+        console.error('Send reminders error:', err);
+        res.status(500).json({ error: 'Failed to trigger reminder check' });
     }
 });
 

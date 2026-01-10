@@ -661,6 +661,33 @@ app.get('/api/meetings/archive', optionalAuth, async (req, res) => {
     }
 });
 
+// 2.2 Update Meeting Name
+app.put('/api/meetings/:id/name', optionalAuth, async (req, res) => {
+    try {
+        const { meetingName } = req.body;
+        
+        if (!meetingName || !meetingName.trim()) {
+            return res.status(400).json({ error: 'Meeting name is required' });
+        }
+
+        const meeting = await Meeting.findByIdAndUpdate(
+            req.params.id,
+            { meetingName: meetingName.trim() },
+            { new: true }
+        );
+
+        if (!meeting) {
+            return res.status(404).json({ error: 'Meeting not found' });
+        }
+
+        console.log('[Server] Updated meeting name:', meeting._id, 'to:', meetingName.trim());
+        res.json({ success: true, meeting });
+    } catch (err) {
+        console.error('Update meeting name error:', err);
+        res.status(500).json({ error: 'Failed to update meeting name' });
+    }
+});
+
 // 3. Update Meeting
 app.patch('/api/meetings/:id', async (req, res) => {
     try {

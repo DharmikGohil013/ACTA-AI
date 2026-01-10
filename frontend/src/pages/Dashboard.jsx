@@ -69,6 +69,9 @@ const Dashboard = () => {
     const [endingBot, setEndingBot] = useState(false);
     const [selectedTasksMeeting, setSelectedTasksMeeting] = useState(null); // For tasks modal
     const [extractingTasks, setExtractingTasks] = useState(false); // For task extraction loading
+    const [editingMeeting, setEditingMeeting] = useState(null); // For editing meeting name
+    const [newMeetingName, setNewMeetingName] = useState(''); // New meeting name input
+    const [savingName, setSavingName] = useState(false); // Loading state for save
     const audioRefs = useRef({});
     const socketRef = useRef(null);
 
@@ -185,6 +188,40 @@ const Dashboard = () => {
         } finally {
             setLoading(false);
         }
+    };
+
+    const startEditingName = (meeting) => {
+        setEditingMeeting(meeting._id);
+        setNewMeetingName(meeting.meetingName || '');
+    };
+
+    const saveMeetingName = async () => {
+        if (!editingMeeting || !newMeetingName.trim()) return;
+
+        setSavingName(true);
+        try {
+            await axios.put(`${API_URL}/api/meetings/${editingMeeting}/name`, {
+                meetingName: newMeetingName.trim()
+            });
+            
+            // Update local state
+            setMeetings(prev => prev.map(m => 
+                m._id === editingMeeting ? { ...m, meetingName: newMeetingName.trim() } : m
+            ));
+            
+            setEditingMeeting(null);
+            setNewMeetingName('');
+        } catch (err) {
+            console.error('Error saving meeting name:', err);
+            alert('Failed to save meeting name');
+        } finally {
+            setSavingName(false);
+        }
+    };
+
+    const cancelEditingName = () => {
+        setEditingMeeting(null);
+        setNewMeetingName('');
     };
 
     useEffect(() => {
@@ -424,9 +461,20 @@ const Dashboard = () => {
                                                     </div>
                                                 )}
                                                 <div className="flex-1">
-                                                    <h3 className="font-bold text-white text-base leading-tight line-clamp-1">
-                                                        {meeting.meetingName || meeting.extraData?.topic || platform.name}
-                                                    </h3>
+                                                    <div className="flex items-center gap-2">
+                                                        <h3 className="font-bold text-white text-base leading-tight line-clamp-1 flex-1">
+                                                            {meeting.meetingName || meeting.extraData?.topic || platform.name}
+                                                        </h3>
+                                                        <button
+                                                            onClick={() => startEditingName(meeting)}
+                                                            className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-white/10 rounded-md"
+                                                            title="Edit meeting name"
+                                                        >
+                                                            <svg className="w-4 h-4 text-gray-400 hover:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                                            </svg>
+                                                        </button>
+                                                    </div>
                                                     <div className="flex items-center gap-2 text-xs text-gray-400 mt-1">
                                                         <span>{new Date(meeting.createdAt).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}</span>
                                                     </div>
@@ -1015,6 +1063,58 @@ const Dashboard = () => {
                                 </p>
                                 <button onClick={() => setSelectedTasksMeeting(null)} className="px-6 py-3 rounded-xl text-sm font-semibold hover:bg-white/5 transition-colors">
                                     Close
+                                </button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+
+                {/* Edit Meeting Name Modal */}
+                {editingMeeting && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+                        onClick={cancelEditingName}
+                    >
+                        <motion.div
+                            initial={{ scale: 0.95, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.95, opacity: 0 }}
+                            className="bg-[#0B0E14] rounded-2xl border border-white/20 p-8 max-w-md w-full mx-4"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <h2 className="text-2xl font-bold text-white mb-4">Edit Meeting Name</h2>
+                            <input
+                                type="text"
+                                value={newMeetingName}
+                                onChange={(e) => setNewMeetingName(e.target.value)}
+                                placeholder="Enter new meeting name..."
+                                className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:border-blue-500 focus:outline-none transition-colors mb-6"
+                                onKeyDown={(e) => e.key === 'Enter' && saveMeetingName()}
+                                autoFocus
+                            />
+                            <div className="flex gap-3 justify-end">
+                                <button
+                                    onClick={cancelEditingName}
+                                    className="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white font-semibold transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={saveMeetingName}
+                                    disabled={savingName}
+                                    className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold transition-colors disabled:opacity-50"
+                                >
+                                    {savingName ? (
+                                        <>
+                                            <Loader2 size={16} className="inline animate-spin mr-2" />
+                                            Saving...
+                                        </>
+                                    ) : (
+                                        'Save'
+                                    )}
                                 </button>
                             </div>
                         </motion.div>

@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { io } from 'socket.io-client';
-import { Play, Pause, Mic, X, Trash2, Calendar, Clock, ExternalLink, StopCircle, Loader2, Volume2, Download, FileAudio, Wifi, WifiOff, FileText, Sparkles, Users, MoreVertical } from 'lucide-react';
+import { Play, Pause, Mic, X, Trash2, Calendar, Clock, ExternalLink, StopCircle, Loader2, Volume2, Download, FileAudio, Wifi, WifiOff, FileText, Sparkles, Users, MoreVertical, CheckCircle2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // Import Platform Logos
@@ -74,6 +74,7 @@ const Dashboard = () => {
     const [editingMeeting, setEditingMeeting] = useState(null); // For editing meeting name
     const [newMeetingName, setNewMeetingName] = useState(''); // New meeting name input
     const [savingName, setSavingName] = useState(false); // Loading state for save
+    const [addedTasks, setAddedTasks] = useState({}); // Track which tasks have been added to Jira/Trello
     const audioRefs = useRef({});
     const socketRef = useRef(null);
 
@@ -226,6 +227,58 @@ const Dashboard = () => {
         setNewMeetingName('');
     };
 
+    const addTaskToJira = async (task, taskIndex) => {
+        try {
+            const response = await axios.post(`${API_URL}/api/tasks/create/jira`, {
+                task: task.task || task,
+                assignee: task.assignee,
+                deadline: task.deadline,
+                priority: task.priority,
+                meetingId: selectedTasksMeeting._id,
+                taskIndex: taskIndex
+            });
+            
+            if (response.data.success) {
+                const taskKey = `${selectedTasksMeeting._id}-${taskIndex}`;
+                setAddedTasks(prev => ({
+                    ...prev,
+                    [taskKey]: { ...prev[taskKey], jira: true, issueKey: response.data.issueKey }
+                }));
+                alert(`✅ Task created in Jira: ${response.data.issueKey}`);
+            }
+        } catch (err) {
+            console.error('Error creating task in Jira:', err);
+            const errorMsg = err.response?.data?.error || 'Failed to create task in Jira';
+            alert(`❌ Error: ${errorMsg}`);
+        }
+    };
+
+    const addTaskToTrello = async (task, taskIndex) => {
+        try {
+            const response = await axios.post(`${API_URL}/api/tasks/create/trello`, {
+                task: task.task || task,
+                assignee: task.assignee,
+                deadline: task.deadline,
+                priority: task.priority,
+                meetingId: selectedTasksMeeting._id,
+                taskIndex: taskIndex
+            });
+            
+            if (response.data.success) {
+                const taskKey = `${selectedTasksMeeting._id}-${taskIndex}`;
+                setAddedTasks(prev => ({
+                    ...prev,
+                    [taskKey]: { ...prev[taskKey], trello: true, cardId: response.data.cardId }
+                }));
+                alert(`✅ Task created in Trello: ${response.data.message}`);
+            }
+        } catch (err) {
+            console.error('Error creating task in Trello:', err);
+            const errorMsg = err.response?.data?.error || 'Failed to create task in Trello';
+            alert(`❌ Error: ${errorMsg}`);
+        }
+    };
+
     useEffect(() => {
         fetchMeetings();
         const interval = setInterval(fetchMeetings, 10000);
@@ -308,9 +361,12 @@ const Dashboard = () => {
                 // Update the selected meeting with extracted tasks
                 const updatedMeeting = {
                     ...meeting,
-                    extractedTasks: res.data.tasks
+                    extractedTasks: res.data.tasks,
+                    taskIntegrations: res.data.taskIntegrations || meeting.taskIntegrations || []
                 };
                 setSelectedTasksMeeting(updatedMeeting);
+                // Load task integration statuses from the updated meeting
+                loadTaskIntegrations(updatedMeeting);
                 // Refresh meetings list to get updated data
                 fetchMeetings();
             }
@@ -320,6 +376,29 @@ const Dashboard = () => {
         } finally {
             setExtractingTasks(false);
         }
+    };
+
+    const loadTaskIntegrations = (meeting) => {
+        // Build addedTasks state from taskIntegrations in the meeting object
+        const newAddedTasks = {};
+        if (meeting?.taskIntegrations && Array.isArray(meeting.taskIntegrations)) {
+            meeting.taskIntegrations.forEach(integration => {
+                const taskKey = `${meeting._id}-${integration.taskIndex}`;
+                if (!newAddedTasks[taskKey]) {
+                    newAddedTasks[taskKey] = {};
+                }
+                if (integration.jira?.added) {
+                    newAddedTasks[taskKey].jira = true;
+                    newAddedTasks[taskKey].issueKey = integration.jira.issueKey;
+                }
+                if (integration.trello?.added) {
+                    newAddedTasks[taskKey].trello = true;
+                    newAddedTasks[taskKey].cardId = integration.trello.cardId;
+                }
+            });
+        }
+        console.log('Loaded task integrations:', newAddedTasks);
+        setAddedTasks(newAddedTasks);
     };
 
     const createSampleMeeting = async () => {
@@ -546,19 +625,26 @@ const Dashboard = () => {
                                                 <div className="flex gap-2">
                                                     <button
                                                         onClick={() => meeting.transcription ? navigate(`/dashboard/${meeting._id}`) : startTranscription(meeting)}
-                                                        className="flex-1 py-2.5 rounded-lg bg-[#1C1F2E] hover:bg-[#252a3d] border border-white/10 hover:border-white/20 text-white text-sm font-semibold transition-all shadow-lg flex items-center justify-center gap-2"
+                                                        className="flex-1 relative group py-2.5 rounded-lg bg-[#0B0E14] hover:bg-[#151820] border border-white/10 hover:border-white/20 text-white text-sm font-semibold transition-all shadow-lg flex items-center justify-center gap-2 overflow-hidden"
                                                     >
-                                                        {meeting.transcription ? 'View Dashboard' : 'Start Transcription'}
+                                                        <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-lg blur opacity-0 group-hover:opacity-30 transition duration-500"></div>
+                                                        <span className="relative">{meeting.transcription ? 'View Dashboard' : 'Start Transcription'}</span>
                                                     </button>
 
                                                     {meeting.transcription && (
                                                         <button
-                                                            onClick={() => setSelectedTasksMeeting(meeting)}
-                                                            className="px-4 py-2.5 rounded-lg bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/20 hover:border-purple-500/40 text-purple-400 hover:text-purple-300 transition-all flex items-center justify-center gap-2"
+                                                            onClick={() => {
+                                                                setSelectedTasksMeeting(meeting);
+                                                                loadTaskIntegrations(meeting);
+                                                            }}
+                                                            className="relative group px-4 py-2.5 rounded-lg bg-[#0B0E14] hover:bg-[#151820] border border-white/10 hover:border-white/20 text-white text-sm font-semibold transition-all shadow-lg flex items-center justify-center gap-2 overflow-hidden"
                                                             title="View Action Items & Tasks"
                                                         >
-                                                            <Mic size={16} />
-                                                            <span className="hidden xl:inline">Tasks</span>
+                                                            <div className="absolute -inset-0.5 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg blur opacity-0 group-hover:opacity-30 transition duration-500"></div>
+                                                            <div className="relative flex items-center gap-2">
+                                                                <CheckCircle2 size={16} />
+                                                                <span className="hidden xl:inline">Tasks</span>
+                                                            </div>
                                                         </button>
                                                     )}
                                                 </div>
@@ -1032,26 +1118,40 @@ const Dashboard = () => {
                                                                 )}
                                                             </div>
                                                             <div className="flex gap-2 ml-auto">
-                                                                <button
-                                                                    onClick={() => {
-                                                                        // TODO: Add to Jira
-                                                                        alert('Add to Jira: ' + (task.task || task));
-                                                                    }}
-                                                                    className="text-xs px-3 py-1.5 rounded-lg bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/30 hover:border-blue-500/50 text-blue-400 hover:text-blue-300 font-medium transition-all"
-                                                                    title="Add this task to Jira"
-                                                                >
-                                                                    + Jira
-                                                                </button>
-                                                                <button
-                                                                    onClick={() => {
-                                                                        // TODO: Add to Trello
-                                                                        alert('Add to Trello: ' + (task.task || task));
-                                                                    }}
-                                                                    className="text-xs px-3 py-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/30 hover:border-emerald-500/50 text-emerald-400 hover:text-emerald-300 font-medium transition-all"
-                                                                    title="Add this task to Trello"
-                                                                >
-                                                                    + Trello
-                                                                </button>
+                                                                {(() => {
+                                                                    const taskKey = `${selectedTasksMeeting._id}-${index}`;
+                                                                    const taskStatus = addedTasks[taskKey] || {};
+                                                                    return (
+                                                                        <>
+                                                                            <button
+                                                                                onClick={() => !taskStatus.jira && addTaskToJira(task, index)}
+                                                                                disabled={taskStatus.jira}
+                                                                                className={`relative group text-xs px-3 py-1.5 rounded-lg font-medium transition-all overflow-hidden ${
+                                                                                    taskStatus.jira
+                                                                                        ? 'bg-green-500/20 border border-green-500/50 text-green-400 cursor-default'
+                                                                                        : 'bg-[#0B0E14] hover:bg-[#151820] border border-blue-500/30 hover:border-blue-500/50 text-blue-400 hover:text-blue-300'
+                                                                                }`}
+                                                                                title={taskStatus.jira ? `Added to Jira: ${taskStatus.issueKey}` : 'Add this task to Jira'}
+                                                                            >
+                                                                                {!taskStatus.jira && <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-lg blur opacity-0 group-hover:opacity-20 transition duration-500"></div>}
+                                                                                <span className="relative">{taskStatus.jira ? `✓ ${taskStatus.issueKey}` : '+ Jira'}</span>
+                                                                            </button>
+                                                                            <button
+                                                                                onClick={() => !taskStatus.trello && addTaskToTrello(task, index)}
+                                                                                disabled={taskStatus.trello}
+                                                                                className={`relative group text-xs px-3 py-1.5 rounded-lg font-medium transition-all overflow-hidden ${
+                                                                                    taskStatus.trello
+                                                                                        ? 'bg-green-500/20 border border-green-500/50 text-green-400 cursor-default'
+                                                                                        : 'bg-[#0B0E14] hover:bg-[#151820] border border-emerald-500/30 hover:border-emerald-500/50 text-emerald-400 hover:text-emerald-300'
+                                                                                }`}
+                                                                                title={taskStatus.trello ? 'Already added to Trello' : 'Add this task to Trello'}
+                                                                            >
+                                                                                {!taskStatus.trello && <div className="absolute -inset-0.5 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-lg blur opacity-0 group-hover:opacity-20 transition duration-500"></div>}
+                                                                                <span className="relative">{taskStatus.trello ? '✓ Trello' : '+ Trello'}</span>
+                                                                            </button>
+                                                                        </>
+                                                                    );
+                                                                })()}
                                                             </div>
                                                         </div>
                                                     </div>
@@ -1072,10 +1172,23 @@ const Dashboard = () => {
                                             {selectedTasksMeeting.transcription && (
                                                 <button
                                                     onClick={() => extractTasks(selectedTasksMeeting)}
-                                                    className="px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 rounded-xl text-white text-sm font-semibold flex items-center gap-2 mx-auto transition-all"
+                                                    disabled={extractingTasks}
+                                                    className="relative group px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:from-blue-600/50 disabled:to-purple-600/50 rounded-xl text-white text-sm font-semibold flex items-center gap-2 mx-auto transition-all shadow-lg disabled:cursor-not-allowed overflow-hidden"
                                                 >
-                                                    <Sparkles size={16} />
-                                                    Extract Tasks with AI
+                                                    <div className="absolute -inset-1 bg-gradient-to-r from-blue-500 to-purple-500 rounded-xl blur opacity-0 group-hover:opacity-30 group-disabled:opacity-0 transition duration-500"></div>
+                                                    <div className="relative flex items-center gap-2">
+                                                        {extractingTasks ? (
+                                                            <>
+                                                                <Loader2 size={16} className="animate-spin" />
+                                                                <span>Extracting...</span>
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <Sparkles size={16} />
+                                                                <span>Extract Tasks with AI</span>
+                                                            </>
+                                                        )}
+                                                    </div>
                                                 </button>
                                             )}
                                         </div>

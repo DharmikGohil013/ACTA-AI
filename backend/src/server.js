@@ -371,6 +371,214 @@ app.post('/api/integrations/test/trello', async (req, res) => {
     }
 });
 
+// Create task in Jira
+app.post('/api/tasks/create/jira', optionalAuth, async (req, res) => {
+    if (!req.user) {
+        return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    try {
+        const { task, assignee, deadline, priority, meetingId, taskIndex } = req.body;
+
+        if (!task) {
+            return res.status(400).json({ error: 'Task description is required' });
+        }
+
+        const user = await User.findById(req.user._id);
+        const jiraConfig = user?.jiraConfig || {};
+
+        if (!jiraConfig.domain || !jiraConfig.email || !jiraConfig.apiToken || !jiraConfig.projectKey) {
+            return res.status(400).json({ error: 'Jira credentials not configured. Please setup Jira in Settings first.' });
+        }
+
+        // Prepare description in Atlassian Document Format (ADF)
+        let descriptionText = `Task: ${task}`;
+        if (deadline) descriptionText += `\nDeadline: ${deadline}`;
+        
+        const description = {
+            version: 1,
+            type: 'doc',
+            content: [
+                {
+                    type: 'paragraph',
+                    content: [
+                        {
+                            type: 'text',
+                            text: descriptionText
+                        }
+                    ]
+                }
+            ]
+        };
+
+        // Map priority to Jira priority IDs
+        const priorityMap = {
+            'high': { id: '1' },
+            'medium': { id: '2' },
+            'low': { id: '3' }
+        };
+
+        // Prepare Jira issue data
+        const issueData = {
+            fields: {
+                project: { key: jiraConfig.projectKey },
+                summary: task,
+                issuetype: { name: 'Task' },
+                description: description
+            }
+        };
+
+        // Add priority if provided and valid
+        if (priority && priorityMap[priority.toLowerCase()]) {
+            issueData.fields.priority = priorityMap[priority.toLowerCase()];
+        }
+
+        if (assignee) {
+            issueData.fields.assignee = { name: assignee };
+        }
+
+        // Create issue in Jira
+        // Handle domain that may already include .atlassian.net
+        const jiraDomain = jiraConfig.domain.includes('.atlassian.net') ? 
+            jiraConfig.domain : 
+            `${jiraConfig.domain}.atlassian.net`;
+        const jiraUrl = `https://${jiraDomain}/rest/api/3/issue`;
+        const auth = Buffer.from(`${jiraConfig.email}:${jiraConfig.apiToken}`).toString('base64');
+
+        console.log('[Jira Create] Creating issue:', { domain: jiraDomain, projectKey: jiraConfig.projectKey, task });
+
+        const response = await axios.post(jiraUrl, issueData, {
+            headers: {
+                'Authorization': `Basic ${auth}`,
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            },
+            timeout: 10000
+        });
+
+        console.log('[Jira Create] Issue created successfully:', response.data.key);
+
+        // Save task integration status to database if meetingId and taskIndex provided
+        if (meetingId && taskIndex !== undefined) {
+            await Meeting.findByIdAndUpdate(
+                meetingId,
+                {
+                    $push: {
+                        taskIntegrations: {
+                            taskIndex: taskIndex,
+                            jira: { added: true, issueKey: response.data.key }
+                        }
+                    }
+                },
+                { new: true }
+            );
+            console.log('[Jira Create] Saved to database:', { meetingId, taskIndex, issueKey: response.data.key });
+        }
+
+        res.json({
+            success: true,
+            message: `Task created in Jira: ${response.data.key}`,
+            issueKey: response.data.key,
+            issueId: response.data.id
+        });
+    } catch (err) {
+        console.error('[Jira Create] Error:', err.message);
+        console.error('[Jira Create] Error details:', err.response?.data || err.stack);
+
+        let errorMessage = 'Failed to create task in Jira';
+
+        if (err.response?.status === 401) {
+            errorMessage = 'Invalid Jira credentials';
+        } else if (err.response?.status === 404) {
+            errorMessage = 'Project not found';
+        } else if (err.response?.data?.errorMessages) {
+            errorMessage = err.response.data.errorMessages[0];
+        }
+
+        res.status(500).json({ error: errorMessage });
+    }
+});
+
+// Create task in Trello
+app.post('/api/tasks/create/trello', optionalAuth, async (req, res) => {
+    if (!req.user) {
+        return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    try {
+        const { task, assignee, deadline, priority, meetingId, taskIndex } = req.body;
+
+        if (!task) {
+            return res.status(400).json({ error: 'Task description is required' });
+        }
+
+        const user = await User.findById(req.user._id);
+        const trelloConfig = user?.trelloConfig || {};
+
+        if (!trelloConfig.apiKey || !trelloConfig.apiToken || !trelloConfig.listId) {
+            return res.status(400).json({ error: 'Trello credentials not configured. Please setup Trello in Settings first.' });
+        }
+
+        // Prepare card description
+        let description = task;
+        if (assignee) description += `\nAssignee: ${assignee}`;
+        if (deadline) description += `\nDeadline: ${deadline}`;
+        if (priority) description += `\nPriority: ${priority}`;
+
+        // Create card in Trello
+        const trelloUrl = `https://api.trello.com/1/cards?idList=${trelloConfig.listId}&key=${trelloConfig.apiKey}&token=${trelloConfig.apiToken}`;
+
+        console.log('[Trello Create] Creating card:', { listId: trelloConfig.listId, task });
+
+        const response = await axios.post(trelloUrl, {
+            name: task,
+            desc: description,
+            labels: priority ? [priority.toLowerCase()] : []
+        }, {
+            timeout: 10000
+        });
+
+        console.log('[Trello Create] Card created successfully:', response.data.id);
+
+        // Save task integration status to database if meetingId and taskIndex provided
+        if (meetingId && taskIndex !== undefined) {
+            await Meeting.findByIdAndUpdate(
+                meetingId,
+                {
+                    $push: {
+                        taskIntegrations: {
+                            taskIndex: taskIndex,
+                            trello: { added: true, cardId: response.data.id }
+                        }
+                    }
+                },
+                { new: true }
+            );
+            console.log('[Trello Create] Saved to database:', { meetingId, taskIndex, cardId: response.data.id });
+        }
+
+        res.json({
+            success: true,
+            message: `Task created in Trello: ${response.data.name}`,
+            cardId: response.data.id,
+            cardUrl: response.data.url
+        });
+    } catch (err) {
+        console.error('[Trello Create] Error:', err.message);
+        console.error('[Trello Create] Error details:', err.response?.data || err.stack);
+
+        let errorMessage = 'Failed to create task in Trello';
+
+        if (err.response?.status === 401) {
+            errorMessage = 'Invalid Trello credentials';
+        } else if (err.response?.status === 404) {
+            errorMessage = 'List not found';
+        }
+
+        res.status(500).json({ error: errorMessage });
+    }
+});
+
 // User Settings Routes
 app.get('/api/user/settings', async (req, res) => {
     if (!req.isAuthenticated()) {

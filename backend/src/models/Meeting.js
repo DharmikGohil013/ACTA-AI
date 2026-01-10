@@ -56,6 +56,11 @@ const MeetingSchema = new mongoose.Schema({
     type: Array,
     default: [],
   },
+  taskIntegrations: {
+    type: Array,
+    default: [],
+    // Array of { taskIndex, jira: { added, issueKey }, trello: { added, cardId } }
+  },
   meetingName: {
     type: String,
     default: 'Meeting',

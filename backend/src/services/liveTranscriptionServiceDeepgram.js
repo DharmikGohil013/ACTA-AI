@@ -114,17 +114,49 @@ class LiveTranscriptionProcessor {
      */
     async transcribeChunk(audioBuffer) {
         try {
-            const { result, error } = await this.deepgram.listen.prerecorded.transcribeFile(
-                audioBuffer,
-                {
-                    model: 'nova-2',
-                    language: this.options.language,
-                    smart_format: true,
-                    punctuate: true,
-                    utterances: false,
-                    diarize: false  // Disable for live chunks
+            let result, error;
+            let retries = 2; // Fewer retries for live transcription
+            
+            while (retries > 0) {
+                try {
+                    const response = await this.deepgram.listen.prerecorded.transcribeFile(
+                        audioBuffer,
+                        {
+                            model: 'nova-2',
+                            language: this.options.language,
+                            smart_format: true,
+                            punctuate: true,
+                            utterances: false,
+                            diarize: false,  // Disable for live chunks
+                            timeout: 30000 // 30 seconds timeout for live chunks
+                        }
+                    );
+                    
+                    result = response.result;
+                    error = response.error;
+                    
+                    if (result && !error) {
+                        break;
+                    }
+                    
+                    if (error && retries > 1) {
+                        console.log(`[Live Transcription] Retry ${3 - retries}/2:`, error.message);
+                        retries--;
+                        await new Promise(resolve => setTimeout(resolve, 1000));
+                        continue;
+                    }
+                    
+                    break;
+                } catch (err) {
+                    error = err;
+                    if (retries > 1) {
+                        retries--;
+                        await new Promise(resolve => setTimeout(resolve, 1000));
+                    } else {
+                        break;
+                    }
                 }
-            );
+            }
 
             if (error) {
                 throw new Error(error.message || 'Deepgram transcription failed');

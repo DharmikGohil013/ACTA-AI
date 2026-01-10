@@ -227,6 +227,8 @@ async function transcribePostMeeting(audioPath, onProgress = () => {}, enableSpe
         onProgress('uploading', 'Sending to Deepgram API...');
 
         const audioBuffer = fs.readFileSync(audioPath);
+        const fileSize = (audioBuffer.length / (1024 * 1024)).toFixed(2);
+        console.log(`[Post-Meeting] Audio file size: ${fileSize} MB`);
 
         const ext = path.extname(audioPath).toLowerCase();
         const mimeTypes = {
@@ -245,29 +247,75 @@ async function transcribePostMeeting(audioPath, onProgress = () => {}, enableSpe
 
         console.log(`[Post-Meeting] Sending to Deepgram (${mimetype})...`);
 
-        const { result, error } = await deepgram.listen.prerecorded.transcribeFile(
-            audioBuffer,
-            {
-                model: 'nova-2',
-                language: 'en',
-                smart_format: true,
-                punctuate: true,
-                paragraphs: true,
-                diarize: true,
-                utterances: true,
-                mimetype: mimetype
+        // Add timeout and retry logic
+        let result, error;
+        let retries = 3;
+        
+        while (retries > 0) {
+            try {
+                const response = await deepgram.listen.prerecorded.transcribeFile(
+                    audioBuffer,
+                    {
+                        model: 'nova-2',
+                        language: 'en',
+                        smart_format: true,
+                        punctuate: true,
+                        paragraphs: true,
+                        diarize: true,
+                        utterances: true,
+                        mimetype: mimetype,
+                        timeout: 120000 // 2 minutes timeout
+                    }
+                );
+                
+                result = response.result;
+                error = response.error;
+                
+                // If successful, break the loop
+                if (result && !error) {
+                    break;
+                }
+                
+                // If there's an error but we have retries left
+                if (error && retries > 1) {
+                    console.log(`[Post-Meeting] Retry ${4 - retries}/3 due to error:`, error.message);
+                    retries--;
+                    await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds before retry
+                    continue;
+                }
+                
+                break;
+            } catch (err) {
+                error = err;
+                if (retries > 1) {
+                    console.log(`[Post-Meeting] Retry ${4 - retries}/3 due to exception:`, err.message);
+                    retries--;
+                    await new Promise(resolve => setTimeout(resolve, 2000));
+                } else {
+                    break;
+                }
             }
-        );
+        }
 
         if (error) {
             console.error('[Post-Meeting] Deepgram error:', error);
-            throw new Error(`Deepgram error: ${error.message || 'Unknown error'}`);
+            const errorMsg = error.message || JSON.stringify(error) || 'Unknown error';
+            
+            // Check for specific error types
+            if (errorMsg.includes('SLOW_UPLOAD') || errorMsg.includes('timeout')) {
+                throw new Error(`Upload timeout: File too large (${fileSize} MB) or slow connection. Try with a smaller file.`);
+            }
+            
+            throw new Error(`Deepgram error: ${errorMsg}`);
         }
+
+        console.log('[Post-Meeting] Deepgram response:', JSON.stringify(result, null, 2));
 
         const transcript = result?.results?.channels?.[0]?.alternatives?.[0]?.transcript;
 
-        if (!transcript) {
-            throw new Error('No transcript returned from Deepgram');
+        if (!transcript || transcript.trim().length === 0) {
+            console.error('[Post-Meeting] No transcript in response. Full result:', JSON.stringify(result, null, 2));
+            throw new Error('No transcript returned from Deepgram. The audio file may be empty, corrupted, or contain no speech.');
         }
 
         console.log(`[Post-Meeting] ✅ Transcript: ${transcript.length} chars`);

@@ -75,6 +75,8 @@ const Dashboard = () => {
     const [newMeetingName, setNewMeetingName] = useState(''); // New meeting name input
     const [savingName, setSavingName] = useState(false); // Loading state for save
     const [addedTasks, setAddedTasks] = useState({}); // Track which tasks have been added to Jira/Trello
+    const [searchQuery, setSearchQuery] = useState(''); // Search functionality
+    const [activeFilters, setActiveFilters] = useState([]); // Active filter tags
     const audioRefs = useRef({});
     const socketRef = useRef(null);
 
@@ -451,6 +453,65 @@ const Dashboard = () => {
         }
     };
 
+    // Toggle filter
+    const toggleFilter = (filter) => {
+        setActiveFilters(prev => 
+            prev.includes(filter) ? prev.filter(f => f !== filter) : [...prev, filter]
+        );
+    };
+
+    // Filter meetings based on search query and active filters
+    const filteredMeetings = meetings.filter(meeting => {
+        const platform = getPlatformDetails(meeting.meetingLink);
+        const statusInfo = getStatusInfo(meeting);
+        
+        // Apply active filters
+        if (activeFilters.length > 0) {
+            const matchesFilter = activeFilters.some(filter => {
+                switch(filter) {
+                    case 'zoom':
+                        return meeting.meetingLink?.includes('zoom.us');
+                    case 'meet':
+                        return meeting.meetingLink?.includes('meet.google.com');
+                    case 'teams':
+                        return meeting.meetingLink?.includes('teams');
+                    case 'transcript':
+                        return meeting.transcription;
+                    case 'completed':
+                        return meeting.status === 'completed';
+                    case 'failed':
+                        return meeting.status === 'failed';
+                    default:
+                        return false;
+                }
+            });
+            if (!matchesFilter) return false;
+        }
+        
+        // Apply search query
+        if (!searchQuery.trim()) return true;
+        
+        const query = searchQuery.toLowerCase();
+        
+        // Search by meeting name
+        if (meeting.meetingName?.toLowerCase().includes(query)) return true;
+        
+        // Search by platform
+        if (platform.name.toLowerCase().includes(query)) return true;
+        
+        // Search by participant count
+        if (meeting.participants?.toString().includes(query)) return true;
+        
+        // Search by status
+        if (statusInfo.text.toLowerCase().includes(query)) return true;
+        
+        // Search by date
+        const date = new Date(meeting.createdAt).toLocaleDateString();
+        if (date.includes(query)) return true;
+        
+        return false;
+    });
+
     return (
         <div className="max-w-[1400px] mx-auto w-full px-6 py-8">
             <header className="flex justify-between items-center mb-10">
@@ -463,17 +524,27 @@ const Dashboard = () => {
                     </p>
                 </div>
 
-                {/* Search Bar - Visual Only for now */}
+                {/* Search Bar - Fully Functional */}
                 <div className="flex-1 max-w-xl mx-8 hidden md:block">
                     <div className="relative group">
                         <div className="absolute inset-0 bg-gradient-to-r from-purple-500/20 to-blue-500/20 rounded-full blur-md opacity-0 group-hover:opacity-100 transition-opacity" />
-                        <div className="relative flex items-center bg-[#0B0E14] border border-white/10 rounded-full px-4 py-2.5 focus-within:border-white/30 transition-colors">
+                        <div className="relative flex items-center bg-[#0B0E14] border border-white/10 rounded-full px-4 py-2.5 focus-within:border-purple-500/50 transition-colors">
                             <Sparkles size={16} className="text-gray-500 mr-2" />
                             <input
                                 type="text"
-                                placeholder="Search Meetings..."
+                                placeholder="Search Meetings by name, platform, participant..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
                                 className="bg-transparent border-none outline-none text-sm text-white w-full placeholder-gray-600"
                             />
+                            {searchQuery && (
+                                <button
+                                    onClick={() => setSearchQuery('')}
+                                    className="text-gray-500 hover:text-gray-300 ml-2"
+                                >
+                                    <X size={16} />
+                                </button>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -495,6 +566,99 @@ const Dashboard = () => {
                 </div>
             </header>
 
+            {/* Filter Chips */}
+            <div className="mb-6 flex flex-wrap items-center gap-2">
+                <span className="text-sm text-gray-500 font-medium mr-2">Quick Filters:</span>
+                
+                {/* Platform Filters */}
+                <button
+                    onClick={() => toggleFilter('zoom')}
+                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1.5 ${
+                        activeFilters.includes('zoom')
+                            ? 'bg-blue-500/20 border-2 border-blue-500/50 text-blue-400'
+                            : 'bg-white/5 border border-white/10 text-gray-400 hover:bg-white/10'
+                    }`}
+                >
+                    <img src={zoomLogo} alt="Zoom" className="w-3 h-3" />
+                    Zoom
+                </button>
+                
+                <button
+                    onClick={() => toggleFilter('meet')}
+                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1.5 ${
+                        activeFilters.includes('meet')
+                            ? 'bg-emerald-500/20 border-2 border-emerald-500/50 text-emerald-400'
+                            : 'bg-white/5 border border-white/10 text-gray-400 hover:bg-white/10'
+                    }`}
+                >
+                    <img src={googleMeetLogo} alt="Meet" className="w-3 h-3" />
+                    Meet
+                </button>
+                
+                <button
+                    onClick={() => toggleFilter('teams')}
+                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1.5 ${
+                        activeFilters.includes('teams')
+                            ? 'bg-indigo-500/20 border-2 border-indigo-500/50 text-indigo-400'
+                            : 'bg-white/5 border border-white/10 text-gray-400 hover:bg-white/10'
+                    }`}
+                >
+                    <img src={teamsLogo} alt="Teams" className="w-3 h-3" />
+                    Teams
+                </button>
+                
+                <div className="h-5 w-px bg-white/10 mx-1"></div>
+                
+                {/* Status Filters */}
+                <button
+                    onClick={() => toggleFilter('transcript')}
+                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1.5 ${
+                        activeFilters.includes('transcript')
+                            ? 'bg-purple-500/20 border-2 border-purple-500/50 text-purple-400'
+                            : 'bg-white/5 border border-white/10 text-gray-400 hover:bg-white/10'
+                    }`}
+                >
+                    <FileText size={12} />
+                    Has Transcript
+                </button>
+                
+                <button
+                    onClick={() => toggleFilter('completed')}
+                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1.5 ${
+                        activeFilters.includes('completed')
+                            ? 'bg-green-500/20 border-2 border-green-500/50 text-green-400'
+                            : 'bg-white/5 border border-white/10 text-gray-400 hover:bg-white/10'
+                    }`}
+                >
+                    <CheckCircle2 size={12} />
+                    Completed
+                </button>
+                
+                <button
+                    onClick={() => toggleFilter('failed')}
+                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1.5 ${
+                        activeFilters.includes('failed')
+                            ? 'bg-red-500/20 border-2 border-red-500/50 text-red-400'
+                            : 'bg-white/5 border border-white/10 text-gray-400 hover:bg-white/10'
+                    }`}
+                >
+                    <X size={12} />
+                    Failed
+                </button>
+                
+                {activeFilters.length > 0 && (
+                    <>
+                        <div className="h-5 w-px bg-white/10 mx-1"></div>
+                        <button
+                            onClick={() => setActiveFilters([])}
+                            className="px-3 py-1.5 rounded-full text-xs font-medium bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 transition-all"
+                        >
+                            Clear All
+                        </button>
+                    </>
+                )}
+            </div>
+
             {loading && meetings.length === 0 ? (
                 <div className="flex justify-center py-40">
                     <div className="flex flex-col items-center">
@@ -505,15 +669,24 @@ const Dashboard = () => {
                         <p className="mt-4 text-gray-500 font-medium">Loading archives...</p>
                     </div>
                 </div>
-            ) : meetings.length === 0 ? (
+            ) : filteredMeetings.length === 0 ? (
                 <div className="text-center py-20 text-gray-500 border border-dashed border-white/10 rounded-3xl bg-white/5">
                     <FileAudio size={60} className="mx-auto mb-4 opacity-30" />
-                    <p className="text-xl mb-2 font-semibold text-gray-400">No recordings found</p>
-                    <p className="text-sm">Summon your first bot from the home page!</p>
+                    {searchQuery ? (
+                        <>
+                            <p className="text-xl mb-2 font-semibold text-gray-400">No meetings found</p>
+                            <p className="text-sm">Try adjusting your search query</p>
+                        </>
+                    ) : (
+                        <>
+                            <p className="text-xl mb-2 font-semibold text-gray-400">No recordings found</p>
+                            <p className="text-sm">Summon your first bot from the home page!</p>
+                        </>
+                    )}
                 </div>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {meetings.map((meeting, i) => {
+                    {filteredMeetings.map((meeting, i) => {
                         const statusInfo = getStatusInfo(meeting);
                         const platform = getPlatformDetails(meeting.meetingLink);
 

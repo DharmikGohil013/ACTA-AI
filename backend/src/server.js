@@ -1039,6 +1039,334 @@ app.post('/api/meetings/:id/extract-tasks', optionalAuth, async (req, res) => {
 });
 
 // Test endpoint to create a sample meeting with transcript
+app.get('/api/analytics/dashboard', optionalAuth, async (req, res) => {
+    try {
+        const query = req.user ? { userId: req.user._id } : { userId: null };
+        console.log('[Server] Dashboard analytics query:', query);
+
+        // Get all meetings for this user
+        const allMeetings = await Meeting.find(query);
+        console.log('[Server] Found', allMeetings.length, 'total meetings');
+
+        // Calculate stats
+        const completedMeetings = allMeetings.filter(m => m.status === 'completed');
+        const activeMeetings = allMeetings.filter(m => m.status && ['recording', 'in-meeting'].includes(m.status));
+        
+        // Calculate total bot time (in minutes)
+        let totalBotMinutes = 0;
+        completedMeetings.forEach(meeting => {
+            try {
+                if (meeting.createdAt && meeting.completedAt) {
+                    const diffMs = new Date(meeting.completedAt) - new Date(meeting.createdAt);
+                    const diffMinutes = Math.floor(diffMs / (1000 * 60));
+                    totalBotMinutes += Math.min(diffMinutes, 480); // Cap at 8 hours
+                }
+            } catch (timeErr) {
+                console.error('[Server] Error calculating time for meeting:', timeErr.message);
+            }
+        });
+
+        // Count action items
+        let actionItemsCount = 0;
+        let totalWords = 0;
+        let meetingsWithTranscripts = 0;
+        
+        allMeetings.forEach(meeting => {
+            // Count extracted tasks
+            if (meeting.extractedTasks && Array.isArray(meeting.extractedTasks)) {
+                actionItemsCount += meeting.extractedTasks.length;
+            }
+
+            // Calculate total words from transcripts
+            if (meeting.transcription && meeting.transcription.length > 0) {
+                meetingsWithTranscripts++;
+                const words = meeting.transcription.trim().split(/\s+/).length;
+                totalWords += words;
+            }
+        });
+
+        // Count unique speakers
+        const allSpeakers = new Set();
+        allMeetings.forEach(meeting => {
+            if (meeting.speakerStats && Array.isArray(meeting.speakerStats)) {
+                meeting.speakerStats.forEach(speaker => {
+                    allSpeakers.add(speaker.speaker);
+                });
+            }
+        });
+
+        // Meeting platform breakdown
+        const platformStats = {
+            zoom: allMeetings.filter(m => m.zoomMeetingId).length,
+            googleMeet: allMeetings.filter(m => m.meetingLink && m.meetingLink.includes('meet.google.com')).length,
+            other: allMeetings.filter(m => !m.zoomMeetingId && (!m.meetingLink || !m.meetingLink.includes('meet.google.com'))).length
+        };
+
+        // Calculate week-over-week changes
+        const now = new Date();
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const thisWeekStart = new Date(today);
+        thisWeekStart.setDate(today.getDate() - today.getDay());
+        const lastWeekStart = new Date(thisWeekStart);
+        lastWeekStart.setDate(thisWeekStart.getDate() - 7);
+
+        // Current week meetings
+        const thisWeekMeetings = allMeetings.filter(m => {
+            const meetDate = new Date(m.createdAt);
+            return meetDate >= thisWeekStart && meetDate < today;
+        });
+
+        // Last week meetings
+        const lastWeekMeetings = allMeetings.filter(m => {
+            const meetDate = new Date(m.createdAt);
+            return meetDate >= lastWeekStart && meetDate < thisWeekStart;
+        });
+
+        // Calculate this week's stats
+        let thisWeekWords = 0;
+        let thisWeekMeetings_count = thisWeekMeetings.length;
+        let thisWeekActionItems = 0;
+        let thisWeekSpeakers = new Set();
+
+        thisWeekMeetings.forEach(m => {
+            if (m.transcription && m.transcription.length > 0) {
+                const words = m.transcription.trim().split(/\s+/).length;
+                thisWeekWords += words;
+            }
+            if (m.extractedTasks && Array.isArray(m.extractedTasks)) {
+                thisWeekActionItems += m.extractedTasks.length;
+            }
+            if (m.speakerStats && Array.isArray(m.speakerStats)) {
+                m.speakerStats.forEach(s => thisWeekSpeakers.add(s.speaker));
+            }
+        });
+
+        // Calculate last week's stats
+        let lastWeekWords = 0;
+        let lastWeekMeetings_count = lastWeekMeetings.length;
+        let lastWeekActionItems = 0;
+        let lastWeekSpeakers = new Set();
+
+        lastWeekMeetings.forEach(m => {
+            if (m.transcription && m.transcription.length > 0) {
+                const words = m.transcription.trim().split(/\s+/).length;
+                lastWeekWords += words;
+            }
+            if (m.extractedTasks && Array.isArray(m.extractedTasks)) {
+                lastWeekActionItems += m.extractedTasks.length;
+            }
+            if (m.speakerStats && Array.isArray(m.speakerStats)) {
+                m.speakerStats.forEach(s => lastWeekSpeakers.add(s.speaker));
+            }
+        });
+
+        // Calculate percentage changes
+        const calculatePercentageChange = (current, previous) => {
+            if (previous === 0) {
+                return current > 0 ? 100 : 0;
+            }
+            return Math.round(((current - previous) / previous) * 100);
+        };
+
+        const wordsChange = calculatePercentageChange(thisWeekWords, lastWeekWords);
+        const meetingsChange = calculatePercentageChange(thisWeekMeetings_count, lastWeekMeetings_count);
+        const itemsChange = calculatePercentageChange(thisWeekActionItems, lastWeekActionItems);
+        const speakersChange = calculatePercentageChange(thisWeekSpeakers.size, lastWeekSpeakers.size);
+
+        const hours = Math.floor(totalBotMinutes / 60);
+        const minutes = totalBotMinutes % 60;
+
+        res.json({
+            success: true,
+            stats: {
+                totalBotTime: `${hours}h ${minutes}m`,
+                totalBotMinutes: totalBotMinutes,
+                totalWords: totalWords,
+                totalWordsFormatted: totalWords > 1000 ? `${(totalWords / 1000).toFixed(1)}K words` : `${totalWords} words`,
+                wordsChange: wordsChange,
+                meetingsWithTranscripts: meetingsWithTranscripts,
+                meetingsRecorded: completedMeetings.length,
+                meetingsChange: meetingsChange,
+                activeMeetings: activeMeetings.length,
+                actionItems: actionItemsCount,
+                itemsChange: itemsChange,
+                uniqueSpeakers: allSpeakers.size,
+                speakersChange: speakersChange,
+                totalMeetings: allMeetings.length
+            },
+            platformStats,
+            meetings: {
+                total: allMeetings.length,
+                completed: completedMeetings.length,
+                active: activeMeetings.length,
+                failed: allMeetings.filter(m => m.status === 'failed').length
+            }
+        });
+
+    } catch (err) {
+        console.error('[Server] Analytics dashboard error:', err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Get detailed analytics with trends
+app.get('/api/analytics/detailed', optionalAuth, async (req, res) => {
+    try {
+        const query = req.user ? { userId: req.user._id } : { userId: null };
+        console.log('[Server] Fetching detailed analytics with query:', query);
+        
+        const allMeetings = await Meeting.find(query).sort({ createdAt: -1 });
+        console.log('[Server] Found', allMeetings.length, 'meetings');
+
+        // Get recent 10 meetings
+        const recentMeetings = allMeetings.slice(0, 10).map(m => {
+            try {
+                return {
+                    _id: m._id,
+                    meetingLink: m.meetingLink || 'Unknown',
+                    status: m.status || 'unknown',
+                    createdAt: m.createdAt,
+                    completedAt: m.completedAt,
+                    transcription: m.transcription ? m.transcription.substring(0, 100) : null,
+                    extractedTasks: (m.extractedTasks && Array.isArray(m.extractedTasks)) ? m.extractedTasks.length : 0,
+                    speakerCount: (m.speakerStats && Array.isArray(m.speakerStats)) ? m.speakerStats.length : 0
+                };
+            } catch (mapErr) {
+                console.error('[Server] Error mapping meeting:', mapErr.message, m._id);
+                return {
+                    _id: m._id,
+                    meetingLink: 'Error',
+                    status: m.status || 'unknown',
+                    createdAt: m.createdAt,
+                    completedAt: m.completedAt,
+                    transcription: null,
+                    extractedTasks: 0,
+                    speakerCount: 0
+                };
+            }
+        });
+
+        // Get active/live meetings
+        const activeMeetings = allMeetings.filter(m => 
+            m.status && ['recording', 'in-meeting', 'starting', 'joining'].includes(m.status)
+        ).map(m => ({
+            _id: m._id,
+            meetingLink: m.meetingLink || 'Unknown',
+            status: m.status,
+            createdAt: m.createdAt,
+            userEmail: m.userEmail || 'unknown@example.com'
+        }));
+
+        // Get meetings by day (last 7 days)
+        const last7Days = {};
+        for (let i = 6; i >= 0; i--) {
+            const date = new Date();
+            date.setDate(date.getDate() - i);
+            const dateStr = date.toISOString().split('T')[0];
+            last7Days[dateStr] = 0;
+        }
+
+        allMeetings.forEach(meeting => {
+            try {
+                if (meeting.createdAt) {
+                    const dateStr = new Date(meeting.createdAt).toISOString().split('T')[0];
+                    if (last7Days[dateStr] !== undefined) {
+                        last7Days[dateStr]++;
+                    }
+                }
+            } catch (dateErr) {
+                console.error('[Server] Error processing meeting date:', dateErr.message);
+            }
+        });
+
+        // Get speaker frequency
+        const speakerFreq = {};
+        allMeetings.forEach(meeting => {
+            if (meeting.speakerStats && Array.isArray(meeting.speakerStats)) {
+                meeting.speakerStats.forEach(speaker => {
+                    if (speaker && speaker.speaker) {
+                        speakerFreq[speaker.speaker] = (speakerFreq[speaker.speaker] || 0) + 1;
+                    }
+                });
+            }
+        });
+
+        const speakerFrequency = Object.entries(speakerFreq)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 10)
+            .map(([name, count]) => ({ name, count }));
+
+        console.log('[Server] Detailed analytics prepared successfully');
+
+        res.json({
+            success: true,
+            recentMeetings,
+            activeMeetings,
+            meetingsTrend: last7Days,
+            speakerFrequency
+        });
+
+    } catch (err) {
+        console.error('[Server] Detailed analytics error:', err.message, err.stack);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Get tasks analytics
+app.get('/api/analytics/tasks', optionalAuth, async (req, res) => {
+    try {
+        const query = req.user ? { userId: req.user._id } : { userId: null };
+        const allMeetings = await Meeting.find(query);
+
+        const allTasks = [];
+        const priorityStats = { high: 0, medium: 0, low: 0 };
+        const categoryStats = {};
+
+        allMeetings.forEach(meeting => {
+            if (meeting.extractedTasks && Array.isArray(meeting.extractedTasks)) {
+                meeting.extractedTasks.forEach(task => {
+                    try {
+                        allTasks.push({
+                            task: task.task || 'Unknown task',
+                            assignee: task.assignee || 'Unassigned',
+                            deadline: task.deadline || 'No deadline',
+                            priority: task.priority || 'medium',
+                            category: task.category || 'other',
+                            meetingId: meeting._id,
+                            meetingDate: meeting.createdAt
+                        });
+
+                        const priority = (task.priority || 'medium').toLowerCase();
+                        if (priority in priorityStats) {
+                            priorityStats[priority]++;
+                        } else {
+                            priorityStats['medium']++;
+                        }
+
+                        const category = task.category || 'other';
+                        categoryStats[category] = (categoryStats[category] || 0) + 1;
+                    } catch (taskErr) {
+                        console.error('[Server] Error processing task:', taskErr.message);
+                    }
+                });
+            }
+        });
+
+        res.json({
+            success: true,
+            totalTasks: allTasks.length,
+            tasks: allTasks.slice(0, 20), // Return first 20 tasks
+            priorityStats,
+            categoryStats
+        });
+
+    } catch (err) {
+        console.error('[Server] Tasks analytics error:', err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Test endpoint to create a sample meeting with transcript
 app.post('/api/test/create-sample-meeting', optionalAuth, async (req, res) => {
     try {
         const userId = req.user?._id || null;

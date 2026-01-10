@@ -193,9 +193,15 @@ const TaskItem = ({ task, priority = 'medium' }) => {
 const Analysis = () => {
     const [stats, setStats] = useState({
         totalBotTime: '0h 0m',
+        totalWords: 0,
+        totalWordsFormatted: '0 words',
+        wordsChange: 0,
         meetingsRecorded: 0,
+        meetingsChange: 0,
         actionItems: 0,
-        teamMembers: 0
+        itemsChange: 0,
+        teamMembers: 0,
+        speakersChange: 0
     });
     const [recentMeetings, setRecentMeetings] = useState([]);
     const [liveMeetings, setLiveMeetings] = useState([]);
@@ -217,67 +223,58 @@ const Analysis = () => {
                 console.log('User not authenticated');
             }
 
-            // Fetch all meetings
-            const meetingsRes = await axios.get(`${API_URL}/api/meetings`);
-            const allMeetings = meetingsRes.data;
+            // Fetch dashboard analytics data
+            const analyticsRes = await axios.get(`${API_URL}/api/analytics/dashboard`);
+            
+            // Set stats from analytics endpoint
+            if (analyticsRes.data.success) {
+                console.log('Analytics data:', analyticsRes.data);
+                setStats({
+                    totalBotTime: analyticsRes.data.stats?.totalBotTime || '0h 0m',
+                    totalWords: analyticsRes.data.stats?.totalWords || 0,
+                    totalWordsFormatted: analyticsRes.data.stats?.totalWordsFormatted || '0 words',
+                    wordsChange: analyticsRes.data.stats?.wordsChange || 0,
+                    meetingsRecorded: analyticsRes.data.stats?.meetingsRecorded || 0,
+                    meetingsChange: analyticsRes.data.stats?.meetingsChange || 0,
+                    actionItems: analyticsRes.data.stats?.actionItems || 0,
+                    itemsChange: analyticsRes.data.stats?.itemsChange || 0,
+                    teamMembers: analyticsRes.data.stats?.uniqueSpeakers || 0,
+                    speakersChange: analyticsRes.data.stats?.speakersChange || 0
+                });
+            }
 
-            // Filter live meetings (in-meeting or recording status)
-            const live = allMeetings.filter(m =>
-                m.status === 'in-meeting' || m.status === 'recording'
-            );
-            setLiveMeetings(live);
-
-            // Filter completed meetings for recent
-            const completed = allMeetings.filter(m =>
-                m.status === 'completed' || m.status === 'failed'
-            ).slice(0, 5);
-            setRecentMeetings(completed);
-
-            // Calculate total bot time from all completed meetings
-            let totalMinutes = 0;
-            allMeetings.forEach(meeting => {
-                if (meeting.status === 'completed' && meeting.createdAt) {
-                    // Estimate duration as time since creation (rough estimate)
-                    const created = new Date(meeting.createdAt);
-                    const now = new Date();
-                    const diffMinutes = Math.floor((now - created) / (1000 * 60));
-
-                    // Cap at reasonable meeting length (e.g., 120 minutes)
-                    totalMinutes += Math.min(diffMinutes, 120);
+            // Fetch detailed analytics data
+            try {
+                const detailedRes = await axios.get(`${API_URL}/api/analytics/detailed`);
+                if (detailedRes.data.success) {
+                    console.log('Detailed analytics:', detailedRes.data);
+                    setRecentMeetings(detailedRes.data.recentMeetings || []);
+                    setLiveMeetings(detailedRes.data.activeMeetings || []);
                 }
-            });
-
-            const hours = Math.floor(totalMinutes / 60);
-            const minutes = totalMinutes % 60;
-
-            // Count action items from transcriptions
-            let actionItemsCount = 0;
-            allMeetings.forEach(meeting => {
-                if (meeting.transcription) {
-                    const actionKeywords = ['todo', 'action item', 'follow up', 'task', 'assign', 'action:', 'task:'];
-                    actionKeywords.forEach(keyword => {
-                        const regex = new RegExp(keyword, 'gi');
-                        const matches = meeting.transcription.match(regex);
-                        if (matches) actionItemsCount += matches.length;
-                    });
-                }
-
-                // Also count from extractedTasks if available
-                if (meeting.extractedTasks && Array.isArray(meeting.extractedTasks)) {
-                    actionItemsCount += meeting.extractedTasks.length;
-                }
-            });
-
-            setStats({
-                totalBotTime: `${hours}h ${minutes}m`,
-                meetingsRecorded: allMeetings.filter(m => m.status === 'completed').length,
-                actionItems: actionItemsCount,
-                teamMembers: 12 // This would come from user management API if implemented
-            });
+            } catch (detailedErr) {
+                console.error('Error fetching detailed analytics:', detailedErr.message);
+                setRecentMeetings([]);
+                setLiveMeetings([]);
+            }
 
             setLoading(false);
         } catch (error) {
             console.error('Error fetching analytics:', error);
+            // Set default values on error
+            setStats({
+                totalBotTime: '0h 0m',
+                totalWords: 0,
+                totalWordsFormatted: '0 words',
+                wordsChange: 0,
+                meetingsRecorded: 0,
+                meetingsChange: 0,
+                actionItems: 0,
+                itemsChange: 0,
+                teamMembers: 0,
+                speakersChange: 0
+            });
+            setRecentMeetings([]);
+            setLiveMeetings([]);
             setLoading(false);
         }
     };
@@ -355,13 +352,13 @@ const Analysis = () => {
                     <StatCard
                         icon={
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-cyan-400">
-                                <circle cx="12" cy="12" r="10" />
-                                <path d="M12 6v6l4 2" />
+                                <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-2 7h.01" />
                             </svg>
                         }
-                        value={stats.totalBotTime}
-                        label="Total Bot Time"
-                        change="+12%"
+                        value={stats.totalWordsFormatted}
+                        label="Total Words Transcribed"
+                        change={`${stats.wordsChange > 0 ? '+' : ''}${stats.wordsChange}%`}
+                        changeType={stats.wordsChange >= 0 ? 'positive' : 'negative'}
                     />
                     <StatCard
                         icon={
@@ -371,7 +368,8 @@ const Analysis = () => {
                         }
                         value={stats.meetingsRecorded}
                         label="Meetings Recorded"
-                        change="+8%"
+                        change={`${stats.meetingsChange > 0 ? '+' : ''}${stats.meetingsChange}%`}
+                        changeType={stats.meetingsChange >= 0 ? 'positive' : 'negative'}
                     />
                     <StatCard
                         icon={
@@ -381,7 +379,8 @@ const Analysis = () => {
                         }
                         value={stats.actionItems}
                         label="Action Items"
-                        change="+23%"
+                        change={`${stats.itemsChange > 0 ? '+' : ''}${stats.itemsChange}%`}
+                        changeType={stats.itemsChange >= 0 ? 'positive' : 'negative'}
                     />
                     <StatCard
                         icon={
@@ -393,6 +392,8 @@ const Analysis = () => {
                         }
                         value={stats.teamMembers}
                         label="Team Members"
+                        change={`${stats.speakersChange > 0 ? '+' : ''}${stats.speakersChange}%`}
+                        changeType={stats.speakersChange >= 0 ? 'positive' : 'negative'}
                         change="+2"
                     />
                 </div>

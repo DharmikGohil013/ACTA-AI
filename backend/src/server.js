@@ -9,6 +9,8 @@ const cookieParser = require('cookie-parser');
 const axios = require('axios');
 const crypto = require('crypto');
 const puppeteer = require('puppeteer');
+const multer = require('multer');
+const fs = require('fs').promises;
 
 // Load environment variables FIRST
 dotenv.config();
@@ -45,6 +47,45 @@ app.use(cors({
 }));
 app.use(express.json());
 app.use(cookieParser());
+
+// Configure multer for file uploads
+const storage = multer.diskStorage({
+    destination: async (req, file, cb) => {
+        const uploadDir = path.join(__dirname, '../recordings');
+        try {
+            await fs.mkdir(uploadDir, { recursive: true });
+            cb(null, uploadDir);
+        } catch (err) {
+            cb(err);
+        }
+    },
+    filename: (req, file, cb) => {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        const ext = path.extname(file.originalname);
+        cb(null, `upload-${uniqueSuffix}${ext}`);
+    }
+});
+
+const upload = multer({
+    storage: storage,
+    limits: {
+        fileSize: 500 * 1024 * 1024 // 500MB limit
+    },
+    fileFilter: (req, file, cb) => {
+        const allowedTypes = [
+            'audio/mpeg', 'audio/wav', 'audio/mp3', 'audio/m4a', 'audio/x-m4a',
+            'video/mp4', 'video/webm', 'video/quicktime', 'video/x-msvideo'
+        ];
+        const allowedExts = ['.mp3', '.wav', '.m4a', '.mp4', '.webm', '.mov', '.avi'];
+        const ext = path.extname(file.originalname).toLowerCase();
+        
+        if (allowedTypes.includes(file.mimetype) || allowedExts.includes(ext)) {
+            cb(null, true);
+        } else {
+            cb(new Error('Invalid file type. Only audio and video files are allowed.'));
+        }
+    }
+});
 
 // Session configuration
 app.use(session({
@@ -648,6 +689,116 @@ app.post('/api/meetings/:id/stop', async (req, res) => {
         res.json({ success: stopped, meeting });
     } catch (err) {
         res.status(500).json({ error: 'Server Error' });
+    }
+});
+
+// 4.5. Upload Recording
+app.post('/api/meetings/upload', optionalAuth, upload.single('audio'), async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ error: 'No file uploaded' });
+        }
+
+        const userId = req.user ? req.user._id : null;
+        const filePath = req.file.path;
+        const fileName = req.file.filename;
+        const fileExt = path.extname(fileName).toLowerCase();
+        
+        // Create meeting record
+        const meeting = new Meeting({
+            userId,
+            meetingLink: 'uploaded-recording',
+            platform: 'upload',
+            status: 'processing',
+            audioPath: `recordings/${fileName}`,
+            title: req.body.title || `Uploaded Recording - ${new Date().toLocaleString()}`,
+            createdAt: new Date()
+        });
+
+        await meeting.save();
+        const meetingId = meeting._id.toString();
+
+        // Send immediate response with meetingId
+        res.json({
+            success: true,
+            meetingId: meetingId,
+            message: 'File uploaded successfully. Processing transcription...'
+        });
+
+        // Process transcription in background
+        (async () => {
+            try {
+                emitStatus(meetingId, 'processing', { message: 'Extracting audio...' });
+
+                let audioFilePath = filePath;
+
+                // If video file, extract audio using ffmpeg
+                const videoExts = ['.mp4', '.webm', '.mov', '.avi'];
+                if (videoExts.includes(fileExt)) {
+                    const ffmpeg = require('fluent-ffmpeg');
+                    const audioPath = filePath.replace(fileExt, '.wav');
+
+                    await new Promise((resolve, reject) => {
+                        ffmpeg(filePath)
+                            .toFormat('wav')
+                            .audioFrequency(16000)
+                            .audioChannels(1)
+                            .on('end', () => resolve())
+                            .on('error', (err) => reject(err))
+                            .save(audioPath);
+                    });
+
+                    audioFilePath = audioPath;
+                    
+                    // Update meeting with new audio path
+                    await Meeting.findByIdAndUpdate(meetingId, {
+                        audioPath: `recordings/${path.basename(audioPath)}`
+                    });
+                }
+
+                emitStatus(meetingId, 'processing', { message: 'Transcribing audio...' });
+
+                // Transcribe with Deepgram and get speaker diarization with Assembly AI
+                const transcriptionResult = await transcriptionService.transcribeAudio(
+                    audioFilePath,
+                    (status, message) => {
+                        console.log(`[Upload Transcription] ${status}: ${message}`);
+                        emitStatus(meetingId, 'processing', { message });
+                    },
+                    true, // Enable speaker diarization
+                    { mode: 'post-meeting' } // Use post-meeting mode (Deepgram + Assembly AI)
+                );
+
+                // Update meeting with results
+                await Meeting.findByIdAndUpdate(meetingId, {
+                    transcription: transcriptionResult.transcript,
+                    speakerSegments: transcriptionResult.speakerSegments || [],
+                    speakerStats: transcriptionResult.speakerStats || {},
+                    totalSpeakers: transcriptionResult.totalSpeakers || 0,
+                    status: 'completed'
+                });
+
+                emitStatus(meetingId, 'completed', {
+                    message: 'Transcription completed successfully',
+                    transcription: transcriptionResult.transcript,
+                    speakerSegments: transcriptionResult.speakerSegments,
+                    speakerStats: transcriptionResult.speakerStats,
+                    totalSpeakers: transcriptionResult.totalSpeakers
+                });
+
+            } catch (error) {
+                console.error('[Upload] Processing error:', error);
+                await Meeting.findByIdAndUpdate(meetingId, {
+                    status: 'failed',
+                    error: error.message
+                });
+                emitStatus(meetingId, 'failed', { message: error.message });
+            }
+        })();
+
+    } catch (err) {
+        console.error('[Upload] Error:', err);
+        res.status(500).json({ error: err.message || 'Upload failed' });
     }
 });
 

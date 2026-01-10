@@ -19,7 +19,7 @@ const MeetingSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['pending', 'starting', 'navigating', 'joining', 'waiting', 'in-meeting', 'recording', 'completed', 'failed'],
+    enum: ['pending', 'starting', 'navigating', 'joining', 'waiting', 'in-meeting', 'recording', 'processing', 'completed', 'failed'],
     default: 'pending',
   },
   audioPath: {

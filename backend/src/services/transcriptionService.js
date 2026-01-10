@@ -227,8 +227,8 @@ async function transcribePostMeeting(audioPath, onProgress = () => {}, enableSpe
         onProgress('uploading', 'Sending to Deepgram API...');
 
         const audioBuffer = fs.readFileSync(audioPath);
-        const fileSize = (audioBuffer.length / (1024 * 1024)).toFixed(2);
-        console.log(`[Post-Meeting] Audio file size: ${fileSize} MB`);
+        const fileSizeMB = (audioBuffer.length / (1024 * 1024)).toFixed(2);
+        console.log(`[Post-Meeting] Audio file size: ${fileSizeMB} MB`);
 
         const ext = path.extname(audioPath).toLowerCase();
         const mimeTypes = {
@@ -303,7 +303,7 @@ async function transcribePostMeeting(audioPath, onProgress = () => {}, enableSpe
             
             // Check for specific error types
             if (errorMsg.includes('SLOW_UPLOAD') || errorMsg.includes('timeout')) {
-                throw new Error(`Upload timeout: File too large (${fileSize} MB) or slow connection. Try with a smaller file.`);
+                throw new Error(`Upload timeout: File too large (${fileSizeMB} MB) or slow connection. Try with a smaller file.`);
             }
             
             throw new Error(`Deepgram error: ${errorMsg}`);

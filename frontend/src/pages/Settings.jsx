@@ -20,7 +20,7 @@ const Settings = () => {
     const [savingJira, setSavingJira] = useState(false);
 
     // Trello State
-    const [trelloConfig, setTrelloConfig] = useState({ apiKey: '', apiToken: '', listId: '' });
+    const [trelloConfig, setTrelloConfig] = useState({ apiKey: '', apiToken: '', boardId: '', listId: '' });
     const [trelloStatus, setTrelloStatus] = useState({ status: 'unknown', message: '' });
     const [testingTrello, setTestingTrello] = useState(false);
     const [savingTrello, setSavingTrello] = useState(false);
@@ -56,6 +56,7 @@ const Settings = () => {
                 setTrelloConfig({
                     apiKey: integrationsRes.data.trelloConfig.apiKey || '',
                     apiToken: integrationsRes.data.trelloConfig.apiToken || '',
+                    boardId: integrationsRes.data.trelloConfig.boardId || '',
                     listId: integrationsRes.data.trelloConfig.listId || ''
                 });
             }
@@ -193,35 +194,38 @@ const Settings = () => {
 
     const IntegrationCard = ({ id, title, description, icon: Icon, status, connected, onClick }) => (
         <motion.div
-            whileHover={{ y: -5 }}
-            className={`cursor-pointer overflow-hidden relative group rounded-2xl border ${connected
+            whileHover={{ y: -3 }}
+            className={`cursor-pointer overflow-hidden relative group rounded-xl border ${connected
                     ? 'bg-blue-500/5 border-blue-500/20'
                     : 'bg-white/5 border-white/10 hover:border-white/20'
                 }`}
             onClick={onClick}
         >
-            <div className="p-6">
-                <div className="flex justify-between items-start mb-4">
-                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${connected ? 'bg-blue-500/20 text-blue-400' : 'bg-white/10 text-gray-400'
+            <div className="p-4">
+                <div className="flex justify-between items-start mb-3">
+                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${connected ? 'bg-blue-500/20 text-blue-400' : 'bg-white/10 text-gray-400'
                         }`}>
-                        <Icon size={24} />
+                        <Icon size={20} />
                     </div>
                     {connected && (
-                        <div className="px-2 py-1 rounded-full bg-green-500/20 border border-green-500/20 flex items-center gap-1.5">
-                            <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-                            <span className="text-[10px] font-medium text-green-400">ACTIVE</span>
+                        <div className="flex flex-col items-end gap-0.5">
+                            <div className="px-2 py-0.5 rounded-full bg-green-500/20 border border-green-500/30 flex items-center gap-1">
+                                <div className="w-1 h-1 rounded-full bg-green-400 animate-pulse" />
+                                <span className="text-[9px] font-bold text-green-400 uppercase tracking-wide">Live</span>
+                            </div>
+                            <span className="text-[8px] text-green-400/70 font-medium">Connected</span>
                         </div>
                     )}
                 </div>
 
-                <h3 className="text-lg font-bold mb-1 group-hover:text-blue-400 transition-colors">{title}</h3>
-                <p className="text-sm text-gray-400 mb-6 line-clamp-2">{description}</p>
+                <h3 className="text-base font-bold mb-1 group-hover:text-blue-400 transition-colors">{title}</h3>
+                <p className="text-xs text-gray-400 mb-4 line-clamp-2">{description}</p>
 
                 <div className="flex items-center justify-between mt-auto">
-                    <span className={`text-sm font-medium flex items-center gap-2 ${connected ? 'text-blue-400' : 'text-gray-500 group-hover:text-gray-300'
+                    <span className={`text-xs font-medium flex items-center gap-1.5 ${connected ? 'text-blue-400' : 'text-gray-500 group-hover:text-gray-300'
                         }`}>
                         {connected ? 'Manage Connection' : 'Connect App'}
-                        <ChevronRight size={16} />
+                        <ChevronRight size={14} />
                     </span>
                 </div>
             </div>
@@ -305,11 +309,18 @@ const Settings = () => {
                 {activeModal === 'jira' && (
                     <Modal title="Configure Jira" onClose={() => setActiveModal(null)}>
                         <div className="space-y-4">
-                            <div className="flex items-center gap-2 mb-4">
-                                <span className={`w-2 h-2 rounded-full ${jiraStatus.status === 'online' ? 'bg-green-400' : 'bg-red-400'}`} />
-                                <span className="text-sm font-medium">
-                                    {jiraStatus.status === 'online' ? 'Connected' : 'Not Connected'}
-                                </span>
+                            <div className="flex items-center justify-between mb-4 p-3 rounded-lg bg-white/5 border border-white/10">
+                                <div className="flex items-center gap-2">
+                                    <span className={`w-2 h-2 rounded-full ${jiraStatus.status === 'online' ? 'bg-green-400 animate-pulse' : 'bg-red-400'}`} />
+                                    <span className="text-sm font-medium">
+                                        {jiraStatus.status === 'online' ? 'Connected to Jira' : 'Not Connected'}
+                                    </span>
+                                </div>
+                                {jiraStatus.status === 'online' && (
+                                    <div className="px-2.5 py-1 rounded-full bg-green-500/20 border border-green-500/30 flex items-center gap-1.5">
+                                        <span className="text-[10px] font-bold text-green-400 uppercase tracking-wide">Live</span>
+                                    </div>
+                                )}
                             </div>
 
                             <div className="space-y-3">
@@ -356,23 +367,16 @@ const Settings = () => {
                                 />
                             </div>
 
-                            <div className="flex gap-3 mt-6">
-                                <button
-                                    onClick={() => testJiraConnection()}
-                                    disabled={testingJira}
-                                    className="flex-1 py-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors font-medium flex items-center justify-center gap-2"
-                                >
-                                    {testingJira ? <Loader2 className="animate-spin" size={18} /> : 'Test'}
-                                </button>
+                            <div className="mt-6">
                                 <button
                                     onClick={saveJira}
                                     disabled={savingJira}
-                                    className="flex-1 py-3 rounded-lg bg-blue-600 hover:bg-blue-700 transition-colors font-medium flex items-center justify-center gap-2"
+                                    className="w-full py-3 rounded-lg bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 transition-all font-semibold flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20"
                                 >
                                     {savingJira ? <Loader2 className="animate-spin" size={18} /> : (
                                         <>
                                             <Save size={18} />
-                                            {jiraStatus.status === 'online' ? 'Update & Reconnect' : 'Connect'}
+                                            Integrate
                                         </>
                                     )}
                                 </button>
@@ -385,11 +389,18 @@ const Settings = () => {
                 {activeModal === 'trello' && (
                     <Modal title="Configure Trello" onClose={() => setActiveModal(null)}>
                         <div className="space-y-4">
-                            <div className="flex items-center gap-2 mb-4">
-                                <span className={`w-2 h-2 rounded-full ${trelloStatus.status === 'online' ? 'bg-green-400' : 'bg-red-400'}`} />
-                                <span className="text-sm font-medium">
-                                    {trelloStatus.status === 'online' ? 'Connected' : 'Not Connected'}
-                                </span>
+                            <div className="flex items-center justify-between mb-4 p-3 rounded-lg bg-white/5 border border-white/10">
+                                <div className="flex items-center gap-2">
+                                    <span className={`w-2 h-2 rounded-full ${trelloStatus.status === 'online' ? 'bg-green-400 animate-pulse' : 'bg-red-400'}`} />
+                                    <span className="text-sm font-medium">
+                                        {trelloStatus.status === 'online' ? 'Connected to Trello' : 'Not Connected'}
+                                    </span>
+                                </div>
+                                {trelloStatus.status === 'online' && (
+                                    <div className="px-2.5 py-1 rounded-full bg-green-500/20 border border-green-500/30 flex items-center gap-1.5">
+                                        <span className="text-[10px] font-bold text-green-400 uppercase tracking-wide">Live</span>
+                                    </div>
+                                )}
                             </div>
 
                             <div className="space-y-3">
@@ -401,7 +412,7 @@ const Settings = () => {
                                         value={trelloConfig.apiKey}
                                         onChange={(e) => setTrelloConfig({ ...trelloConfig, apiKey: e.target.value })}
                                         className="w-full pl-10 pr-4 py-3 bg-white/5 border border-white/10 rounded-lg focus:border-indigo-500 outline-none transition-colors"
-                                        placeholder="Trello API Key"
+                                        placeholder="TRELLO_API_KEY"
                                     />
                                 </div>
                                 <a href="https://trello.com/app-key" target="_blank" rel="noreferrer" className="text-xs text-indigo-400 hover:underline flex items-center gap-1">
@@ -416,37 +427,41 @@ const Settings = () => {
                                         value={trelloConfig.apiToken}
                                         onChange={(e) => setTrelloConfig({ ...trelloConfig, apiToken: e.target.value })}
                                         className="w-full pl-10 pr-4 py-3 bg-white/5 border border-white/10 rounded-lg focus:border-indigo-500 outline-none transition-colors"
-                                        placeholder="••••••••••••••••"
+                                        placeholder="TRELLO_TOKEN"
                                     />
                                 </div>
 
-                                <label className="block text-sm font-medium text-gray-300">List ID (Optional)</label>
+                                <label className="block text-sm font-medium text-gray-300">Board ID</label>
+                                <input
+                                    type="text"
+                                    value={trelloConfig.boardId}
+                                    onChange={(e) => setTrelloConfig({ ...trelloConfig, boardId: e.target.value })}
+                                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg focus:border-indigo-500 outline-none transition-colors"
+                                    placeholder="TRELLO_BOARD_ID"
+                                />
+                                <p className="text-xs text-gray-500 mt-1">Find this in your Trello board URL</p>
+
+                                <label className="block text-sm font-medium text-gray-300">List ID</label>
                                 <input
                                     type="text"
                                     value={trelloConfig.listId}
                                     onChange={(e) => setTrelloConfig({ ...trelloConfig, listId: e.target.value })}
                                     className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg focus:border-indigo-500 outline-none transition-colors"
-                                    placeholder="List ID"
+                                    placeholder="TRELLO_LIST_ID"
                                 />
+                                <p className="text-xs text-gray-500 mt-1">Find this in your Trello list settings or API response</p>
                             </div>
 
-                            <div className="flex gap-3 mt-6">
-                                <button
-                                    onClick={() => testTrelloConnection()}
-                                    disabled={testingTrello}
-                                    className="flex-1 py-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors font-medium flex items-center justify-center gap-2"
-                                >
-                                    {testingTrello ? <Loader2 className="animate-spin" size={18} /> : 'Test'}
-                                </button>
+                            <div className="mt-6">
                                 <button
                                     onClick={saveTrello}
                                     disabled={savingTrello}
-                                    className="flex-1 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-700 transition-colors font-medium flex items-center justify-center gap-2"
+                                    className="w-full py-3 rounded-lg bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 transition-all font-semibold flex items-center justify-center gap-2 shadow-lg shadow-indigo-500/20"
                                 >
                                     {savingTrello ? <Loader2 className="animate-spin" size={18} /> : (
                                         <>
                                             <Save size={18} />
-                                            {trelloStatus.status === 'online' ? 'Update & Reconnect' : 'Connect'}
+                                            Integrate
                                         </>
                                     )}
                                 </button>

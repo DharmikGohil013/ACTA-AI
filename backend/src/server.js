@@ -26,6 +26,7 @@ const zoomService = require('./services/zoomService');
 const meetService = require('./services/meetService');
 const transcriptionService = require('./services/transcriptionService');
 const taskExtractionService = require('./services/taskExtractionService');
+const dashboardController = require('./controllers/dashboardController');
 
 const app = express();
 const server = http.createServer(app);
@@ -78,7 +79,7 @@ const upload = multer({
         ];
         const allowedExts = ['.mp3', '.wav', '.m4a', '.mp4', '.webm', '.mov', '.avi'];
         const ext = path.extname(file.originalname).toLowerCase();
-        
+
         if (allowedTypes.includes(file.mimetype) || allowedExts.includes(ext)) {
             cb(null, true);
         } else {
@@ -598,7 +599,7 @@ app.post('/api/join', optionalAuth, async (req, res) => {
             botName: botName || 'AI Bot',
         });
         await newMeeting.save();
-        
+
         console.log('[Server] Meeting saved to database:', newMeeting._id.toString());
 
         emitStatus(newMeeting._id.toString(), 'joining', { message: 'Bot is starting...' });
@@ -740,7 +741,7 @@ app.post('/api/meetings/upload', optionalAuth, upload.single('audio'), async (re
         const filePath = req.file.path;
         const fileName = req.file.filename;
         const fileExt = path.extname(fileName).toLowerCase();
-        
+
         // Create meeting record
         const meeting = new Meeting({
             userId,
@@ -786,7 +787,7 @@ app.post('/api/meetings/upload', optionalAuth, upload.single('audio'), async (re
                     });
 
                     audioFilePath = audioPath;
-                    
+
                     // Update meeting with new audio path
                     await Meeting.findByIdAndUpdate(meetingId, {
                         audioPath: `recordings/${path.basename(audioPath)}`
@@ -835,9 +836,15 @@ app.post('/api/meetings/upload', optionalAuth, upload.single('audio'), async (re
 
     } catch (err) {
         console.error('[Upload] Error:', err);
-        res.status(500).json({ error: err.message || 'Upload failed' });
+        res.status(500).json({ error: 'Server Error' });
     }
 });
+
+// 5. Dashboard Analysis
+app.post('/api/meetings/:id/analyze', optionalAuth, dashboardController.generateDashboard);
+app.get('/api/meetings/:id/analysis', optionalAuth, dashboardController.getDashboard);
+
+
 
 // 5. Delete Meeting
 app.delete('/api/meetings/:id', async (req, res) => {

@@ -7,6 +7,7 @@ import Settings from './pages/Settings';
 import Profile from './pages/Profile';
 import Analysis from './pages/Analysis';
 import Upload from './pages/Upload';
+import Presentation from './pages/Presentation';
 
 import axios from 'axios';
 
@@ -185,6 +186,7 @@ function App() {
                     <Route path="/dashboard/:id" element={<MeetingDashboard />} />
                     <Route path="/settings" element={<Settings />} />
                     <Route path="/profile" element={<Profile />} />
+                    <Route path="/presentation" element={<Presentation />} />
                 </Routes>
             </div>
         </Router>

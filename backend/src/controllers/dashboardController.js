@@ -478,3 +478,84 @@ exports.askQuestion = async (req, res) => {
         res.status(500).json({ error: 'Failed to get answer' });
     }
 };
+
+// Add collaborator to meeting
+exports.addCollaborator = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { email } = req.body;
+
+        if (!email || !email.includes('@')) {
+            return res.status(400).json({ error: 'Valid email is required' });
+        }
+
+        const meeting = await Meeting.findById(id);
+        if (!meeting) {
+            return res.status(404).json({ error: 'Meeting not found' });
+        }
+
+        // Check if email is already a collaborator
+        if (meeting.collaborators.includes(email)) {
+            return res.status(400).json({ error: 'Email already added as collaborator' });
+        }
+
+        // Add email to collaborators array
+        meeting.collaborators.push(email);
+        await meeting.save();
+
+        res.json({ success: true, collaborators: meeting.collaborators });
+
+    } catch (err) {
+        console.error('[Dashboard] Add collaborator error:', err);
+        res.status(500).json({ error: 'Failed to add collaborator' });
+    }
+};
+
+// Remove collaborator from meeting
+exports.removeCollaborator = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { email } = req.body;
+
+        if (!email) {
+            return res.status(400).json({ error: 'Email is required' });
+        }
+
+        const meeting = await Meeting.findById(id);
+        if (!meeting) {
+            return res.status(404).json({ error: 'Meeting not found' });
+        }
+
+        // Remove email from collaborators array
+        meeting.collaborators = meeting.collaborators.filter(e => e !== email);
+        await meeting.save();
+
+        res.json({ success: true, collaborators: meeting.collaborators });
+
+    } catch (err) {
+        console.error('[Dashboard] Remove collaborator error:', err);
+        res.status(500).json({ error: 'Failed to remove collaborator' });
+    }
+};
+
+// Get all meetings shared with the current user
+exports.getSharedMeetings = async (req, res) => {
+    try {
+        const userEmail = req.query.email;
+
+        if (!userEmail) {
+            return res.status(400).json({ error: 'Email is required' });
+        }
+
+        // Find all meetings where the user's email is in the collaborators array
+        const sharedMeetings = await Meeting.find({
+            collaborators: { $in: [userEmail] }
+        }).sort({ createdAt: -1 });
+
+        res.json({ success: true, meetings: sharedMeetings });
+
+    } catch (err) {
+        console.error('[Dashboard] Get shared meetings error:', err);
+        res.status(500).json({ error: 'Failed to fetch shared meetings' });
+    }
+};

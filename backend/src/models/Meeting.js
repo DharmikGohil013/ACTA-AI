@@ -69,6 +69,11 @@ const MeetingSchema = new mongoose.Schema({
     type: String,
     default: 'AI Bot',
   },
+  collaborators: {
+    type: Array,
+    default: [],
+    // Array of email addresses who have access to this meeting dashboard
+  },
   createdAt: {
     type: Date,
     default: Date.now,

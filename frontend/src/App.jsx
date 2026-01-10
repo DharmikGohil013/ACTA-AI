@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react
 import Home from './pages/Home';
 import Dashboard from './pages/Dashboard';
 import MeetingDashboard from './pages/MeetingDashboard';
+import CollaborateDashboard from './pages/CollaborateDashboard';
 import Settings from './pages/Settings';
 import Profile from './pages/Profile';
 import Analysis from './pages/Analysis';
@@ -91,6 +92,7 @@ const Navigation = () => {
         { path: '/analysis', label: 'Analysis' },
         { path: '/upload', label: 'Upload' },
         { path: '/dashboard', label: 'Archive Meetings' },
+        { path: '/collaborate', label: 'Collaborate' },
 
     ];
 
@@ -184,6 +186,7 @@ function App() {
                     <Route path="/upload" element={<Upload />} />
                     <Route path="/dashboard" element={<Dashboard />} />
                     <Route path="/dashboard/:id" element={<MeetingDashboard />} />
+                    <Route path="/collaborate" element={<CollaborateDashboard />} />
                     <Route path="/settings" element={<Settings />} />
                     <Route path="/profile" element={<Profile />} />
                     <Route path="/presentation" element={<Presentation />} />

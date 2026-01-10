@@ -871,6 +871,9 @@ app.get('/api/meetings/archive', optionalAuth, async (req, res) => {
     }
 });
 
+// 2.2 Get Shared Meetings (Collaboration endpoint - must be before :id route)
+app.get('/api/meetings/shared', optionalAuth, dashboardController.getSharedMeetings);
+
 // 2.2 Update Meeting Name
 app.put('/api/meetings/:id/name', optionalAuth, async (req, res) => {
     try {
@@ -916,6 +919,20 @@ app.patch('/api/meetings/:id', async (req, res) => {
         }
         res.json(meeting);
     } catch (err) {
+        res.status(500).json({ error: 'Server Error' });
+    }
+});
+
+// Get single meeting by ID
+app.get('/api/meetings/:id', optionalAuth, async (req, res) => {
+    try {
+        const meeting = await Meeting.findById(req.params.id);
+        if (!meeting) {
+            return res.status(404).json({ error: 'Meeting not found' });
+        }
+        res.json(meeting);
+    } catch (err) {
+        console.error('Get meeting error:', err);
         res.status(500).json({ error: 'Server Error' });
     }
 });
@@ -1053,6 +1070,10 @@ app.post('/api/meetings/upload', optionalAuth, upload.single('audio'), async (re
 app.post('/api/meetings/:id/analyze', optionalAuth, dashboardController.generateDashboard);
 app.get('/api/meetings/:id/analysis', optionalAuth, dashboardController.getDashboard);
 app.post('/api/meetings/:id/ask', optionalAuth, dashboardController.askQuestion);
+
+// Collaboration endpoints for specific meeting
+app.post('/api/meetings/:id/collaborators', optionalAuth, dashboardController.addCollaborator);
+app.delete('/api/meetings/:id/collaborators', optionalAuth, dashboardController.removeCollaborator);
 
 
 

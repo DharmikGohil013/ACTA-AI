@@ -10,7 +10,7 @@ import {
     ArrowLeft, Plus, Search, Bell, Clock, CheckCircle2, ShieldCheck,
     Copy, Zap, AlertTriangle, FileText, Loader2, Calendar,
     MessageSquare, BarChart2, LayoutDashboard, ChevronRight, Send, User,
-    MoreHorizontal, Filter, ChevronDown, RefreshCw, Sparkles, Download
+    MoreHorizontal, Filter, ChevronDown, RefreshCw, Sparkles, Download, Users, X, Mail
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -32,6 +32,14 @@ const MeetingDashboard = () => {
     const [askingAi, setAskingAi] = useState(false);
     const chatEndRef = useRef(null);
 
+    // Collaboration State
+    const [collaborators, setCollaborators] = useState([]);
+    const [newCollaboratorEmail, setNewCollaboratorEmail] = useState('');
+    const [addingCollaborator, setAddingCollaborator] = useState(false);
+    const [meetingOwnerEmail, setMeetingOwnerEmail] = useState('');
+    const [currentUserEmail, setCurrentUserEmail] = useState('');
+    const [isOwner, setIsOwner] = useState(true); // Default to true to show tab initially
+
     // Suggested Questions
     const suggestedQuestions = [
         "What were the key decisions made?",
@@ -44,13 +52,55 @@ const MeetingDashboard = () => {
 
     useEffect(() => {
         fetchDashboardData();
+        fetchCollaborators();
+        checkOwnership();
     }, [id]);
 
     useEffect(() => {
         if (activeTab === 'ask-ai' && chatEndRef.current) {
             chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
         }
+        if (activeTab === 'collaboration') {
+            // Refresh collaborators when switching to collaboration tab
+            fetchCollaborators();
+        }
     }, [chatHistory, activeTab]);
+
+    const fetchCollaborators = async () => {
+        try {
+            const res = await axios.get(`${API_URL}/api/meetings/${id}`);
+            console.log('Fetched meeting data:', res.data);
+            if (res.data) {
+                // Ensure collaborators is always an array
+                setCollaborators(res.data.collaborators || []);
+                setMeetingOwnerEmail(res.data.userEmail || '');
+            }
+        } catch (err) {
+            console.error('Error fetching collaborators:', err);
+            setCollaborators([]);
+        }
+    };
+
+    const checkOwnership = async () => {
+        try {
+            // Get current user's email
+            const userRes = await axios.get(`${API_URL}/api/auth/user`);
+            if (userRes.data.user && userRes.data.user.email) {
+                setCurrentUserEmail(userRes.data.user.email);
+                
+                // Get meeting data
+                const meetingRes = await axios.get(`${API_URL}/api/meetings/${id}`);
+                const meetingEmail = meetingRes.data.userEmail || '';
+                
+                // Check if current user is the owner
+                setIsOwner(userRes.data.user.email === meetingEmail);
+            }
+        } catch (err) {
+            console.error('Error checking ownership:', err);
+            // If error, assume they're the owner (safe default)
+            setIsOwner(true);
+        }
+    };
 
     const fetchDashboardData = async (showReloading = false) => {
         if (showReloading) setReloading(true);
@@ -111,6 +161,47 @@ const MeetingDashboard = () => {
 
     const handleSuggestedQuestion = (question) => {
         handleAskAi(null, question);
+    };
+
+    const handleAddCollaborator = async (e) => {
+        e.preventDefault();
+        if (!newCollaboratorEmail.trim() || !newCollaboratorEmail.includes('@')) {
+            alert('Please enter a valid email address');
+            return;
+        }
+
+        setAddingCollaborator(true);
+        try {
+            const res = await axios.post(`${API_URL}/api/meetings/${id}/collaborators`, {
+                email: newCollaboratorEmail.trim()
+            });
+            console.log('Added collaborator response:', res.data);
+            if (res.data.success) {
+                setCollaborators(res.data.collaborators || []);
+                setNewCollaboratorEmail('');
+                alert('Collaborator added successfully!');
+            }
+        } catch (err) {
+            alert(err.response?.data?.error || 'Failed to add collaborator');
+        } finally {
+            setAddingCollaborator(false);
+        }
+    };
+
+    const handleRemoveCollaborator = async (email) => {
+        if (!confirm(`Remove ${email} from collaborators?`)) return;
+
+        try {
+            const res = await axios.delete(`${API_URL}/api/meetings/${id}/collaborators`, {
+                data: { email }
+            });
+            console.log('Remove collaborator response:', res.data);
+            if (res.data.success) {
+                setCollaborators(res.data.collaborators || []);
+            }
+        } catch (err) {
+            alert(err.response?.data?.error || 'Failed to remove collaborator');
+        }
     };
 
     const exportToSRT = () => {
@@ -207,12 +298,14 @@ const MeetingDashboard = () => {
         );
     }
 
+    // Only show collaboration tab if user is the owner
     const tabs = [
         { id: 'overview', label: 'Overview', icon: LayoutDashboard },
         { id: 'transcript', label: 'Transcript Timeline', icon: FileText },
         { id: 'calendar', label: 'Calendar', icon: Calendar },
         { id: 'analytics', label: 'Analytics', icon: BarChart2 },
         { id: 'ask-ai', label: 'Ask AI', icon: MessageSquare },
+        ...(isOwner ? [{ id: 'collaboration', label: 'Collaboration', icon: Users }] : []),
     ];
 
     return (
@@ -318,6 +411,16 @@ const MeetingDashboard = () => {
                                     chatEndRef={chatEndRef}
                                     suggestedQuestions={suggestedQuestions}
                                     handleSuggestedQuestion={handleSuggestedQuestion}
+                                />
+                            )}
+                            {activeTab === 'collaboration' && (
+                                <CollaborationTab
+                                    collaborators={collaborators}
+                                    newCollaboratorEmail={newCollaboratorEmail}
+                                    setNewCollaboratorEmail={setNewCollaboratorEmail}
+                                    handleAddCollaborator={handleAddCollaborator}
+                                    handleRemoveCollaborator={handleRemoveCollaborator}
+                                    addingCollaborator={addingCollaborator}
                                 />
                             )}
                         </motion.div>
@@ -1169,5 +1272,120 @@ const CopyButton = ({ text }) => {
         </button>
     );
 }
+
+const CollaborationTab = ({ 
+    collaborators, 
+    newCollaboratorEmail, 
+    setNewCollaboratorEmail, 
+    handleAddCollaborator, 
+    handleRemoveCollaborator, 
+    addingCollaborator 
+}) => {
+    return (
+        <div className="space-y-6">
+            <div className="bg-[#1C1F2E] rounded-3xl p-6 border border-white/5 shadow-sm">
+                <div className="flex items-center justify-between mb-6">
+                    <div>
+                        <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                            <Users size={18} className="text-emerald-400" />
+                            Share Dashboard
+                        </h3>
+                        <p className="text-sm text-gray-400 mt-1">
+                            Invite others to view this meeting dashboard
+                        </p>
+                    </div>
+                </div>
+
+                {/* Add Collaborator Form */}
+                <form onSubmit={handleAddCollaborator} className="mb-6">
+                    <div className="flex gap-3">
+                        <div className="flex-1 relative">
+                            <Mail size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+                            <input
+                                type="email"
+                                value={newCollaboratorEmail}
+                                onChange={(e) => setNewCollaboratorEmail(e.target.value)}
+                                placeholder="Enter email address"
+                                className="w-full pl-10 pr-4 py-3 bg-[#0B0E14] border border-white/10 rounded-xl text-white placeholder:text-gray-500 focus:outline-none focus:border-emerald-500/50 transition-colors"
+                                disabled={addingCollaborator}
+                            />
+                        </div>
+                        <button
+                            type="submit"
+                            disabled={addingCollaborator || !newCollaboratorEmail.trim()}
+                            className="px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                        >
+                            {addingCollaborator ? (
+                                <>
+                                    <Loader2 size={18} className="animate-spin" />
+                                    Adding...
+                                </>
+                            ) : (
+                                <>
+                                    <Plus size={18} />
+                                    Add
+                                </>
+                            )}
+                        </button>
+                    </div>
+                </form>
+
+                {/* Collaborators List */}
+                <div className="space-y-3">
+                    <h4 className="text-sm font-semibold text-gray-400 uppercase tracking-wide">
+                        Collaborators ({collaborators.length})
+                    </h4>
+                    {collaborators.length === 0 ? (
+                        <div className="text-center py-8 text-gray-500">
+                            <Users size={48} className="mx-auto mb-3 opacity-30" />
+                            <p className="text-sm">No collaborators yet</p>
+                            <p className="text-xs mt-1">Add someone's email to share this dashboard</p>
+                        </div>
+                    ) : (
+                        <div className="space-y-2">
+                            {collaborators.map((email, index) => (
+                                <div
+                                    key={index}
+                                    className="flex items-center justify-between p-4 bg-[#0B0E14] rounded-xl border border-white/5 hover:border-white/10 transition-colors"
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
+                                            <Mail size={18} className="text-emerald-400" />
+                                        </div>
+                                        <div>
+                                            <p className="text-white font-medium">{email}</p>
+                                            <p className="text-xs text-gray-500">Can view this dashboard</p>
+                                        </div>
+                                    </div>
+                                    <button
+                                        onClick={() => handleRemoveCollaborator(email)}
+                                        className="p-2 hover:bg-red-500/10 rounded-lg text-red-400 hover:text-red-300 transition-colors"
+                                        title="Remove collaborator"
+                                    >
+                                        <X size={18} />
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* Info Box */}
+            <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4">
+                <div className="flex gap-3">
+                    <AlertTriangle size={20} className="text-blue-400 flex-shrink-0 mt-0.5" />
+                    <div>
+                        <h4 className="text-blue-300 font-semibold text-sm mb-1">Sharing Information</h4>
+                        <p className="text-blue-200/70 text-sm">
+                            Collaborators will be able to view all meeting details, transcripts, analytics, and AI insights. 
+                            They can access this dashboard using the shared link.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
 
 export default MeetingDashboard;

@@ -16,7 +16,14 @@ const ANALYSIS_SCHEMA = {
         overallSentiment: { type: Type.STRING },
         topPriorities: {
             type: Type.ARRAY,
-            items: { type: Type.STRING }
+            items: {
+                type: Type.OBJECT,
+                properties: {
+                    priority: { type: Type.STRING },
+                    speaker: { type: Type.STRING },
+                    percentage: { type: Type.NUMBER }
+                }
+            }
         },
         participants: {
             type: Type.ARRAY,
@@ -128,6 +135,18 @@ const ANALYSIS_SCHEMA = {
                 }
             }
         },
+        transcriptTimeline: {
+            type: Type.ARRAY,
+            items: {
+                type: Type.OBJECT,
+                properties: {
+                    startTime: { type: Type.STRING },
+                    endTime: { type: Type.STRING },
+                    speaker: { type: Type.STRING },
+                    text: { type: Type.STRING }
+                }
+            }
+        },
         progress: { type: Type.NUMBER }
     },
     required: ["title", "summary", "participants", "actionItems", "decisions", "keyTopics", "progress", "risks", "followUpDrafts", "topPriorities", "timeline", "importantDates", "topicBreakdown"]
@@ -145,6 +164,33 @@ const extractJson = (text) => {
         console.error("Failed to parse AI response as JSON:", text);
         throw new Error("Invalid response format from AI");
     }
+};
+
+/**
+ * Format seconds to HH:MM:SS.mmm format for SRT
+ */
+const formatTime = (seconds) => {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = Math.floor(seconds % 60);
+    const ms = Math.floor((seconds % 1) * 1000);
+    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}.${String(ms).padStart(3, '0')}`;
+};
+
+/**
+ * Extract timeline from speaker segments
+ */
+const extractTimelineFromSegments = (speakerSegments) => {
+    if (!speakerSegments || speakerSegments.length === 0) {
+        return [];
+    }
+
+    return speakerSegments.map(segment => ({
+        startTime: formatTime(segment.start || 0),
+        endTime: formatTime(segment.end || segment.start + 5),
+        speaker: segment.speaker || 'Unknown',
+        text: segment.text || ''
+    }));
 };
 
 exports.generateDashboard = async (req, res) => {
@@ -171,10 +217,12 @@ exports.generateDashboard = async (req, res) => {
         1. Identify Risks/Blockers (severity: High/Medium/Low).
         2. Generate a professional Follow-up Email draft.
         3. Generate a concise Slack update.
-        4. Identify Top Priorities (list of strings).
+        4. Identify Top Priorities: For each priority, extract the speaker name who mentioned it and calculate their contribution percentage (0-100) based on how much they discussed this topic.
         5. Create a Meeting Timeline (time, event, description).
         6. Extract Important Dates (date, event, description) for a calendar.
         7. Provide a Topic Breakdown with subtopics.
+        8. Identify speaker names from the transcript (look for patterns like "Speaker 1:", "John:", names followed by colons, etc.).
+        9. Create a Transcript Timeline in SRT subtitle format: Break the transcript into segments with startTime (HH:MM:SS), endTime (HH:MM:SS), speaker name, and text for each segment. Estimate timestamps based on word count (average 2-3 words per second).
         Focus on accuracy and detail. Return raw JSON matching the schema.
         TRANSCRIPT: ${meeting.transcription}`;
 
@@ -220,7 +268,18 @@ exports.getDashboard = async (req, res) => {
             return res.status(404).json({ error: 'Meeting not found' });
         }
 
-        res.json({ success: true, analysis: meeting.analysis || null });
+        let analysis = meeting.analysis || null;
+        
+        // If analysis exists and we have speaker segments, add real timeline
+        if (analysis && meeting.speakerSegments && meeting.speakerSegments.length > 0) {
+            const realTimeline = extractTimelineFromSegments(meeting.speakerSegments);
+            analysis = {
+                ...analysis,
+                transcriptTimeline: realTimeline
+            };
+        }
+
+        res.json({ success: true, analysis });
 
     } catch (err) {
         console.error('[Dashboard] Error fetching analysis:', err);

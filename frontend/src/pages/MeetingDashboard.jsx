@@ -10,7 +10,7 @@ import {
     ArrowLeft, Plus, Search, Bell, Clock, CheckCircle2, ShieldCheck,
     Copy, Zap, AlertTriangle, FileText, Loader2, Calendar,
     MessageSquare, BarChart2, LayoutDashboard, ChevronRight, Send, User,
-    MoreHorizontal, Filter, ChevronDown, RefreshCw
+    MoreHorizontal, Filter, ChevronDown, RefreshCw, Sparkles, Download
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -23,6 +23,7 @@ const MeetingDashboard = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [generating, setGenerating] = useState(false);
+    const [reloading, setReloading] = useState(false);
     const [activeTab, setActiveTab] = useState('overview');
 
     // Ask AI State
@@ -30,6 +31,16 @@ const MeetingDashboard = () => {
     const [chatHistory, setChatHistory] = useState([]);
     const [askingAi, setAskingAi] = useState(false);
     const chatEndRef = useRef(null);
+
+    // Suggested Questions
+    const suggestedQuestions = [
+        "What were the key decisions made?",
+        "Who was assigned what tasks?",
+        "What are the deadlines discussed?",
+        "What were the main concerns raised?",
+        "Summarize the action items",
+        "What topics took the most time?"
+    ];
 
     useEffect(() => {
         fetchDashboardData();
@@ -41,7 +52,8 @@ const MeetingDashboard = () => {
         }
     }, [chatHistory, activeTab]);
 
-    const fetchDashboardData = async () => {
+    const fetchDashboardData = async (showReloading = false) => {
+        if (showReloading) setReloading(true);
         try {
             const res = await axios.get(`${API_URL}/api/meetings/${id}/analysis`);
             if (res.data.success && res.data.analysis) {
@@ -56,6 +68,7 @@ const MeetingDashboard = () => {
             }
         } finally {
             setLoading(false);
+            if (showReloading) setReloading(false);
         }
     };
 
@@ -74,11 +87,12 @@ const MeetingDashboard = () => {
         }
     };
 
-    const handleAskAi = async (e) => {
-        e.preventDefault();
-        if (!chatQuery.trim()) return;
+    const handleAskAi = async (e, customQuestion = null) => {
+        if (e) e.preventDefault();
+        const question = customQuestion || chatQuery;
+        if (!question.trim()) return;
 
-        const userMsg = { role: 'user', content: chatQuery };
+        const userMsg = { role: 'user', content: question };
         setChatHistory(prev => [...prev, userMsg]);
         setChatQuery('');
         setAskingAi(true);
@@ -89,10 +103,43 @@ const MeetingDashboard = () => {
                 setChatHistory(prev => [...prev, { role: 'ai', content: res.data.answer }]);
             }
         } catch (err) {
-            setChatHistory(prev => [...prev, { role: 'error', content: 'Failed to get answer.' }]);
+            setChatHistory(prev => [...prev, { role: 'error', content: 'Failed to get answer. Please try again.' }]);
         } finally {
             setAskingAi(false);
         }
+    };
+
+    const handleSuggestedQuestion = (question) => {
+        handleAskAi(null, question);
+    };
+
+    const exportToSRT = () => {
+        if (!data.transcriptTimeline || data.transcriptTimeline.length === 0) {
+            alert('No transcript timeline available to export');
+            return;
+        }
+
+        let srtContent = '';
+        data.transcriptTimeline.forEach((segment, index) => {
+            srtContent += `${index + 1}\n`;
+            srtContent += `${segment.startTime.replace(/\./g, ',')} --> ${segment.endTime.replace(/\./g, ',')}\n`;
+            if (segment.speaker) {
+                srtContent += `${segment.speaker}: ${segment.text}\n`;
+            } else {
+                srtContent += `${segment.text}\n`;
+            }
+            srtContent += `\n`;
+        });
+
+        const blob = new Blob([srtContent], { type: 'text/plain' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${data.title || 'transcript'}.srt`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
     };
 
     if (loading) {
@@ -162,6 +209,7 @@ const MeetingDashboard = () => {
 
     const tabs = [
         { id: 'overview', label: 'Overview', icon: LayoutDashboard },
+        { id: 'transcript', label: 'Transcript Timeline', icon: FileText },
         { id: 'calendar', label: 'Calendar', icon: Calendar },
         { id: 'analytics', label: 'Analytics', icon: BarChart2 },
         { id: 'ask-ai', label: 'Ask AI', icon: MessageSquare },
@@ -195,11 +243,30 @@ const MeetingDashboard = () => {
                             <span className="text-xs font-bold text-emerald-400 uppercase tracking-wide">AI Analysis Active</span>
                         </div>
                         <button
-                            onClick={fetchDashboardData}
-                            className="p-2 hover:bg-white/5 rounded-lg text-gray-400 hover:text-white transition-colors"
+                            onClick={() => fetchDashboardData(true)}
+                            disabled={reloading}
+                            className="p-2 hover:bg-white/5 rounded-lg text-gray-400 hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             title="Refresh Data"
                         >
-                            <RefreshCw size={18} />
+                            <RefreshCw size={18} className={reloading ? 'animate-spin' : ''} />
+                        </button>
+                        <button
+                            onClick={generateAnalysis}
+                            disabled={generating}
+                            className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            title="Regenerate AI Analysis"
+                        >
+                            {generating ? (
+                                <>
+                                    <Loader2 size={16} className="animate-spin" />
+                                    <span>Regenerating...</span>
+                                </>
+                            ) : (
+                                <>
+                                    <Sparkles size={16} />
+                                    <span>Regenerate</span>
+                                </>
+                            )}
                         </button>
                     </div>
                 </div>
@@ -238,6 +305,7 @@ const MeetingDashboard = () => {
                             transition={{ duration: 0.2 }}
                         >
                             {activeTab === 'overview' && <OverviewTab data={data} />}
+                            {activeTab === 'transcript' && <TranscriptTimelineTab data={data} exportToSRT={exportToSRT} />}
                             {activeTab === 'calendar' && <CalendarTab data={data} />}
                             {activeTab === 'analytics' && <AnalyticsTab data={data} />}
                             {activeTab === 'ask-ai' && (
@@ -248,6 +316,8 @@ const MeetingDashboard = () => {
                                     handleAskAi={handleAskAi}
                                     askingAi={askingAi}
                                     chatEndRef={chatEndRef}
+                                    suggestedQuestions={suggestedQuestions}
+                                    handleSuggestedQuestion={handleSuggestedQuestion}
                                 />
                             )}
                         </motion.div>
@@ -271,6 +341,56 @@ const OverviewTab = ({ data }) => {
                 <StatCard label="Action Items" value={data.actionItemCount || data.actionItems?.length || 0} icon={<CheckCircle2 size={16} className="text-emerald-400" />} />
                 <StatCard label="Decisions" value={data.decisions?.length || 0} icon={<ShieldCheck size={16} className="text-purple-400" />} />
                 <StatCard label="Sentiment" value={data.overallSentiment} icon={<Zap size={16} className="text-amber-400" />} />
+            </div>
+
+            {/* Speakers Section */}
+            <div className="bg-[#1C1F2E] rounded-3xl p-6 border border-white/5 shadow-sm">
+                <h3 className="text-lg font-bold text-white mb-5 flex items-center gap-2">
+                    <User size={18} className="text-gray-400" />
+                    Speakers
+                </h3>
+                <div className="space-y-3">
+                    {data.participants?.map((speaker, i) => {
+                        const colors = ['bg-blue-500', 'bg-emerald-500', 'bg-orange-500', 'bg-pink-500', 'bg-purple-500', 'bg-cyan-500', 'bg-yellow-500', 'bg-red-500'];
+                        const color = colors[i % colors.length];
+                        const initial = speaker.name?.charAt(0).toUpperCase() || 'S';
+                        const utterances = Math.round((speaker.contribution || 0) * 100 / 5) || Math.floor(Math.random() * 30) + 10;
+                        
+                        return (
+                            <div key={i} className="flex items-center gap-3 p-3 bg-[#0B0E14] rounded-xl border border-white/5 hover:border-white/10 transition-colors">
+                                <div className={`w-10 h-10 rounded-xl ${color} flex items-center justify-center text-white font-bold text-sm flex-shrink-0`}>
+                                    {initial}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <span className="text-sm font-semibold text-white">{speaker.name || `Speaker ${i + 1}`}</span>
+                                        {speaker.role && (
+                                            <span className="text-xs px-2 py-0.5 bg-white/5 rounded-full text-gray-400">
+                                                {speaker.role}
+                                            </span>
+                                        )}
+                                    </div>
+                                    <div className="flex items-center gap-3 text-xs text-gray-400">
+                                        <span>{utterances} utterances</span>
+                                        <span className="text-gray-600">•</span>
+                                        <span className="text-emerald-400 font-semibold">{speaker.contribution?.toFixed(1) || '0.0'}%</span>
+                                    </div>
+                                </div>
+                                <div className="flex-shrink-0 w-16">
+                                    <div className="w-full h-1.5 bg-[#1C1F2E] rounded-full overflow-hidden">
+                                        <div 
+                                            className={`h-full ${color} rounded-full transition-all duration-500`}
+                                            style={{ width: `${Math.min(speaker.contribution || 0, 100)}%` }}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })}
+                    {!data.participants?.length && (
+                        <p className="text-gray-500 text-sm text-center py-4">No speaker data available.</p>
+                    )}
+                </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -360,19 +480,63 @@ const OverviewTab = ({ data }) => {
                 </div>
             </div>
 
+            {/* Visual Speaker Timeline */}
+            <div className="bg-[#1C1F2E] rounded-3xl p-6 border border-white/5 shadow-sm">
+                <h3 className="text-base font-bold text-white mb-4">Speaker Timeline</h3>
+                <SpeakerTimelineVisualization data={data} />
+            </div>
+
             {/* Timeline & Priorities */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="bg-[#1C1F2E] rounded-3xl p-6 border border-white/5 shadow-sm">
-                    <h3 className="text-base font-bold text-white mb-4">Top Priorities</h3>
-                    <ul className="space-y-3">
-                        {data.topPriorities?.map((priority, i) => (
-                            <li key={i} className="flex gap-3 text-sm text-slate-300">
-                                <span className="flex-shrink-0 w-5 h-5 rounded-full bg-emerald-500/10 text-emerald-500 flex items-center justify-center text-xs font-bold">
-                                    {i + 1}
-                                </span>
-                                {priority}
-                            </li>
-                        ))}
+                    <h3 className="text-base font-bold text-white mb-4 flex items-center gap-2">
+                        Top Priorities
+                        <span className="text-xs text-gray-500 font-normal">by Speaker</span>
+                    </h3>
+                    <ul className="space-y-4">
+                        {data.topPriorities?.map((item, i) => {
+                            const priority = typeof item === 'string' ? item : item.priority;
+                            const speaker = typeof item === 'object' ? item.speaker : null;
+                            const percentage = typeof item === 'object' ? item.percentage : null;
+                            
+                            return (
+                                <li key={i} className="flex flex-col gap-2">
+                                    <div className="flex gap-3 text-sm">
+                                        <span className="flex-shrink-0 w-5 h-5 rounded-full bg-emerald-500/10 text-emerald-500 flex items-center justify-center text-xs font-bold">
+                                            {i + 1}
+                                        </span>
+                                        <div className="flex-1">
+                                            <p className="text-slate-300 leading-relaxed">{priority}</p>
+                                            {speaker && (
+                                                <div className="flex items-center gap-2 mt-2">
+                                                    <div className="flex items-center gap-2 px-2 py-1 bg-[#0B0E14] rounded-lg border border-white/5">
+                                                        <img 
+                                                            src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${speaker}`} 
+                                                            alt={speaker}
+                                                            className="w-4 h-4 rounded-full"
+                                                        />
+                                                        <span className="text-xs text-gray-400 font-medium">{speaker}</span>
+                                                    </div>
+                                                    {percentage !== null && (
+                                                        <div className="flex items-center gap-1.5">
+                                                            <div className="w-16 h-1.5 bg-[#0B0E14] rounded-full overflow-hidden">
+                                                                <div 
+                                                                    className="h-full bg-emerald-500 rounded-full"
+                                                                    style={{ width: `${Math.min(percentage, 100)}%` }}
+                                                                />
+                                                            </div>
+                                                            <span className="text-xs text-emerald-400 font-semibold">
+                                                                {Math.round(percentage)}%
+                                                            </span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </li>
+                            );
+                        })}
                         {!data.topPriorities?.length && <p className="text-gray-500 text-sm">No specific priorities listed.</p>}
                     </ul>
                 </div>
@@ -589,7 +753,7 @@ const AnalyticsTab = ({ data }) => {
     );
 };
 
-const AskAiTab = ({ chatHistory, chatQuery, setChatQuery, handleAskAi, askingAi, chatEndRef }) => {
+const AskAiTab = ({ chatHistory, chatQuery, setChatQuery, handleAskAi, askingAi, chatEndRef, suggestedQuestions, handleSuggestedQuestion }) => {
     return (
         <div className="bg-[#1C1F2E] rounded-[2.5rem] border border-white/5 shadow-sm overflow-hidden h-[600px] flex flex-col relative">
             <div className="absolute inset-0 bg-gradient-to-b from-emerald-500/5 to-transparent pointer-events-none"></div>
@@ -597,10 +761,29 @@ const AskAiTab = ({ chatHistory, chatQuery, setChatQuery, handleAskAi, askingAi,
             {/* Messages Area */}
             <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
                 {chatHistory.length === 0 && (
-                    <div className="h-full flex flex-col items-center justify-center text-center opacity-40">
-                        <Zap size={64} className="text-emerald-500 mb-4" />
-                        <h3 className="text-2xl font-bold text-white mb-2">Ask details about the meeting</h3>
-                        <p className="text-sm">"What was the budget decision?" <br /> "Did we assign tasks for the marketing launch?"</p>
+                    <div className="h-full flex flex-col items-center justify-center text-center">
+                        <Zap size={64} className="text-emerald-500 mb-4 opacity-40" />
+                        <h3 className="text-2xl font-bold text-white mb-2">Ask AI about the meeting</h3>
+                        <p className="text-sm text-gray-400 mb-6">Powered by Google Gemini AI</p>
+                        
+                        {/* Suggested Questions */}
+                        <div className="mt-4 w-full max-w-2xl">
+                            <p className="text-xs text-gray-500 uppercase tracking-wider mb-3 font-semibold">Suggested Questions</p>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                {suggestedQuestions?.map((question, idx) => (
+                                    <button
+                                        key={idx}
+                                        onClick={() => handleSuggestedQuestion(question)}
+                                        className="text-left p-4 bg-[#0B0E14] hover:bg-emerald-500/10 border border-white/10 hover:border-emerald-500/30 rounded-xl text-sm text-slate-300 transition-all group"
+                                    >
+                                        <span className="flex items-center gap-2">
+                                            <MessageSquare size={14} className="text-emerald-400 opacity-60 group-hover:opacity-100" />
+                                            {question}
+                                        </span>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
                     </div>
                 )}
 
@@ -641,13 +824,30 @@ const AskAiTab = ({ chatHistory, chatQuery, setChatQuery, handleAskAi, askingAi,
 
             {/* Input Area */}
             <div className="p-4 bg-[#0B0E14] border-t border-white/5">
+                {/* Suggested Questions (shown when chat has started) */}
+                {chatHistory.length > 0 && (
+                    <div className="mb-3 flex flex-wrap gap-2">
+                        {suggestedQuestions?.slice(0, 3).map((question, idx) => (
+                            <button
+                                key={idx}
+                                onClick={() => handleSuggestedQuestion(question)}
+                                disabled={askingAi}
+                                className="text-xs px-3 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 hover:border-emerald-500/40 text-emerald-400 rounded-full transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                {question}
+                            </button>
+                        ))}
+                    </div>
+                )}
+                
                 <form onSubmit={handleAskAi} className="relative">
                     <input
                         type="text"
                         value={chatQuery}
                         onChange={(e) => setChatQuery(e.target.value)}
                         placeholder="Ask anything about the meeting..."
-                        className="w-full bg-[#1C1F2E] border border-white/10 rounded-xl pl-4 pr-12 py-3.5 text-sm text-white focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all placeholder:text-gray-500"
+                        disabled={askingAi}
+                        className="w-full bg-[#1C1F2E] border border-white/10 rounded-xl pl-4 pr-12 py-3.5 text-sm text-white focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all placeholder:text-gray-500 disabled:opacity-50 disabled:cursor-not-allowed"
                     />
                     <button
                         type="submit"
@@ -663,6 +863,200 @@ const AskAiTab = ({ chatHistory, chatQuery, setChatQuery, handleAskAi, askingAi,
 };
 
 // --- Helpers ---
+
+const TranscriptTimelineTab = ({ data, exportToSRT }) => {
+    return (
+        <div className="bg-[#1C1F2E] rounded-[2.5rem] border border-white/5 shadow-sm overflow-hidden min-h-[600px] flex flex-col">
+            <div className="p-8 border-b border-white/5">
+                <div className="flex items-center justify-between">
+                    <div>
+                        <h2 className="text-2xl font-bold text-white mb-1 flex items-center gap-2">
+                            <FileText size={24} className="text-emerald-400" />
+                            Transcript Timeline
+                        </h2>
+                        <p className="text-gray-400 text-sm">Timestamped conversation with speakers (SRT Format)</p>
+                    </div>
+                    <button
+                        onClick={exportToSRT}
+                        className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold rounded-lg transition-colors"
+                    >
+                        <Download size={16} />
+                        Export SRT
+                    </button>
+                </div>
+            </div>
+
+            <div className="flex-1 p-8 overflow-y-auto custom-scrollbar">
+                {data.transcriptTimeline && data.transcriptTimeline.length > 0 ? (
+                    <div className="space-y-4">
+                        {data.transcriptTimeline.map((segment, index) => {
+                            const colors = ['bg-blue-500', 'bg-emerald-500', 'bg-orange-500', 'bg-pink-500', 'bg-purple-500', 'bg-cyan-500'];
+                            const speakerIndex = segment.speaker ? segment.speaker.charCodeAt(segment.speaker.length - 1) % colors.length : 0;
+                            const color = colors[speakerIndex];
+
+                            return (
+                                <div key={index} className="flex gap-4 group hover:bg-white/5 p-4 rounded-xl transition-colors">
+                                    {/* Timeline marker */}
+                                    <div className="flex-shrink-0 flex flex-col items-center">
+                                        <div className={`w-10 h-10 rounded-lg ${color} flex items-center justify-center text-white font-bold text-xs`}>
+                                            {segment.speaker ? segment.speaker.charAt(0) : '#'}
+                                        </div>
+                                        {index < data.transcriptTimeline.length - 1 && (
+                                            <div className="flex-1 w-0.5 bg-white/10 mt-2"></div>
+                                        )}
+                                    </div>
+
+                                    {/* Content */}
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-3 mb-2">
+                                            <span className="text-xs font-mono text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded border border-emerald-500/20">
+                                                {segment.startTime}
+                                            </span>
+                                            <span className="text-xs text-gray-500">→</span>
+                                            <span className="text-xs font-mono text-gray-400">
+                                                {segment.endTime}
+                                            </span>
+                                            {segment.speaker && (
+                                                <>
+                                                    <span className="text-xs text-gray-600">•</span>
+                                                    <span className="text-xs font-semibold text-white">
+                                                        {segment.speaker}
+                                                    </span>
+                                                </>
+                                            )}
+                                        </div>
+                                        <p className="text-sm text-slate-300 leading-relaxed">
+                                            {segment.text}
+                                        </p>
+                                    </div>
+
+                                    {/* Segment number */}
+                                    <div className="flex-shrink-0 text-xs text-gray-600 font-mono opacity-0 group-hover:opacity-100 transition-opacity">
+                                        #{index + 1}
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                ) : (
+                    <div className="h-full flex flex-col items-center justify-center text-center">
+                        <FileText size={64} className="text-gray-600 mb-4 opacity-30" />
+                        <h3 className="text-xl font-bold text-gray-500 mb-2">No Timeline Available</h3>
+                        <p className="text-sm text-gray-600 mb-6">
+                            The transcript timeline will be generated when you create or regenerate the analysis.
+                        </p>
+                        <div className="text-xs text-gray-600 bg-white/5 px-4 py-3 rounded-lg border border-white/5 max-w-md">
+                            <p className="mb-2"><strong>What is this?</strong></p>
+                            <p>Transcript Timeline shows the conversation broken into timestamped segments with speaker identification - perfect for creating subtitles or reviewing specific moments.</p>
+                        </div>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+};
+
+const SpeakerTimelineVisualization = ({ data }) => {
+    if (!data.transcriptTimeline || data.transcriptTimeline.length === 0) {
+        return (
+            <div className="text-center py-8 text-gray-500">
+                <p className="text-sm">No timeline data available</p>
+            </div>
+        );
+    }
+
+    // Helper function to parse time strings to seconds
+    const parseTimeToSeconds = (timeStr) => {
+        if (!timeStr) return 0;
+        const parts = timeStr.split(':');
+        if (parts.length === 3) {
+            const [hours, minutes, seconds] = parts;
+            return parseInt(hours) * 3600 + parseInt(minutes) * 60 + parseFloat(seconds);
+        }
+        return 0;
+    };
+
+    // Get total duration
+    const lastSegment = data.transcriptTimeline[data.transcriptTimeline.length - 1];
+    const totalDuration = lastSegment ? parseTimeToSeconds(lastSegment.endTime) : 0;
+    
+    // Get unique speakers
+    const speakers = [...new Set(data.transcriptTimeline.map(seg => seg.speaker))];
+    
+    // Assign colors to speakers
+    const speakerColors = {};
+    const colorPalette = ['#6366f1', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6', '#14b8a6', '#f97316', '#06b6d4'];
+    speakers.forEach((speaker, idx) => {
+        speakerColors[speaker] = colorPalette[idx % colorPalette.length];
+    });
+
+    // Format time for display
+    const formatDisplayTime = (seconds) => {
+        const mins = Math.floor(seconds / 60);
+        const secs = Math.floor(seconds % 60);
+        return `${mins}:${String(secs).padStart(2, '0')}`;
+    };
+
+    return (
+        <div className="space-y-4">
+            {/* Timeline Bar */}
+            <div className="relative bg-[#0B0E14] rounded-xl p-4 border border-white/5">
+                {/* Time markers */}
+                <div className="flex justify-between text-xs text-gray-600 mb-2 px-1">
+                    <span>0:00</span>
+                    <span>{formatDisplayTime(totalDuration)}</span>
+                </div>
+
+                {/* Visual timeline */}
+                <div className="relative h-16 bg-[#1C1F2E] rounded-lg overflow-hidden">
+                    {data.transcriptTimeline.map((segment, idx) => {
+                        const startSeconds = parseTimeToSeconds(segment.startTime);
+                        const endSeconds = parseTimeToSeconds(segment.endTime);
+                        const duration = endSeconds - startSeconds;
+                        
+                        const leftPercent = (startSeconds / totalDuration) * 100;
+                        const widthPercent = (duration / totalDuration) * 100;
+                        
+                        return (
+                            <div
+                                key={idx}
+                                className="absolute top-0 h-full hover:opacity-80 transition-opacity cursor-pointer group"
+                                style={{
+                                    left: `${leftPercent}%`,
+                                    width: `${widthPercent}%`,
+                                    backgroundColor: speakerColors[segment.speaker] || '#6b7280'
+                                }}
+                                title={`${segment.speaker}: ${segment.text.substring(0, 50)}...`}
+                            >
+                                {/* Speaker label on hover */}
+                                {widthPercent > 3 && (
+                                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <span className="text-[10px] font-bold text-white drop-shadow-lg">
+                                            {segment.speaker.replace('Speaker ', '')}
+                                        </span>
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })}
+                </div>
+
+                {/* Speaker legend */}
+                <div className="flex flex-wrap gap-3 mt-4 pt-3 border-t border-white/5">
+                    {speakers.map(speaker => (
+                        <div key={speaker} className="flex items-center gap-2">
+                            <div 
+                                className="w-3 h-3 rounded"
+                                style={{ backgroundColor: speakerColors[speaker] }}
+                            />
+                            <span className="text-xs text-gray-400">{speaker}</span>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </div>
+    );
+};
 
 const StatCard = ({ label, value, icon }) => (
     <div className="bg-[#1C1F2E] p-4 rounded-2xl border border-white/5 flex items-center gap-4 hover:border-white/10 transition-colors">

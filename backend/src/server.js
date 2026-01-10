@@ -27,6 +27,7 @@ const meetService = require('./services/meetService');
 const transcriptionService = require('./services/transcriptionService');
 const taskExtractionService = require('./services/taskExtractionService');
 const dashboardController = require('./controllers/dashboardController');
+const translationService = require('./services/translationService');
 
 const app = express();
 const server = http.createServer(app);
@@ -1705,6 +1706,56 @@ John: Great! Thanks everyone. Let's make this a successful sprint.`;
     } catch (err) {
         console.error('[Server] Error creating sample meeting:', err.message);
         res.status(500).json({ error: err.message });
+    }
+});
+// Translation Route
+// Translation Route
+app.post('/api/meetings/:id/translate', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { language, target } = req.body; // 'Hindi', 'Gujarati', 'English', target: 'summary' (default) or 'timeline'
+
+        const meeting = await Meeting.findById(id);
+        if (!meeting) {
+            return res.status(404).json({ error: 'Meeting not found' });
+        }
+
+        const targetType = target || 'summary'; // Default to summary if not specified (or logic below)
+
+        // Case 1: Translate Summary
+        if (targetType === 'summary') {
+            const summaryText = meeting.analysis?.summary || meeting.summary || '';
+            const translatedSummary = await translationService.translateText(summaryText, language);
+            return res.json({ success: true, summary: translatedSummary });
+        }
+
+        // Case 2: Translate Timeline (Deprecated/Advanced)
+        else if (targetType === 'timeline') {
+            let timelineToTranslate = [];
+            if (meeting.analysis && meeting.analysis.transcriptTimeline) {
+                timelineToTranslate = meeting.analysis.transcriptTimeline;
+            }
+
+            if (timelineToTranslate.length > 0) {
+                const translatedTimeline = await Promise.all(timelineToTranslate.map(async (segment) => {
+                    return {
+                        ...segment,
+                        text: await translationService.translateText(segment.text, language)
+                    };
+                }));
+                return res.json({ success: true, timeline: translatedTimeline });
+            } else {
+                return res.json({ success: false, error: 'No timeline to translate' });
+            }
+        }
+
+        else {
+            return res.status(400).json({ error: 'Invalid translation target' });
+        }
+
+    } catch (err) {
+        console.error('Translation error:', err);
+        res.status(500).json({ error: 'Translation failed' });
     }
 });
 

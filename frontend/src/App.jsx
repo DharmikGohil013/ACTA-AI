@@ -32,6 +32,7 @@ const Navigation = () => {
     const [serverStatus, setServerStatus] = useState(null);
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [imgError, setImgError] = useState(false);
 
     useEffect(() => {
         const checkServer = async () => {
@@ -142,15 +143,16 @@ const Navigation = () => {
                         user ? (
                             <div className="flex items-center gap-3">
                                 <Link to="/profile" className="group relative block">
-                                    {user.picture ? (
+                                    {user.picture && !imgError ? (
                                         <img
                                             src={user.picture}
                                             alt={user.name}
                                             className="w-8 h-8 rounded-full border border-white/10 group-hover:border-white/30 transition-colors"
+                                            onError={() => setImgError(true)}
                                         />
                                     ) : (
                                         <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center text-xs font-bold text-blue-400 border border-blue-500/30">
-                                            {user.name[0]}
+                                            {user.name && user.name[0] ? user.name[0].toUpperCase() : 'U'}
                                         </div>
                                     )}
                                 </Link>

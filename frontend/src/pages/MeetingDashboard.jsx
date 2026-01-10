@@ -986,9 +986,20 @@ const SpeakerTimelineVisualization = ({ data }) => {
         return 0;
     };
 
-    // Get total duration
-    const lastSegment = data.transcriptTimeline[data.transcriptTimeline.length - 1];
-    const totalDuration = lastSegment ? parseTimeToSeconds(lastSegment.endTime) : 0;
+    // Get robust total duration
+    const totalDuration = React.useMemo(() => {
+        if (!data.transcriptTimeline || data.transcriptTimeline.length === 0) return 0;
+
+        let maxDuration = 0;
+        data.transcriptTimeline.forEach(seg => {
+            const end = parseTimeToSeconds(seg.endTime);
+            if (end > maxDuration) maxDuration = end;
+        });
+
+        // Return max duration, ensuring at least 1 second to avoid division by zero
+        // Also add a small buffer (1%) to prevent visual crowding at the very end
+        return Math.max(maxDuration, 1);
+    }, [data.transcriptTimeline]);
 
     // Get unique speakers
     const speakers = [...new Set(data.transcriptTimeline.map(seg => seg.speaker))];
@@ -1018,14 +1029,18 @@ const SpeakerTimelineVisualization = ({ data }) => {
                 </div>
 
                 {/* Visual timeline */}
-                <div className="relative h-16 bg-[#1C1F2E] rounded-lg overflow-hidden">
+                <div className="relative h-16 bg-[#1C1F2E] rounded-lg overflow-hidden w-full">
                     {data.transcriptTimeline.map((segment, idx) => {
                         const startSeconds = parseTimeToSeconds(segment.startTime);
                         const endSeconds = parseTimeToSeconds(segment.endTime);
-                        const duration = endSeconds - startSeconds;
+                        const duration = Math.max(endSeconds - startSeconds, 0); // Prevent negative duration
 
-                        const leftPercent = (startSeconds / totalDuration) * 100;
-                        const widthPercent = (duration / totalDuration) * 100;
+                        const leftPercent = Math.min((startSeconds / totalDuration) * 100, 100);
+                        // Clamp width so it doesn't exceed 100% total
+                        let widthPercent = (duration / totalDuration) * 100;
+                        if (leftPercent + widthPercent > 100) {
+                            widthPercent = 100 - leftPercent;
+                        }
 
                         return (
                             <div

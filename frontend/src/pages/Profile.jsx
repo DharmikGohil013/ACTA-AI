@@ -9,6 +9,7 @@ const API_URL = 'http://localhost:3000';
 const Profile = () => {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [imgError, setImgError] = useState(false);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -57,15 +58,16 @@ const Profile = () => {
                 <div className="flex flex-col items-center mb-8">
                     <div className="relative mb-4">
                         <div className="w-24 h-24 rounded-full p-1 bg-gradient-to-tr from-blue-500 to-purple-500">
-                            {user.picture ? (
+                            {user.picture && !imgError ? (
                                 <img
                                     src={user.picture}
                                     alt={user.name}
                                     className="w-full h-full rounded-full object-cover border-2 border-[#0B0E14]"
+                                    onError={() => setImgError(true)}
                                 />
                             ) : (
                                 <div className="w-full h-full rounded-full bg-[#0B0E14] flex items-center justify-center text-2xl font-bold text-white">
-                                    {user.name[0]}
+                                    {user.name && user.name[0] ? user.name[0].toUpperCase() : 'U'}
                                 </div>
                             )}
                         </div>

@@ -353,14 +353,14 @@ const OverviewTab = ({ data }) => {
                     {data.participants?.map((speaker, i) => {
                         const colors = ['bg-blue-500', 'bg-emerald-500', 'bg-orange-500', 'bg-pink-500', 'bg-purple-500', 'bg-cyan-500', 'bg-yellow-500', 'bg-red-500'];
                         const color = colors[i % colors.length];
-                        
+
                         // Use letter-based naming (A, B, C, D) when speaker name matches generic pattern
                         const isGenericSpeaker = speaker.name?.match(/^Speaker \d+$/);
                         const speakerLetter = String.fromCharCode(65 + i); // A=65, B=66, C=67...
                         const displayName = isGenericSpeaker ? `Speaker ${speakerLetter}` : speaker.name;
                         const initial = displayName?.charAt(0).toUpperCase() || 'S';
                         const utterances = Math.round((speaker.contribution || 0) * 100 / 5) || Math.floor(Math.random() * 30) + 10;
-                        
+
                         return (
                             <div key={i} className="flex items-center gap-3 p-3 bg-[#0B0E14] rounded-xl border border-white/5 hover:border-white/10 transition-colors">
                                 <div className={`w-10 h-10 rounded-xl ${color} flex items-center justify-center text-white font-bold text-sm flex-shrink-0`}>
@@ -383,7 +383,7 @@ const OverviewTab = ({ data }) => {
                                 </div>
                                 <div className="flex-shrink-0 w-16">
                                     <div className="w-full h-1.5 bg-[#1C1F2E] rounded-full overflow-hidden">
-                                        <div 
+                                        <div
                                             className={`h-full ${color} rounded-full transition-all duration-500`}
                                             style={{ width: `${Math.min(speaker.contribution || 0, 100)}%` }}
                                         />
@@ -503,7 +503,7 @@ const OverviewTab = ({ data }) => {
                             const priority = typeof item === 'string' ? item : item.priority;
                             const speaker = typeof item === 'object' ? item.speaker : null;
                             const percentage = typeof item === 'object' ? item.percentage : null;
-                            
+
                             return (
                                 <li key={i} className="flex flex-col gap-2">
                                     <div className="flex gap-3 text-sm">
@@ -515,8 +515,8 @@ const OverviewTab = ({ data }) => {
                                             {speaker && (
                                                 <div className="flex items-center gap-2 mt-2">
                                                     <div className="flex items-center gap-2 px-2 py-1 bg-[#0B0E14] rounded-lg border border-white/5">
-                                                        <img 
-                                                            src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${speaker}`} 
+                                                        <img
+                                                            src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${speaker}`}
                                                             alt={speaker}
                                                             className="w-4 h-4 rounded-full"
                                                         />
@@ -525,7 +525,7 @@ const OverviewTab = ({ data }) => {
                                                     {percentage !== null && (
                                                         <div className="flex items-center gap-1.5">
                                                             <div className="w-16 h-1.5 bg-[#0B0E14] rounded-full overflow-hidden">
-                                                                <div 
+                                                                <div
                                                                     className="h-full bg-emerald-500 rounded-full"
                                                                     style={{ width: `${Math.min(percentage, 100)}%` }}
                                                                 />
@@ -710,13 +710,13 @@ const AnalyticsTab = ({ data }) => {
                 {/* Topic Distribution */}
                 <div className="bg-[#1C1F2E] rounded-3xl p-6 border border-white/5 shadow-sm">
                     <h3 className="text-lg font-bold text-white mb-6">Topic Distribution</h3>
-                    <div className="h-64 flex items-center justify-center">
+                    <div className="h-[400px] flex items-center justify-center">
                         <ResponsiveContainer width="100%" height="100%">
-                            <PieChart>
+                            <PieChart margin={{ bottom: 20 }}>
                                 <Pie
                                     data={topics}
                                     cx="50%"
-                                    cy="50%"
+                                    cy="40%"
                                     innerRadius={60}
                                     outerRadius={80}
                                     paddingAngle={5}
@@ -727,7 +727,12 @@ const AnalyticsTab = ({ data }) => {
                                     ))}
                                 </Pie>
                                 <Tooltip contentStyle={{ backgroundColor: '#0F172A', border: '1px solid #1e293b', borderRadius: '12px', color: '#fff' }} />
-                                <Legend verticalAlign="bottom" height={36} iconType="circle" />
+                                <Legend
+                                    verticalAlign="bottom"
+                                    layout="vertical"
+                                    align="center"
+                                    wrapperStyle={{ paddingTop: '20px' }}
+                                />
                             </PieChart>
                         </ResponsiveContainer>
                     </div>
@@ -770,7 +775,7 @@ const AskAiTab = ({ chatHistory, chatQuery, setChatQuery, handleAskAi, askingAi,
                         <Zap size={64} className="text-emerald-500 mb-4 opacity-40" />
                         <h3 className="text-2xl font-bold text-white mb-2">Ask AI about the meeting</h3>
                         <p className="text-sm text-gray-400 mb-6">Powered by Google Gemini AI</p>
-                        
+
                         {/* Suggested Questions */}
                         <div className="mt-4 w-full max-w-2xl">
                             <p className="text-xs text-gray-500 uppercase tracking-wider mb-3 font-semibold">Suggested Questions</p>
@@ -844,7 +849,7 @@ const AskAiTab = ({ chatHistory, chatQuery, setChatQuery, handleAskAi, askingAi,
                         ))}
                     </div>
                 )}
-                
+
                 <form onSubmit={handleAskAi} className="relative">
                     <input
                         type="text"
@@ -984,10 +989,10 @@ const SpeakerTimelineVisualization = ({ data }) => {
     // Get total duration
     const lastSegment = data.transcriptTimeline[data.transcriptTimeline.length - 1];
     const totalDuration = lastSegment ? parseTimeToSeconds(lastSegment.endTime) : 0;
-    
+
     // Get unique speakers
     const speakers = [...new Set(data.transcriptTimeline.map(seg => seg.speaker))];
-    
+
     // Assign colors to speakers
     const speakerColors = {};
     const colorPalette = ['#6366f1', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6', '#14b8a6', '#f97316', '#06b6d4'];
@@ -1018,10 +1023,10 @@ const SpeakerTimelineVisualization = ({ data }) => {
                         const startSeconds = parseTimeToSeconds(segment.startTime);
                         const endSeconds = parseTimeToSeconds(segment.endTime);
                         const duration = endSeconds - startSeconds;
-                        
+
                         const leftPercent = (startSeconds / totalDuration) * 100;
                         const widthPercent = (duration / totalDuration) * 100;
-                        
+
                         return (
                             <div
                                 key={idx}
@@ -1050,7 +1055,7 @@ const SpeakerTimelineVisualization = ({ data }) => {
                 <div className="flex flex-wrap gap-3 mt-4 pt-3 border-t border-white/5">
                     {speakers.map(speaker => (
                         <div key={speaker} className="flex items-center gap-2">
-                            <div 
+                            <div
                                 className="w-3 h-3 rounded"
                                 style={{ backgroundColor: speakerColors[speaker] }}
                             />

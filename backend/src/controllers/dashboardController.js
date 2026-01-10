@@ -189,10 +189,10 @@ const extractTimelineFromSegments = (speakerSegments) => {
     // Create a map to normalize speaker names
     const speakerMap = {};
     let speakerCounter = 0;
-    
+
     return speakerSegments.map(segment => {
         let speaker = segment.speaker || 'Unknown';
-        
+
         // Normalize speaker name to "Speaker A", "Speaker B" format
         if (speaker.match(/^Speaker [A-Z0-9]+$/)) {
             if (!speakerMap[speaker]) {
@@ -202,7 +202,7 @@ const extractTimelineFromSegments = (speakerSegments) => {
             }
             speaker = speakerMap[speaker];
         }
-        
+
         return {
             startTime: formatTime(segment.start || 0),
             endTime: formatTime(segment.end || segment.start + 5),
@@ -223,7 +223,7 @@ const extractParticipantsFromStats = (speakerStats) => {
 
     const participants = [];
     const speakerKeys = Object.keys(speakerStats).sort();
-    
+
     speakerKeys.forEach((speaker, index) => {
         const stats = speakerStats[speaker];
         // Normalize speaker name: convert "Speaker 1, 2, 3" to "Speaker A, B, C"
@@ -232,7 +232,7 @@ const extractParticipantsFromStats = (speakerStats) => {
             const speakerLetter = String.fromCharCode(65 + index); // A=65, B=66, C=67...
             displayName = `Speaker ${speakerLetter}`;
         }
-        
+
         participants.push({
             name: displayName,
             contribution: parseFloat((stats.percentage || 0).toFixed(1)),
@@ -383,6 +383,23 @@ exports.generateDashboard = async (req, res) => {
         const rawText = response.candidates?.[0]?.content?.parts?.[0]?.text || response.text?.() || '{}';
         const data = extractJson(rawText);
 
+        // Enhance data with real metrics if available
+
+        // 1. Transcript Timeline
+        // Priority: Use real speaker segments from transcription service if available (most accurate timestamps)
+        if (meeting.speakerSegments && meeting.speakerSegments.length > 0) {
+            console.log(`[Dashboard] Using real speaker segments for timeline: ${meeting.speakerSegments.length} segments`);
+            data.transcriptTimeline = extractTimelineFromSegments(meeting.speakerSegments);
+
+            // Also try to align AI participant names with speaker segments if possible, 
+            // but for now we prioritize AI's rich participant data (roles/personas) over speakerStats
+        }
+        // Fallback: Use generated timeline from raw transcript if AI didn't provide good one
+        else if (!data.transcriptTimeline || data.transcriptTimeline.length === 0) {
+            console.log(`[Dashboard] Generating fallback timeline from transcript...`);
+            data.transcriptTimeline = generateTimelineFromTranscript(meeting.transcription);
+        }
+
         const analysisData = {
             ...data,
             id: meeting._id,
@@ -415,42 +432,9 @@ exports.getDashboard = async (req, res) => {
 
         let analysis = meeting.analysis || null;
 
-        // If analysis exists, check for timeline data and normalize participants
-        if (analysis) {
-            // Priority: Use real speaker segments if available
-            if (meeting.speakerSegments && meeting.speakerSegments.length > 0) {
-                const realTimeline = extractTimelineFromSegments(meeting.speakerSegments);
-                analysis = {
-                    ...analysis,
-                    transcriptTimeline: realTimeline
-                };
-                console.log(`[Dashboard] Using real speaker segments for timeline: ${realTimeline.length} segments`);
-            }
-            // Fallback: Use AI-generated transcriptTimeline if it exists
-            else if (analysis.transcriptTimeline && analysis.transcriptTimeline.length > 0) {
-                console.log(`[Dashboard] Using AI-generated timeline: ${analysis.transcriptTimeline.length} segments`);
-            }
-            // Last resort: Generate timeline from raw transcript
-            else if (meeting.transcription) {
-                console.log(`[Dashboard] Generating timeline from transcript...`);
-                const segments = generateTimelineFromTranscript(meeting.transcription);
-                analysis = {
-                    ...analysis,
-                    transcriptTimeline: segments
-                };
-                console.log(`[Dashboard] Generated ${segments.length} segments from transcript`);
-            }
-            
-            // Normalize participants from speakerStats if available
-            if (meeting.speakerStats && Object.keys(meeting.speakerStats).length > 0) {
-                const normalizedParticipants = extractParticipantsFromStats(meeting.speakerStats);
-                analysis = {
-                    ...analysis,
-                    participants: normalizedParticipants
-                };
-                console.log(`[Dashboard] Using normalized speaker stats for participants: ${normalizedParticipants.length} speakers`);
-            }
-        }
+        // No dynamic overwriting - return exactly what was generated and saved.
+        // This ensures that "what you see is what you get" stored in the database.
+        // If the user wants to update the analysis with new data/transcript, they must Regenerate.
 
         res.json({ success: true, analysis });
 

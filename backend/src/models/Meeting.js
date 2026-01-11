@@ -34,6 +34,29 @@ const MeetingSchema = new mongoose.Schema({
     type: String,
     default: '',
   },
+  // Live transcription data (sentence-based)
+  liveTranscriptSentences: {
+    type: [{
+      text: String,
+      confidence: Number,
+      timestamp: Date,
+      wordCount: Number,
+      metadata: {
+        totalWords: Number,
+        totalSentences: Number,
+        averageConfidence: Number
+      }
+    }],
+    default: [],
+  },
+  liveTranscriptFull: {
+    type: String,
+    default: '',
+  },
+  liveTranscriptUpdatedAt: {
+    type: Date,
+    default: null,
+  },
   speakerSegments: {
     type: Array,
     default: [],

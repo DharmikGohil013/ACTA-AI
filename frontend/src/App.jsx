@@ -97,7 +97,7 @@ const Navigation = () => {
     const navItems = [
         { path: '/', label: 'Home' },
         { path: '/analysis', label: 'Analysis' },
-        { path: '/upload', label: 'Upload' },
+        { path: '/upload', label: 'Import Files' },
         { path: '/dashboard', label: 'Archive Meetings' },
         { path: '/scheduled', label: 'Scheduled' },
         { path: '/collaborate', label: 'Collaborate' },

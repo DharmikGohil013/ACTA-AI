@@ -1128,54 +1128,61 @@ const Dashboard = () => {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+                        className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4"
                         onClick={() => setLiveOverlay(null)}
                     >
                         <motion.div
-                            initial={{ scale: 0.95 }}
-                            animate={{ scale: 1 }}
-                            exit={{ scale: 0.95 }}
-                            className="bg-[#0f0b1e] border-2 border-red-500/30 rounded-2xl p-8 max-w-4xl w-full shadow-2xl relative max-h-[90vh] overflow-hidden flex flex-col"
+                            initial={{ scale: 0.95, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.95, opacity: 0 }}
+                            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+                            className="glass border border-blue-500/30 rounded-2xl p-8 max-w-4xl w-full shadow-2xl shadow-blue-500/10 relative max-h-[90vh] overflow-hidden flex flex-col"
                             onClick={(e) => e.stopPropagation()}
                         >
+                            {/* Gradient accent line at top */}
+                            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 via-blue-400 to-blue-600 rounded-t-2xl" />
+                            
                             <button
                                 onClick={() => setLiveOverlay(null)}
-                                className="absolute top-6 right-6 text-gray-500 hover:text-white z-10 transition-colors"
+                                className="absolute top-6 right-6 p-2 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white z-10 transition-all"
                             >
-                                <X size={24} />
+                                <X size={20} />
                             </button>
 
                             <div className="flex items-center gap-4 mb-6">
-                                <div className="p-3 rounded-full bg-red-500/20 text-red-400">
+                                <div className="p-3 rounded-xl bg-blue-500/20 border border-blue-500/30">
                                     <div className="relative">
-                                        <Mic size={24} className="animate-pulse" />
-                                        <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full animate-ping" />
+                                        <Mic size={24} className="text-blue-400 animate-pulse" />
+                                        <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-blue-500 rounded-full animate-ping" />
+                                        <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-blue-400 rounded-full" />
                                     </div>
                                 </div>
                                 <div>
-                                    <h2 className="text-2xl font-bold flex items-center gap-2">
+                                    <h2 className="text-2xl font-bold text-white flex items-center gap-3">
                                         Live Meeting
-                                        <span className="text-base font-normal text-gray-500">
+                                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-500/20 border border-blue-500/30 text-xs font-medium text-blue-300">
+                                            <span className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-pulse" />
                                             {getStatusInfo(liveOverlay).text}
                                         </span>
                                     </h2>
-                                    <p className="text-sm text-gray-400 mt-1">
+                                    <p className="text-sm text-slate-400 mt-1 flex items-center gap-2">
+                                        <Clock size={14} />
                                         Recording started at {new Date(liveOverlay.createdAt).toLocaleTimeString()}
                                     </p>
                                 </div>
                             </div>
 
                             {/* Meeting Information */}
-                            <div className="bg-white/5 rounded-xl p-6 mb-6 space-y-4 border border-white/10">
+                            <div className="glass-card rounded-xl p-5 mb-6 space-y-4">
                                 <div>
-                                    <label className="text-xs text-gray-500 uppercase tracking-wide mb-1 block">Meeting URL</label>
-                                    <div className="flex items-center gap-2">
-                                        <ExternalLink size={16} className="text-white" />
+                                    <label className="text-xs text-slate-500 uppercase tracking-wider mb-2 block font-medium">Meeting URL</label>
+                                    <div className="flex items-center gap-2 p-3 bg-white/5 rounded-lg border border-white/5">
+                                        <ExternalLink size={16} className="text-blue-400 flex-shrink-0" />
                                         <a
                                             href={liveOverlay.meetingUrl}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            className="text-white hover:text-slate-300 truncate"
+                                            className="text-slate-300 hover:text-white truncate transition-colors"
                                         >
                                             {liveOverlay.meetingUrl}
                                         </a>
@@ -1183,15 +1190,15 @@ const Dashboard = () => {
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="text-xs text-gray-500 uppercase tracking-wide mb-1 block">Status</label>
+                                    <div className="p-3 bg-white/5 rounded-lg border border-white/5">
+                                        <label className="text-xs text-slate-500 uppercase tracking-wider mb-2 block font-medium">Status</label>
                                         <div className="flex items-center gap-2">
                                             <span className={`w-2 h-2 rounded-full ${getStatusInfo(liveOverlay).color} animate-pulse`} />
                                             <span className="text-white font-medium">{getStatusInfo(liveOverlay).text}</span>
                                         </div>
                                     </div>
-                                    <div>
-                                        <label className="text-xs text-gray-500 uppercase tracking-wide mb-1 block">Recording Size</label>
+                                    <div className="p-3 bg-white/5 rounded-lg border border-white/5">
+                                        <label className="text-xs text-slate-500 uppercase tracking-wider mb-2 block font-medium">Recording Size</label>
                                         <span className="text-white font-medium">
                                             {liveStatus[liveOverlay._id]?.size || '0'} MB
                                         </span>
@@ -1199,31 +1206,31 @@ const Dashboard = () => {
                                 </div>
 
                                 {getStatusInfo(liveOverlay).message && (
-                                    <div className="p-3 bg-white/10 border border-white/20 rounded-lg">
-                                        <p className="text-sm text-white">{getStatusInfo(liveOverlay).message}</p>
+                                    <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+                                        <p className="text-sm text-blue-200">{getStatusInfo(liveOverlay).message}</p>
                                     </div>
                                 )}
                             </div>
 
                             {/* Live Transcript Section */}
                             <div className="flex-1 overflow-hidden flex flex-col">
-                                <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-                                    <Sparkles size={20} className="text-white" />
-                                    Live Transcript (Deepgram AI)
+                                <h3 className="text-lg font-semibold mb-3 flex items-center gap-2 text-white">
+                                    <Sparkles size={20} className="text-blue-400" />
+                                    AI Live Transcript
                                     {liveStatus[liveOverlay._id]?.liveStatus === 'connected' && (
-                                        <span className="text-xs bg-white/20 text-white px-2 py-1 rounded-full ml-auto flex items-center gap-1">
-                                            <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
+                                        <span className="text-xs bg-blue-500/20 border border-blue-500/30 text-blue-300 px-2.5 py-1 rounded-full ml-auto flex items-center gap-1.5">
+                                            <span className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-pulse" />
                                             Live
                                         </span>
                                     )}
                                     {liveTranscripts[liveOverlay._id] && (
-                                        <span className="text-xs text-gray-500">
+                                        <span className="text-xs text-slate-500 ml-2">
                                             ({liveTranscripts[liveOverlay._id].length} segments)
                                         </span>
                                     )}
                                 </h3>
 
-                                <div className="bg-black/30 rounded-xl p-4 flex-1 overflow-y-auto border border-white/5 custom-scrollbar">
+                                <div className="bg-[#0B0E14] rounded-xl p-4 flex-1 overflow-y-auto border border-white/10 custom-scrollbar min-h-[200px]">
                                     {liveTranscripts[liveOverlay._id] && liveTranscripts[liveOverlay._id].length > 0 ? (
                                         <div className="space-y-3">
                                             {liveTranscripts[liveOverlay._id].map((item, idx) => (
@@ -1231,40 +1238,48 @@ const Dashboard = () => {
                                                     key={item.id || idx}
                                                     initial={{ opacity: 0, y: 10 }}
                                                     animate={{ opacity: 1, y: 0 }}
-                                                    className={`p-3 rounded-lg transition-colors ${item.isFinal
-                                                        ? 'bg-white/5 border border-white/20 hover:bg-white/10'
-                                                        : 'bg-white/5 border border-white/20 hover:bg-white/10 opacity-70'
+                                                    className={`p-4 rounded-lg transition-all ${item.isFinal
+                                                        ? 'bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20'
+                                                        : 'bg-blue-500/5 border border-blue-500/20 opacity-80'
                                                         }`}
                                                 >
-                                                    <div className="flex items-center gap-2 mb-1 text-xs text-gray-500">
+                                                    <div className="flex items-center gap-2 mb-2 text-xs text-slate-500">
                                                         {item.isFinal ? (
-                                                            <span className="px-2 py-0.5 bg-white/20 text-white rounded text-xs font-semibold">✅ Final</span>
+                                                            <span className="px-2 py-0.5 bg-green-500/20 text-green-400 border border-green-500/30 rounded text-xs font-medium flex items-center gap-1">
+                                                                <CheckCircle2 size={10} /> Final
+                                                            </span>
                                                         ) : (
-                                                            <span className="px-2 py-0.5 bg-white/10 text-slate-400 rounded text-xs font-semibold">⏳ Interim</span>
+                                                            <span className="px-2 py-0.5 bg-blue-500/20 text-blue-400 border border-blue-500/30 rounded text-xs font-medium">⏳ Processing</span>
                                                         )}
-                                                        <Clock size={12} />
-                                                        {new Date(item.timestamp).toLocaleTimeString()}
+                                                        <Clock size={12} className="text-slate-500" />
+                                                        <span>{new Date(item.timestamp).toLocaleTimeString()}</span>
                                                         {item.confidence && (
-                                                            <span className="ml-auto text-gray-600 text-xs">
-                                                                Confidence: {Math.round(item.confidence * 100)}%
+                                                            <span className="ml-auto text-slate-600 text-xs">
+                                                                {Math.round(item.confidence * 100)}% confidence
                                                             </span>
                                                         )}
                                                     </div>
-                                                    <p className="text-gray-200 leading-relaxed font-medium">{item.text}</p>
+                                                    <p className="text-slate-200 leading-relaxed">{item.text}</p>
                                                 </motion.div>
                                             ))}
                                         </div>
                                     ) : liveStatus[liveOverlay._id]?.liveStatus === 'connected' ? (
-                                        <div className="h-full flex flex-col items-center justify-center text-gray-600">
-                                            <Loader2 size={40} className="animate-spin mb-4 text-white" />
-                                            <p>Connected to Deepgram Live Stream</p>
-                                            <p className="text-xs text-gray-700 mt-2">Waiting for speech to transcribe...</p>
+                                        <div className="h-full flex flex-col items-center justify-center py-12">
+                                            <div className="relative mb-4">
+                                                <div className="absolute inset-0 bg-blue-500/20 blur-xl rounded-full" />
+                                                <Loader2 size={40} className="animate-spin text-blue-400 relative" />
+                                            </div>
+                                            <p className="text-slate-300 font-medium">Connected to Deepgram</p>
+                                            <p className="text-xs text-slate-500 mt-2">Waiting for speech to transcribe...</p>
                                         </div>
                                     ) : (
-                                        <div className="h-full flex flex-col items-center justify-center text-gray-600">
-                                            <Loader2 size={40} className="animate-spin mb-4 text-white" />
-                                            <p>Waiting for transcript data...</p>
-                                            <p className="text-xs text-gray-700 mt-2">Live transcription will appear here</p>
+                                        <div className="h-full flex flex-col items-center justify-center py-12">
+                                            <div className="relative mb-4">
+                                                <div className="absolute inset-0 bg-blue-500/20 blur-xl rounded-full" />
+                                                <Loader2 size={40} className="animate-spin text-blue-400 relative" />
+                                            </div>
+                                            <p className="text-slate-300 font-medium">Connecting to live stream...</p>
+                                            <p className="text-xs text-slate-500 mt-2">Transcription will appear here automatically</p>
                                         </div>
                                     )}
                                 </div>
@@ -1272,20 +1287,21 @@ const Dashboard = () => {
 
                             {/* Actions */}
                             <div className="flex justify-between items-center gap-4 pt-6 border-t border-white/10 mt-6">
-                                <div className="text-sm text-gray-500">
+                                <div className="flex items-center gap-2 text-sm text-slate-400">
+                                    <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse" />
                                     Bot is actively recording and transcribing
                                 </div>
                                 <div className="flex gap-3">
                                     <button
                                         onClick={() => setLiveOverlay(null)}
-                                        className="px-6 py-3 rounded-xl text-sm font-semibold hover:bg-white/5 transition-colors border border-white/10"
+                                        className="px-5 py-2.5 rounded-lg text-sm font-medium text-slate-300 hover:text-white hover:bg-white/5 transition-all border border-white/10 hover:border-white/20"
                                     >
                                         Close
                                     </button>
                                     <button
                                         onClick={() => stopBot(liveOverlay._id)}
                                         disabled={endingBot}
-                                        className="px-6 py-3 bg-red-500 hover:bg-red-600 disabled:bg-red-500/50 disabled:cursor-not-allowed text-white rounded-xl text-sm font-semibold transition-colors flex items-center gap-2"
+                                        className="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 disabled:from-blue-600/50 disabled:to-blue-500/50 disabled:cursor-not-allowed text-white rounded-lg text-sm font-medium transition-all flex items-center gap-2 shadow-lg shadow-blue-500/20"
                                     >
                                         {endingBot ? (
                                             <>

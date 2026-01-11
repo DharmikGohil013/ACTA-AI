@@ -247,9 +247,18 @@ const Home = () => {
                         Turn Conversations into Clear Action Plans
                     </h1>
 
-                    <p className="text-lg text-slate-400 mb-10 max-w-2xl mx-auto leading-relaxed">
-                        Seamlessly join meetings, transcribe in real-time, and generate executive summaries with zero friction.
-                    </p>
+                    <AnimatePresence mode="wait">
+                        <motion.p
+                            key={currentPhraseIndex}
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -20 }}
+                            transition={{ duration: 0.5 }}
+                            className="text-lg text-slate-400 mb-10 max-w-2xl mx-auto leading-relaxed"
+                        >
+                            {rotatingPhrases[currentPhraseIndex]}
+                        </motion.p>
+                    </AnimatePresence>
 
                     {/* Input Field - Professional */}
                     <div className="w-full max-w-xl mx-auto mb-6 relative group">

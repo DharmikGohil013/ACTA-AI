@@ -192,7 +192,7 @@ const CollaborateDashboard = () => {
                         </p>
                     </motion.div>
                 ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
                         {sharedMeetings.map((meeting, index) => (
                             <motion.div
                                 key={meeting._id}
@@ -221,10 +221,12 @@ const CollaborateDashboard = () => {
                                             </div>
                                             <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase tracking-wider border ${
                                                 meeting.status === 'completed'
-                                                    ? 'bg-white/10 text-white border-white/20'
+                                                    ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
                                                     : 'bg-white/10 text-white border-white/20'
                                             }`}>
-                                                <div className="w-1.5 h-1.5 rounded-full bg-white" />
+                                                <div className={`w-1.5 h-1.5 rounded-full ${
+                                                    meeting.status === 'completed' ? 'bg-emerald-400' : 'bg-white'
+                                                }`} />
                                                 {meeting.status}
                                             </div>
                                         </div>
@@ -241,18 +243,10 @@ const CollaborateDashboard = () => {
                                             </div>
                                         </div>
 
-                                        {/* AI Analysis Badge */}
-                                        {meeting.analysis && (
-                                            <div className="flex items-center gap-2 text-xs text-white bg-white/10 border border-white/20 rounded-lg px-2.5 py-1.5 mb-4">
-                                                <Sparkles size={12} />
-                                                <span className="font-medium">AI Analysis</span>
-                                            </div>
-                                        )}
-
                                         {/* Footer */}
                                         <div className="pt-3 border-t border-white/5 flex items-center justify-between">
                                             <span className="text-xs text-gray-500">
-                                                Click to view
+                                                View dashboard
                                             </span>
                                             <ExternalLink size={12} className="text-gray-500 group-hover:text-white transition-colors" />
                                         </div>

@@ -269,25 +269,24 @@ const ScheduledMeetings = () => {
     }
 
     return (
-        <div className="min-h-[calc(100vh-64px)] text-slate-100">
+        <div className="max-w-[1400px] mx-auto w-full px-6 py-8">
             {/* Header */}
-            <header className="sticky top-0 z-50 bg-[#0B0E14]/80 backdrop-blur-xl border-b border-white/5">
-                <div className="container mx-auto px-6 h-16 flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                        <h1 className="text-lg font-bold text-white flex items-center gap-2">
-                            <Calendar size={20} className="text-slate-400" />
-                            Scheduled Meetings
-                        </h1>
+            <header className="flex items-center justify-between gap-8 mb-10">
+                <div className="flex items-center gap-4 flex-shrink-0">
+                    <h1 className="text-3xl font-bold tracking-tight text-white">Scheduled Meetings</h1>
+                    <div className="h-6 w-px bg-white/10"></div>
+                    <div className="flex items-center gap-3">
                         {schedulerStatus && (
-                            <div className="flex items-center gap-2 px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full">
-                                <div className={`w-2 h-2 rounded-full ${schedulerStatus.running ? 'bg-white animate-pulse' : 'bg-gray-500'}`} />
-                                <span className="text-xs text-white/70 font-medium">
+                            <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 rounded-full">
+                                <div className={`w-1.5 h-1.5 rounded-full ${schedulerStatus.running ? 'bg-emerald-400 animate-pulse' : 'bg-gray-500'}`} />
+                                <span className="text-xs text-emerald-400 font-medium">
                                     {schedulerStatus.running ? 'Auto-Join Active' : 'Scheduler Offline'}
                                 </span>
                             </div>
                         )}
                     </div>
-                    <div className="flex items-center gap-3">
+                </div>
+                <div className="flex items-center gap-3">
                         <button
                             onClick={() => setShowGeminiModal(true)}
                             className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center transition-all ${
@@ -301,38 +300,37 @@ const ScheduledMeetings = () => {
                         </button>
                         <button
                             onClick={() => setShowCreateForm(true)}
-                            className="flex items-center gap-2 px-5 py-2.5 bg-white text-black hover:bg-slate-200 rounded-md transition-all font-semibold text-sm shadow-lg"
+                            className="flex items-center gap-2 px-4 py-2.5 bg-white text-black hover:bg-slate-200 rounded-md transition-all font-semibold text-sm shadow-lg"
                         >
                             <Plus size={18} />
                             Create Schedule
                         </button>
-                    </div>
                 </div>
             </header>
 
             {/* Main Content */}
-            <main className="container mx-auto px-6 py-8">
+            <main>
                 {scheduledMeetings.length === 0 ? (
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="bg-white/5 rounded-3xl p-12 border border-white/10 text-center hover:bg-white/[0.07] transition-all"
+                        className="text-center py-20 text-gray-500 border border-dashed border-white/10 rounded-3xl bg-white/5"
                     >
-                        <Calendar size={64} className="mx-auto mb-4 text-white/50" />
-                        <h3 className="text-xl font-bold text-white mb-2">No Scheduled Meetings</h3>
-                        <p className="text-white/60 mb-4">
+                        <Calendar size={60} className="mx-auto mb-4 opacity-30" />
+                        <h3 className="text-xl mb-2 font-semibold text-gray-400">No Scheduled Meetings</h3>
+                        <p className="text-sm mb-4">
                             Create your first scheduled meeting to get started.
                         </p>
                         <button
                             onClick={() => setShowCreateForm(true)}
-                            className="inline-flex items-center gap-2 px-6 py-3 bg-white text-black hover:bg-slate-200 rounded-md transition-all font-semibold shadow-lg"
+                            className="inline-flex items-center gap-2 px-5 py-2.5 bg-white text-black hover:bg-slate-200 rounded-md transition-all font-semibold text-sm shadow-lg"
                         >
                             <Plus size={18} />
                             Create Schedule
                         </button>
                     </motion.div>
                 ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
                         {scheduledMeetings.map((meeting, index) => {
                             const details = getMeetingTypeDetails(meeting.meetingType);
                             const { date, time } = formatDateTime(meeting.scheduledTime);
@@ -343,79 +341,83 @@ const ScheduledMeetings = () => {
                                     initial={{ opacity: 0, y: 20 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     transition={{ delay: index * 0.05 }}
-                                    className="bg-white/5 rounded-2xl p-6 border border-white/10 hover:bg-white/[0.07] hover:border-white/20 transition-all group"
+                                    className="group relative"
                                 >
-                                    <div className="flex items-start justify-between mb-4">
-                                        <div className={`w-12 h-12 rounded-xl ${details.bgColor} border ${details.borderColor} flex items-center justify-center`}>
-                                            {details.logo ? (
-                                                <img src={details.logo} alt={details.name} className="w-7 h-7" />
-                                            ) : (
-                                                <Video size={24} className={details.color} />
-                                            )}
-                                        </div>
-                                        <button
-                                            onClick={() => handleDeleteMeeting(meeting._id)}
-                                            className="p-2 hover:bg-red-500/10 rounded-lg text-red-400 hover:text-red-300 transition-colors"
-                                            title="Delete"
-                                        >
-                                            <Trash2 size={16} />
-                                        </button>
-                                    </div>
+                                    <div className="relative bg-white/5 rounded-xl overflow-hidden border border-white/10 group-hover:border-white/30 transition-all backdrop-blur-sm h-full flex flex-col">
+                                        <div className="p-5">
+                                            <div className="flex items-start justify-between mb-4">
+                                                <div className={`w-10 h-10 rounded-lg ${details.bgColor} border ${details.borderColor} flex items-center justify-center`}>
+                                                    {details.logo ? (
+                                                        <img src={details.logo} alt={details.name} className="w-6 h-6" />
+                                                    ) : (
+                                                        <Video size={20} className={details.color} />
+                                                    )}
+                                                </div>
+                                                <button
+                                                    onClick={() => handleDeleteMeeting(meeting._id)}
+                                                    className="p-1.5 hover:bg-red-500/10 rounded-md text-red-400 hover:text-red-300 transition-colors"
+                                                    title="Delete"
+                                                >
+                                                    <Trash2 size={14} />
+                                                </button>
+                                            </div>
 
-                                    <h3 className="text-lg font-bold text-white mb-1">
-                                        {meeting.title || 'Scheduled Meeting'}
-                                    </h3>
-                                    <div className="flex items-center gap-2 mb-3">
-                                        <p className={`text-sm ${details.color}`}>{details.name}</p>
-                                        {/* Status Badge */}
-                                        {meeting.status === 'completed' && (
-                                            <span className="px-2 py-0.5 text-xs font-semibold bg-white/10 text-white rounded-full border border-white/20">
-                                                Completed
-                                            </span>
-                                        )}
-                                        {meeting.status === 'cancelled' && (
-                                            <span className="px-2 py-0.5 text-xs font-semibold bg-white/10 text-white/60 rounded-full border border-white/20">
-                                                Cancelled
-                                            </span>
-                                        )}
-                                        {meeting.status === 'scheduled' && (
-                                            <span className="px-2 py-0.5 text-xs font-semibold bg-white/10 text-white rounded-full border border-white/20">
-                                                Scheduled
-                                            </span>
-                                        )}
-                                    </div>
+                                            <h3 className="font-semibold text-white text-base leading-tight line-clamp-2 mb-1">
+                                                {meeting.title || 'Scheduled Meeting'}
+                                            </h3>
+                                            <div className="flex items-center gap-2 mb-3">
+                                                <p className={`text-xs ${details.color}`}>{details.name}</p>
+                                                {/* Status Badge */}
+                                                {meeting.status === 'completed' && (
+                                                    <span className="px-2 py-0.5 text-[10px] font-semibold bg-emerald-500/20 text-emerald-400 rounded-full border border-emerald-500/30">
+                                                        Completed
+                                                    </span>
+                                                )}
+                                                {meeting.status === 'cancelled' && (
+                                                    <span className="px-2 py-0.5 text-[10px] font-semibold bg-white/10 text-white/60 rounded-full border border-white/20">
+                                                        Cancelled
+                                                    </span>
+                                                )}
+                                                {meeting.status === 'scheduled' && (
+                                                    <span className="px-2 py-0.5 text-[10px] font-semibold bg-white/10 text-white rounded-full border border-white/20">
+                                                        Scheduled
+                                                    </span>
+                                                )}
+                                            </div>
 
-                                    <div className="space-y-2 mb-4">
-                                        <div className="flex items-center gap-2 text-sm text-white/60">
-                                            <Calendar size={14} className="text-white/60" />
-                                            {date}
-                                        </div>
-                                        <div className="flex items-center gap-2 text-sm text-white/60">
-                                            <Clock size={14} className="text-white/60" />
-                                            {time}
-                                        </div>
-                                    </div>
+                                            <div className="space-y-1.5 mb-4">
+                                                <div className="flex items-center gap-2 text-xs text-gray-400">
+                                                    <Calendar size={12} />
+                                                    {date}
+                                                </div>
+                                                <div className="flex items-center gap-2 text-xs text-gray-400">
+                                                    <Clock size={12} />
+                                                    {time}
+                                                </div>
+                                            </div>
 
-                                    {/* Action Buttons */}
-                                    <div className="space-y-2">
-                                        {meeting.status === 'scheduled' && (
-                                            <button
-                                                onClick={() => handleTriggerMeeting(meeting._id, meeting.title)}
-                                                className="flex items-center justify-center gap-2 w-full py-2.5 bg-white text-black hover:bg-slate-200 rounded-md transition-all text-sm font-semibold shadow-md"
-                                            >
-                                                <Video size={14} />
-                                                Start Bot Now
-                                            </button>
-                                        )}
-                                        <a
-                                            href={meeting.meetingLink}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="flex items-center justify-center gap-2 w-full py-2 bg-white/5 text-white border border-white/10 rounded-lg hover:bg-white/10 transition-all text-sm font-medium"
-                                        >
-                                            <ExternalLink size={14} />
-                                            Join Meeting
-                                        </a>
+                                            {/* Action Buttons */}
+                                            <div className="space-y-2 mt-auto">
+                                                {meeting.status === 'scheduled' && (
+                                                    <button
+                                                        onClick={() => handleTriggerMeeting(meeting._id, meeting.title)}
+                                                        className="flex items-center justify-center gap-2 w-full py-2 bg-white text-black hover:bg-slate-200 rounded-md transition-all text-xs font-semibold shadow-md"
+                                                    >
+                                                        <Video size={12} />
+                                                        Start Bot Now
+                                                    </button>
+                                                )}
+                                                <a
+                                                    href={meeting.meetingLink}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="flex items-center justify-center gap-2 w-full py-2 bg-white/5 text-white border border-white/10 rounded-md hover:bg-white/10 transition-all text-xs font-medium"
+                                                >
+                                                    <ExternalLink size={12} />
+                                                    Join Meeting
+                                                </a>
+                                            </div>
+                                        </div>
                                     </div>
                                 </motion.div>
                             );

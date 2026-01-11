@@ -290,7 +290,7 @@ const MeetingDashboard = () => {
             <div className="flex h-screen flex-col items-center justify-center bg-[#0B0E14] text-white gap-6 p-6 text-center">
                 <div className="relative">
                     <div className="absolute inset-0 bg-emerald-500 blur-2xl opacity-20 animate-pulse"></div>
-                    <Zap className="relative z-10 text-emerald-400" size={64} />
+                    <Sparkles className="relative z-10 text-emerald-400" size={64} />
                 </div>
                 <div>
                     <h2 className="text-3xl font-bold mb-2">Ready to Analyze</h2>
@@ -311,7 +311,7 @@ const MeetingDashboard = () => {
                         </>
                     ) : (
                         <>
-                            <Zap size={20} />
+                            <Sparkles size={20} />
                             Generate Dashboard
                         </>
                     )}
@@ -333,7 +333,7 @@ const MeetingDashboard = () => {
         { id: 'transcript', label: 'Transcript Timeline', icon: FileText },
         { id: 'calendar', label: 'Calendar', icon: Calendar },
         { id: 'analytics', label: 'Analytics', icon: BarChart2 },
-        { id: 'ask-ai', label: 'Ask AI', icon: MessageSquare },
+        { id: 'ask-ai', label: 'Ask AI', icon: Sparkles },
         ...(isOwner ? [{ id: 'collaboration', label: 'Collaboration', icon: Users }] : []),
     ];
 
@@ -370,19 +370,17 @@ const MeetingDashboard = () => {
                         <button
                             onClick={generateAnalysis}
                             disabled={generating}
-                            className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center transition-all ${
+                                generating 
+                                    ? 'bg-purple-500/20 border-2 border-purple-500/50 text-purple-400 shadow-[0_0_20px_rgba(168,85,247,0.2)]' 
+                                    : 'bg-white/5 border border-white/10 text-gray-400 hover:bg-white/10 hover:text-white'
+                            }`}
                             title="Regenerate AI Analysis"
                         >
                             {generating ? (
-                                <>
-                                    <Loader2 size={16} className="animate-spin" />
-                                    <span>Regenerating...</span>
-                                </>
+                                <Loader2 size={16} className="animate-spin" />
                             ) : (
-                                <>
-                                    <Sparkles size={16} />
-                                    <span>Load</span>
-                                </>
+                                <Sparkles size={16} className={generating ? 'animate-pulse' : ''} />
                             )}
                         </button>
                         <button
@@ -681,10 +679,10 @@ const OverviewTab = ({ data, meetingId }) => {
         <div className="space-y-6">
             {/* Quick Stats Row */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <StatCard label="Duration" value={data.totalDuration} icon={<Clock size={16} className="text-blue-400" />} />
-                <StatCard label="Action Items" value={data.actionItemCount || data.actionItems?.length || 0} icon={<CheckCircle2 size={16} className="text-emerald-400" />} />
+                <StatCard label="Duration" value={data.totalDuration} icon={<Clock size={16} className="text-cyan-400" />} />
+                <StatCard label="Action Items" value={data.actionItemCount || data.actionItems?.length || 0} icon={<CheckCircle2 size={16} className="text-green-400" />} />
                 <StatCard label="Decisions" value={data.decisions?.length || 0} icon={<ShieldCheck size={16} className="text-purple-400" />} />
-                <StatCard label="Sentiment" value={data.overallSentiment} icon={<Zap size={16} className="text-white" />} />
+                <StatCard label="Sentiment" value={data.overallSentiment} icon={<Sparkles size={16} className="text-yellow-400" />} />
             </div>
 
             {/* Speakers Section */}
@@ -696,12 +694,12 @@ const OverviewTab = ({ data, meetingId }) => {
                 <div className="space-y-3">
                     {participants?.map((speaker, i) => {
                         const colors = [
-                            'bg-[#000000]', // Black
-                            'bg-[#1F3345]', // Navy
-                            'bg-[#B54745]', // Red
-                            'bg-[#C78F57]', // Gold
-                            'bg-[#85ABAB]', // Sea Green
-                            'bg-[#F0EDE5]'  // Beige
+                            'bg-[#8B5CF6]', // Bright Purple
+                            'bg-[#10B981]', // Bright Green
+                            'bg-[#F59E0B]', // Bright Amber
+                            'bg-[#3B82F6]', // Bright Blue
+                            'bg-[#EC4899]', // Bright Pink
+                            'bg-[#14B8A6]'  // Bright Teal
                         ];
                         // If 7th+ speaker, choose a random color from the palette
                         const color = i < 6 ? colors[i] : colors[Math.floor(Math.random() * colors.length)];
@@ -716,7 +714,7 @@ const OverviewTab = ({ data, meetingId }) => {
 
                         return (
                             <div key={i} className="group flex items-center gap-3 p-3 bg-[#0B0E14] rounded-xl border border-white/5 hover:border-white/10 transition-colors">
-                                <div className={`w-10 h-10 rounded-xl ${color} flex items-center justify-center ${color === 'bg-[#F0EDE5]' ? 'text-gray-800' : 'text-white'} font-bold text-sm flex-shrink-0`}>
+                                <div className={`w-10 h-10 rounded-xl ${color} flex items-center justify-center text-white font-bold text-sm flex-shrink-0`}>
                                     {initial}
                                 </div>
                                 <div className="flex-1 min-w-0">
@@ -770,7 +768,7 @@ const OverviewTab = ({ data, meetingId }) => {
                                     <div className="flex items-center gap-3 text-xs text-gray-400">
                                         <span>{utterances} utterances</span>
                                         <span className="text-gray-600">•</span>
-                                        <span className="text-emerald-400 font-semibold">{speaker.contribution?.toFixed(1) || '0.0'}%</span>
+                                        <span className="text-cyan-400 font-semibold">{speaker.contribution?.toFixed(1) || '0.0'}%</span>
                                     </div>
                                 </div>
                                 <div className="flex-shrink-0 w-16">
@@ -853,7 +851,7 @@ const OverviewTab = ({ data, meetingId }) => {
                         <div className="flex flex-wrap gap-2">
                             {data.keyTopics?.map((topic, i) => (
                                 <div key={i} className="px-3 py-1.5 bg-white/5 rounded-lg border border-white/5 text-xs text-slate-300 flex items-center gap-2">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                                    <span className="w-1.5 h-1.5 rounded-full bg-cyan-400"></span>
                                     {topic.name}
                                     <span className="text-gray-500 ml-1 opacity-60">
                                         {Math.round(topic.percentage)}%
@@ -975,7 +973,7 @@ const OverviewTab = ({ data, meetingId }) => {
                             return (
                                 <li key={i} className="flex flex-col gap-2">
                                     <div className="flex gap-3 text-sm">
-                                        <span className="flex-shrink-0 w-5 h-5 rounded-full bg-emerald-500/10 text-emerald-500 flex items-center justify-center text-xs font-bold">
+                                        <span className="flex-shrink-0 w-5 h-5 rounded-full bg-cyan-500/10 text-cyan-400 flex items-center justify-center text-xs font-bold">
                                             {i + 1}
                                         </span>
                                         <div className="flex-1">
@@ -994,11 +992,11 @@ const OverviewTab = ({ data, meetingId }) => {
                                                         <div className="flex items-center gap-1.5">
                                                             <div className="w-16 h-1.5 bg-[#0B0E14] rounded-full overflow-hidden">
                                                                 <div
-                                                                    className="h-full bg-emerald-500 rounded-full"
+                                                                    className="h-full bg-cyan-400 rounded-full"
                                                                     style={{ width: `${Math.min(percentage, 100)}%` }}
                                                                 />
                                                             </div>
-                                                            <span className="text-xs text-emerald-400 font-semibold">
+                                                            <span className="text-xs text-cyan-400 font-semibold">
                                                                 {Math.round(percentage)}%
                                                             </span>
                                                         </div>
@@ -1169,7 +1167,7 @@ const AnalyticsTab = ({ data }) => {
                                     contentStyle={{ backgroundColor: '#0F172A', border: '1px solid #1e293b', borderRadius: '12px', color: '#fff' }}
                                     cursor={{ fill: '#ffffff05' }}
                                 />
-                                <Bar dataKey="contribution" fill="#ffffff" radius={[0, 4, 4, 0]} barSize={24} />
+                                <Bar dataKey="contribution" fill="#10B981" radius={[0, 4, 4, 0]} barSize={24} />
                             </BarChart>
                         </ResponsiveContainer>
                     </div>
@@ -1191,7 +1189,7 @@ const AnalyticsTab = ({ data }) => {
                                     dataKey="percentage"
                                 >
                                     {topics.map((entry, index) => (
-                                        <Cell key={`cell-${index}`} fill={['#ffffff', '#ffffff99', '#ffffff80', '#ffffff66', '#ffffff4d'][index % 5]} />
+                                        <Cell key={`cell-${index}`} fill={['#FF6B6B', '#4ECDC4', '#FFD93D', '#6C5CE7', '#00D2FF', '#FFA502'][index % 6]} />
                                     ))}
                                 </Pie>
                                 <Tooltip contentStyle={{ backgroundColor: '#0F172A', border: '1px solid #1e293b', borderRadius: '12px', color: '#fff' }} />
@@ -1233,29 +1231,29 @@ const AnalyticsTab = ({ data }) => {
 
 const AskAiTab = ({ chatHistory, chatQuery, setChatQuery, handleAskAi, askingAi, chatEndRef, suggestedQuestions, handleSuggestedQuestion }) => {
     return (
-        <div className="bg-[#1C1F2E] rounded-[2.5rem] border border-white/5 shadow-sm overflow-hidden h-[600px] flex flex-col relative">
+        <div className="bg-[#1C1F2E] rounded-[2.5rem] border border-white/5 shadow-sm overflow-hidden h-[450px] flex flex-col relative">
             <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent pointer-events-none"></div>
 
             {/* Messages Area */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
+            <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
                 {chatHistory.length === 0 && (
                     <div className="h-full flex flex-col items-center justify-center text-center">
-                        <Zap size={64} className="text-white mb-4 opacity-40" />
-                        <h3 className="text-2xl font-bold text-white mb-2">Ask AI about the meeting</h3>
-                        <p className="text-sm text-gray-400 mb-6">Powered by Google Gemini AI</p>
+                        <Sparkles size={48} className="text-white mb-3 opacity-40" />
+                        <h3 className="text-xl font-bold text-white mb-1.5">Ask AI about the meeting</h3>
+                        <p className="text-xs text-gray-400 mb-4">Powered by Google Gemini AI</p>
 
                         {/* Suggested Questions */}
-                        <div className="mt-4 w-full max-w-2xl">
-                            <p className="text-xs text-gray-500 uppercase tracking-wider mb-3 font-semibold">Suggested Questions</p>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div className="mt-3 w-full max-w-2xl">
+                            <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-2 font-semibold">Suggested Questions</p>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                                 {suggestedQuestions?.map((question, idx) => (
                                     <button
                                         key={idx}
                                         onClick={() => handleSuggestedQuestion(question)}
-                                        className="text-left p-4 bg-[#0B0E14] hover:bg-white/10 border border-white/10 hover:border-white/20 rounded-xl text-sm text-slate-300 transition-all group"
+                                        className="text-left p-3 bg-[#0B0E14] hover:bg-white/10 border border-white/10 hover:border-white/20 rounded-lg text-xs text-slate-300 transition-all group"
                                     >
                                         <span className="flex items-center gap-2">
-                                            <MessageSquare size={14} className="text-white opacity-60 group-hover:opacity-100" />
+                                            <MessageSquare size={12} className="text-white opacity-60 group-hover:opacity-100" />
                                             {question}
                                         </span>
                                     </button>
@@ -1266,31 +1264,31 @@ const AskAiTab = ({ chatHistory, chatQuery, setChatQuery, handleAskAi, askingAi,
                 )}
 
                 {chatHistory.map((msg, i) => (
-                    <div key={i} className={`flex gap-4 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                    <div key={i} className={`flex gap-3 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                         {msg.role === 'ai' && (
-                            <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-white border border-white/30 flex-shrink-0">
-                                <Zap size={14} />
+                            <div className="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center text-white border border-white/30 flex-shrink-0">
+                                <Sparkles size={12} />
                             </div>
                         )}
-                        <div className={`max-w-[80%] p-4 rounded-2xl text-sm leading-relaxed ${msg.role === 'user'
+                        <div className={`max-w-[80%] p-3 rounded-xl text-xs leading-relaxed ${msg.role === 'user'
                             ? 'bg-white/10 text-white rounded-br-none'
                             : 'bg-[#0B0E14] text-slate-200 border border-white/10 rounded-bl-none'
                             }`}>
                             {msg.content}
                         </div>
                         {msg.role === 'user' && (
-                            <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-white flex-shrink-0">
-                                <User size={14} />
+                            <div className="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center text-white flex-shrink-0">
+                                <User size={12} />
                             </div>
                         )}
                     </div>
                 ))}
                 {askingAi && (
-                    <div className="flex gap-4 justify-start">
-                        <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-white border border-white/30">
-                            <Zap size={14} />
+                    <div className="flex gap-3 justify-start">
+                        <div className="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center text-white border border-white/30">
+                            <Sparkles size={12} />
                         </div>
-                        <div className="bg-[#0B0E14] px-4 py-3 rounded-2xl rounded-bl-none border border-white/10 flex items-center gap-2">
+                        <div className="bg-[#0B0E14] px-3 py-2 rounded-xl rounded-bl-none border border-white/10 flex items-center gap-2">
                             <span className="w-1.5 h-1.5 bg-white rounded-full animate-bounce"></span>
                             <span className="w-1.5 h-1.5 bg-white rounded-full animate-bounce delay-100"></span>
                             <span className="w-1.5 h-1.5 bg-white rounded-full animate-bounce delay-200"></span>
@@ -1325,7 +1323,7 @@ const AskAiTab = ({ chatHistory, chatQuery, setChatQuery, handleAskAi, askingAi,
                         onChange={(e) => setChatQuery(e.target.value)}
                         placeholder="Ask anything about the meeting..."
                         disabled={askingAi}
-                        className="w-full bg-[#1C1F2E] border border-white/10 rounded-xl pl-4 pr-12 py-3.5 text-sm text-white focus:outline-none focus:border-white/50 focus:ring-1 focus:ring-white/50 transition-all placeholder:text-gray-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="w-full bg-[#1C1F2E] border border-white/10 rounded-lg pl-3 pr-10 py-2.5 text-xs text-white focus:outline-none focus:border-white/50 focus:ring-1 focus:ring-white/50 transition-all placeholder:text-gray-500 disabled:opacity-50 disabled:cursor-not-allowed"
                     />
                     <button
                         type="submit"
@@ -1560,13 +1558,13 @@ const SpeakerTimelineVisualization = ({ data }) => {
 };
 
 const StatCard = ({ label, value, icon }) => (
-    <div className="bg-[#1C1F2E] p-4 rounded-2xl border border-white/5 flex items-center gap-4 hover:border-white/10 transition-colors">
-        <div className="p-3 bg-[#0B0E14] rounded-xl border border-white/5">
+    <div className="bg-gradient-to-br from-[#1C1F2E] to-[#0B0E14] p-5 rounded-2xl border border-white/10 flex items-center gap-4 hover:border-white/20 hover:shadow-lg transition-all">
+        <div className="p-3 bg-white/5 rounded-xl border border-white/10">
             {icon}
         </div>
         <div>
-            <p className="text-gray-400 text-xs font-medium uppercase tracking-wide">{label}</p>
-            <p className="text-xl font-bold text-white mt-0.5">{value}</p>
+            <p className="text-gray-400 text-xs font-semibold uppercase tracking-wider">{label}</p>
+            <p className="text-2xl font-bold text-white mt-1">{value}</p>
         </div>
     </div>
 );

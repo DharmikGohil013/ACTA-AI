@@ -269,7 +269,11 @@ const ScheduledMeetings = () => {
     }
 
     return (
-        <div className="min-h-screen bg-[#0B0E14] text-slate-100">
+        <div className="min-h-screen bg-[#050505] text-slate-100" style={{
+            backgroundImage: 'radial-gradient(circle at 50% 50%, rgba(59, 130, 246, 0.15) 0%, rgba(59, 130, 246, 0.05) 40%, transparent 80%), radial-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1px)',
+            backgroundSize: '100% 100%, 20px 20px',
+            backgroundAttachment: 'fixed'
+        }}>
             {/* Header */}
             <header className="sticky top-0 z-50 bg-[#0B0E14]/80 backdrop-blur-xl border-b border-white/5">
                 <div className="container mx-auto px-6 h-16 flex items-center justify-between">
@@ -298,7 +302,7 @@ const ScheduledMeetings = () => {
                         </button>
                         <button
                             onClick={() => setShowCreateForm(true)}
-                            className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-lg transition-colors"
+                            className="flex items-center gap-2 px-5 py-2.5 bg-white text-black hover:bg-slate-200 rounded-md transition-all font-semibold text-sm shadow-lg"
                         >
                             <Plus size={18} />
                             Create Schedule
@@ -322,7 +326,7 @@ const ScheduledMeetings = () => {
                         </p>
                         <button
                             onClick={() => setShowCreateForm(true)}
-                            className="inline-flex items-center gap-2 px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-lg transition-colors"
+                            className="inline-flex items-center gap-2 px-6 py-3 bg-white text-black hover:bg-slate-200 rounded-md transition-all font-semibold shadow-lg"
                         >
                             <Plus size={18} />
                             Create Schedule
@@ -398,7 +402,7 @@ const ScheduledMeetings = () => {
                                         {meeting.status === 'scheduled' && (
                                             <button
                                                 onClick={() => handleTriggerMeeting(meeting._id, meeting.title)}
-                                                className="flex items-center justify-center gap-2 w-full py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg transition-colors text-sm font-medium"
+                                                className="flex items-center justify-center gap-2 w-full py-2.5 bg-white text-black hover:bg-slate-200 rounded-md transition-all text-sm font-semibold shadow-md"
                                             >
                                                 <Video size={14} />
                                                 Start Bot Now

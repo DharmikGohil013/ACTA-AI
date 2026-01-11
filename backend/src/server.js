@@ -1085,6 +1085,51 @@ app.put('/api/meetings/:id/save-transcript', optionalAuth, async (req, res) => {
     }
 });
 
+// 2.4 Save Tasks Data (from task extraction)
+app.put('/api/meetings/:id/save-tasks', optionalAuth, async (req, res) => {
+    try {
+        const meetingId = req.params.id;
+        const { extractedTasks } = req.body;
+
+        console.log('[Server] Saving tasks for meeting:', meetingId);
+
+        if (!extractedTasks || !Array.isArray(extractedTasks)) {
+            return res.status(400).json({ error: 'Invalid tasks data' });
+        }
+
+        const meeting = await Meeting.findByIdAndUpdate(
+            meetingId,
+            { 
+                extractedTasks: extractedTasks,
+                tasksUpdatedAt: new Date()
+            },
+            { new: true }
+        );
+
+        if (!meeting) {
+            return res.status(404).json({ error: 'Meeting not found' });
+        }
+
+        console.log('[Server] Tasks saved successfully:', meetingId, '-', extractedTasks.length, 'tasks');
+        
+        // Emit update to connected clients
+        global.io.emit('meetingUpdate', { 
+            meetingId: meetingId.toString(), 
+            status: 'tasks-saved',
+            message: `${extractedTasks.length} tasks saved to database` 
+        });
+
+        res.json({ 
+            success: true, 
+            message: `${extractedTasks.length} tasks saved successfully`,
+            meeting 
+        });
+    } catch (err) {
+        console.error('[Server] Save tasks error:', err);
+        res.status(500).json({ error: 'Failed to save tasks' });
+    }
+});
+
 // 3. Update Meeting
 app.patch('/api/meetings/:id', async (req, res) => {
     try {
@@ -1694,14 +1739,24 @@ app.post('/api/meetings/:id/extract-tasks', optionalAuth, async (req, res) => {
         // Extract tasks using OpenAI
         const tasks = await taskExtractionService.extractTasksFromTranscript(meeting.transcription);
 
-        // Save tasks to meeting
+        // Save tasks to meeting with timestamp (auto-save)
         const updatedMeeting = await Meeting.findByIdAndUpdate(
             req.params.id,
-            { extractedTasks: tasks },
+            { 
+                extractedTasks: tasks,
+                tasksUpdatedAt: new Date() // Auto-save timestamp
+            },
             { new: true }
         );
 
-        console.log(`[Server] Successfully extracted ${tasks.length} tasks`);
+        console.log(`[Server] ✅ Successfully extracted and auto-saved ${tasks.length} tasks`);
+        
+        // Emit update to connected clients
+        global.io.emit('meetingUpdate', { 
+            meetingId: req.params.id.toString(), 
+            status: 'tasks-saved',
+            message: `${tasks.length} tasks extracted and saved automatically` 
+        });
 
         res.json({
             success: true,

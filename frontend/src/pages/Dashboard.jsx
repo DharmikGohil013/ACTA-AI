@@ -79,6 +79,7 @@ const Dashboard = () => {
     const [searchQuery, setSearchQuery] = useState(''); // Search functionality
     const [activeFilters, setActiveFilters] = useState([]); // Active filter tags
     const [savingTranscript, setSavingTranscript] = useState({}); // Track saving state per meeting
+    const [savingTasks, setSavingTasks] = useState({}); // Track saving tasks state per meeting
     const audioRefs = useRef({});
     const socketRef = useRef(null);
 
@@ -305,6 +306,39 @@ const Dashboard = () => {
             }
         } catch (err) {
             console.error('[Auto-Save] Error:', err);
+        }
+    };
+
+    const saveTasks = async (meeting) => {
+        const meetingId = meeting._id;
+        
+        if (!meeting.extractedTasks || meeting.extractedTasks.length === 0) {
+            alert('No tasks available to save. Please extract tasks first.');
+            return;
+        }
+
+        setSavingTasks(prev => ({ ...prev, [meetingId]: true }));
+        
+        try {
+            const response = await axios.put(
+                `${API_URL}/api/meetings/${meetingId}/save-tasks`,
+                {
+                    extractedTasks: meeting.extractedTasks
+                }
+            );
+
+            if (response.data.success) {
+                setMeetings(prev => prev.map(m =>
+                    m._id === meetingId ? response.data.meeting : m
+                ));
+                alert(`✅ ${meeting.extractedTasks.length} tasks saved to database successfully!`);
+            }
+        } catch (err) {
+            console.error('Error saving tasks:', err);
+            const errorMsg = err.response?.data?.error || 'Failed to save tasks';
+            alert(`❌ Error: ${errorMsg}`);
+        } finally {
+            setSavingTasks(prev => ({ ...prev, [meetingId]: false }));
         }
     };
 
@@ -1006,7 +1040,28 @@ const Dashboard = () => {
                                                             ) : (
                                                                 <>
                                                                     <Download size={14} />
-                                                                    Save to Database
+                                                                    Save Transcript to DB
+                                                                </>
+                                                            )}
+                                                        </button>
+                                                    )}
+                                                    
+                                                    {/* Save Tasks button - Optional manual save (auto-saves on extraction) */}
+                                                    {meeting.extractedTasks && meeting.extractedTasks.length > 0 && (
+                                                        <button
+                                                            onClick={() => saveTasks(meeting)}
+                                                            disabled={savingTasks[meeting._id]}
+                                                            className="w-full py-2 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 text-blue-400 text-xs font-semibold transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                        >
+                                                            {savingTasks[meeting._id] ? (
+                                                                <>
+                                                                    <Loader2 size={14} className="animate-spin" />
+                                                                    Saving...
+                                                                </>
+                                                            ) : (
+                                                                <>
+                                                                    <CheckCircle2 size={14} />
+                                                                    Re-save Tasks ({meeting.extractedTasks.length})
                                                                 </>
                                                             )}
                                                         </button>

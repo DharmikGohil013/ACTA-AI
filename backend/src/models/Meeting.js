@@ -84,6 +84,10 @@ const MeetingSchema = new mongoose.Schema({
     type: Array,
     default: [],
   },
+  tasksUpdatedAt: {
+    type: Date,
+    default: null,
+  },
   taskIntegrations: {
     type: Array,
     default: [],

@@ -368,8 +368,8 @@ const Upload = () => {
                         <p>Assembly AI identifies individual speakers and creates a timeline</p>
                     </div>
                     <div className="flex items-start gap-3">
-                        <div className="w-6 h-6 rounded-full bg-purple-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-                            <span className="text-purple-400 font-semibold">4</span>
+                        <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                            <span className="text-white font-semibold">4</span>
                         </div>
                         <p>Results appear in your Dashboard alongside bot-recorded meetings</p>
                     </div>

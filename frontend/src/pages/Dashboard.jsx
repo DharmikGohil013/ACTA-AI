@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { io } from 'socket.io-client';
-import { Play, Pause, Mic, X, Trash2, Calendar, Clock, ExternalLink, StopCircle, Loader2, Volume2, Download, FileAudio, Wifi, WifiOff, FileText, Sparkles, Users, MoreVertical, CheckCircle2 } from 'lucide-react';
+import { Play, Pause, Mic, X, Trash2, Calendar, Clock, ExternalLink, StopCircle, Loader2, Volume2, Download, FileAudio, Wifi, WifiOff, FileText, Sparkles, Users, MoreVertical, CheckCircle2, Search } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Loader from '../components/Loader';
 
@@ -80,6 +80,9 @@ const Dashboard = () => {
     const [activeFilters, setActiveFilters] = useState([]); // Active filter tags
     const [savingTranscript, setSavingTranscript] = useState({}); // Track saving state per meeting
     const [savingTasks, setSavingTasks] = useState({}); // Track saving tasks state per meeting
+    const [aiSearchMode, setAiSearchMode] = useState(false); // AI search mode
+    const [aiSearching, setAiSearching] = useState(false); // AI search loading
+    const [aiSearchResults, setAiSearchResults] = useState([]); // AI search results
     const audioRefs = useRef({});
     const socketRef = useRef(null);
 
@@ -616,15 +619,15 @@ const Dashboard = () => {
         const message = live?.message || '';
 
         switch (status) {
-            case 'starting': return { color: 'bg-white/20', text: 'Live', pulse: true, message };
-            case 'navigating': return { color: 'bg-white/20', text: 'Live', pulse: true, message };
-            case 'joining': return { color: 'bg-white/30', text: 'Live', pulse: true, message };
-            case 'waiting': return { color: 'bg-white/30', text: 'Live', pulse: true, message };
-            case 'in-meeting': return { color: 'bg-white/40', text: 'Live', pulse: true, message };
-            case 'recording': return { color: 'bg-white/50', text: 'Live', pulse: true, message: live?.size ? `${live.size} MB` : message };
-            case 'completed': return { color: 'bg-white/60', text: 'Completed', pulse: false, message };
-            case 'failed': return { color: 'bg-slate-500', text: 'Failed', pulse: false, message };
-            default: return { color: 'bg-white/20', text: status || 'Pending', pulse: false, message };
+            case 'starting': return { color: 'bg-white/20', text: 'Live', pulse: true, message, cardBg: 'bg-[#0B0E14]', cardBgHover: 'group-hover:bg-[#0B0E14]' };
+            case 'navigating': return { color: 'bg-white/20', text: 'Live', pulse: true, message, cardBg: 'bg-[#0B0E14]', cardBgHover: 'group-hover:bg-[#0B0E14]' };
+            case 'joining': return { color: 'bg-white/30', text: 'Live', pulse: true, message, cardBg: 'bg-[#0B0E14]', cardBgHover: 'group-hover:bg-[#0B0E14]' };
+            case 'waiting': return { color: 'bg-white/30', text: 'Live', pulse: true, message, cardBg: 'bg-[#0B0E14]', cardBgHover: 'group-hover:bg-[#0B0E14]' };
+            case 'in-meeting': return { color: 'bg-white/40', text: 'Live', pulse: true, message, cardBg: 'bg-[#0B0E14]', cardBgHover: 'group-hover:bg-[#0B0E14]' };
+            case 'recording': return { color: 'bg-white/50', text: 'Live', pulse: true, message: live?.size ? `${live.size} MB` : message, cardBg: 'bg-[#0B0E14]', cardBgHover: 'group-hover:bg-[#0B0E14]' };
+            case 'completed': return { color: 'bg-emerald-500', text: 'Completed', pulse: false, message, cardBg: 'bg-emerald-500/5', cardBgHover: 'group-hover:bg-emerald-500/10' };
+            case 'failed': return { color: 'bg-red-500', text: 'Failed', pulse: false, message, cardBg: 'bg-red-500/5', cardBgHover: 'group-hover:bg-red-500/10' };
+            default: return { color: 'bg-white/20', text: status || 'Pending', pulse: false, message, cardBg: 'bg-[#0B0E14]', cardBgHover: 'group-hover:bg-[#0B0E14]' };
         }
     };
 
@@ -635,10 +638,51 @@ const Dashboard = () => {
         );
     };
 
+    // AI Search through transcripts
+    const handleAiSearch = async () => {
+        if (!searchQuery.trim() || !aiSearchMode) return;
+
+        setAiSearching(true);
+        try {
+            const response = await axios.post(`${API_URL}/api/meetings/ai-search`, {
+                query: searchQuery,
+                meetings: meetings.map(m => ({
+                    id: m._id,
+                    name: m.meetingName || m.extraData?.topic || 'Meeting',
+                    transcript: m.transcription || m.liveTranscriptFull || '',
+                    date: m.createdAt
+                }))
+            });
+
+            if (response.data.success) {
+                setAiSearchResults(response.data.relevantMeetingIds || []);
+            }
+        } catch (error) {
+            console.error('AI search error:', error);
+            alert('Failed to perform AI search. Please try again.');
+        } finally {
+            setAiSearching(false);
+        }
+    };
+
+    // Toggle AI search mode
+    const toggleAiSearch = () => {
+        setAiSearchMode(!aiSearchMode);
+        if (aiSearchMode) {
+            // Turning off AI mode
+            setAiSearchResults([]);
+        }
+    };
+
     // Filter meetings based on search query and active filters
     const filteredMeetings = meetings.filter(meeting => {
         const platform = getPlatformDetails(meeting.meetingLink);
         const statusInfo = getStatusInfo(meeting);
+
+        // AI Search Mode - only show AI-matched meetings
+        if (aiSearchMode && aiSearchResults.length > 0) {
+            return aiSearchResults.includes(meeting._id);
+        }
 
         // Apply active filters
         if (activeFilters.length > 0) {
@@ -693,32 +737,57 @@ const Dashboard = () => {
 
     return (
         <div className="max-w-[1400px] mx-auto w-full px-6 py-8">
-            <header className="flex justify-between items-center mb-10">
-                <div className="flex items-center gap-4">
+            <header className="flex items-center justify-between gap-8 mb-10">
+                <div className="flex items-center gap-4 flex-shrink-0">
                     <h1 className="text-3xl font-bold tracking-tight text-white">Meetings Archive</h1>
                     <div className="h-6 w-px bg-white/10"></div>
-                    <p className="text-gray-400 font-medium flex items-center gap-2 text-sm">
-                        <Volume2 size={16} className="text-white" />
+                    <p className="text-gray-400 font-medium flex items-center gap-2 text-sm whitespace-nowrap">
+                        <Mic size={16} className="text-white" />
                         {meetings.filter(m => m.audioPath).length} Recordings
                     </p>
                 </div>
 
-                {/* Search Bar - Fully Functional */}
-                <div className="flex-1 max-w-xl mx-8 hidden md:block">
-                    <div className="relative group">
+                {/* Search Bar - AI Enhanced */}
+                <div className="flex-1 flex justify-center items-center gap-3 px-8">
+                    <div className="relative group w-full max-w-3xl">
                         <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-white/5 rounded-full blur-md opacity-0 group-hover:opacity-100 transition-opacity" />
-                        <div className="relative flex items-center bg-[#0B0E14] border border-white/10 rounded-full px-4 py-2.5 focus-within:border-white/50 transition-colors">
-                            <Sparkles size={16} className="text-gray-500 mr-2" />
+                        <div className={`relative flex items-center bg-[#0B0E14] border rounded-full px-4 py-2.5 transition-all ${
+                            aiSearchMode ? 'border-purple-500/50 shadow-[0_0_20px_rgba(168,85,247,0.15)]' : 'border-white/10 focus-within:border-white/50'
+                        }`}>
+                            <Search size={16} className={aiSearchMode ? 'text-purple-400' : 'text-gray-500'} />
                             <input
                                 type="text"
-                                placeholder="Search Meetings by name, platform, participant..."
+                                placeholder={aiSearchMode ? "Ask AI: Find meetings about tasks, topics, or discussions..." : "Search Meetings by name, platform, participant..."}
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                className="bg-transparent border-none outline-none text-sm text-white w-full placeholder-gray-600"
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' && aiSearchMode && searchQuery.trim()) {
+                                        handleAiSearch();
+                                    }
+                                }}
+                                className="bg-transparent border-none outline-none text-sm text-white w-full placeholder-gray-600 mx-2"
                             />
+                            {aiSearchMode && searchQuery && (
+                                <button
+                                    onClick={handleAiSearch}
+                                    disabled={aiSearching}
+                                    className="flex items-center gap-1 px-3 py-1.5 bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 rounded-full text-xs font-semibold transition-colors disabled:opacity-50"
+                                    title="Search with AI"
+                                >
+                                    {aiSearching ? (
+                                        <Loader2 size={12} className="animate-spin" />
+                                    ) : (
+                                        <Sparkles size={12} />
+                                    )}
+                                    <span>Search</span>
+                                </button>
+                            )}
                             {searchQuery && (
                                 <button
-                                    onClick={() => setSearchQuery('')}
+                                    onClick={() => {
+                                        setSearchQuery('');
+                                        setAiSearchResults([]);
+                                    }}
                                     className="text-gray-500 hover:text-gray-300 ml-2"
                                 >
                                     <X size={16} />
@@ -726,10 +795,22 @@ const Dashboard = () => {
                             )}
                         </div>
                     </div>
+                    
+                    {/* AI Toggle Button */}
+                    <button
+                        onClick={toggleAiSearch}
+                        className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center transition-all ${
+                            aiSearchMode 
+                                ? 'bg-purple-500/20 border-2 border-purple-500/50 text-purple-400 shadow-[0_0_20px_rgba(168,85,247,0.2)]' 
+                                : 'bg-white/5 border border-white/10 text-gray-400 hover:bg-white/10 hover:text-white'
+                        }`}
+                        title={aiSearchMode ? "Switch to Normal Search" : "AI Search (Search through transcripts)"}
+                    >
+                        <Sparkles size={16} className={aiSearchMode ? 'animate-pulse' : ''} />
+                    </button>
                 </div>
 
-                <div className="flex items-center gap-3">
-                </div>
+                <div className="flex-shrink-0 w-[50px]"></div>
             </header>
 
             {/* Filter Chips */}
@@ -861,7 +942,7 @@ const Dashboard = () => {
                                 {/* Glow Effect */}
                                 <div className={`absolute -inset-0.5 rounded-2xl bg-gradient-to-br ${platform.border} opacity-50 blur opacity-0 group-hover:opacity-100 transition duration-500`}></div>
 
-                                <div className="relative bg-[#0B0E14] rounded-2xl overflow-hidden h-full flex flex-col border border-white/10 group-hover:border-white/20 transition-colors">
+                                <div className={`relative ${statusInfo.cardBg} ${statusInfo.cardBgHover} rounded-2xl overflow-hidden h-full flex flex-col border border-white/10 group-hover:border-white/20 transition-all duration-300`}>
 
                                     {/* Header */}
                                     <div className="p-5 pb-0">
@@ -912,26 +993,20 @@ const Dashboard = () => {
 
                                     {/* Body */}
                                     <div className="flex-1 px-5 py-2">
-                                        <div className="bg-[#1C1F2E] rounded-xl p-4 min-h-[100px] border border-white/5 relative group/content">
-                                            {meeting.transcription ? (
-                                                <>
-                                                    <p className="text-gray-400 text-sm line-clamp-3 leading-relaxed">
-                                                        {meeting.transcription}
-                                                    </p>
-                                                    <div className="absolute top-2 right-2 opacity-0 group-hover/content:opacity-100 transition-opacity">
-                                                        <Sparkles size={12} className="text-white" />
-                                                    </div>
-                                                </>
-                                            ) : (
-                                                <div className="h-full flex flex-col items-center justify-center text-gray-600 gap-2">
-                                                    <div className="w-full space-y-2 opacity-30">
-                                                        <div className="h-2 bg-gray-500 rounded w-3/4"></div>
-                                                        <div className="h-2 bg-gray-500 rounded w-full"></div>
-                                                        <div className="h-2 bg-gray-500 rounded w-1/2"></div>
-                                                    </div>
+                                        {meeting.transcription ? (
+                                            <div className="bg-[#1C1F2E] rounded-xl p-4 min-h-[100px] border border-white/5 relative group/content">
+                                                <p className="text-gray-400 text-sm line-clamp-3 leading-relaxed">
+                                                    {meeting.transcription}
+                                                </p>
+                                                <div className="absolute top-2 right-2 opacity-0 group-hover/content:opacity-100 transition-opacity">
+                                                    <Sparkles size={12} className="text-white" />
                                                 </div>
-                                            )}
-                                        </div>
+                                            </div>
+                                        ) : (
+                                            <div className="flex items-center justify-center h-[100px] text-gray-500 text-sm">
+                                                Transcript not available
+                                            </div>
+                                        )}
                                     </div>
 
                                     {/* Footer */}

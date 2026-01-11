@@ -11,13 +11,13 @@ const crypto = require('crypto');
 const puppeteer = require('puppeteer');
 const multer = require('multer');
 const fs = require('fs').promises;
-const { GoogleGenAI, Type } = require("@google/genai");
+const { GoogleGenerativeAI } = require("@google/generative-ai");
 
 // Load environment variables FIRST
 dotenv.config();
 
 // Initialize Gemini AI
-const geminiAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 // Import passport AFTER env vars are loaded
 const passport = require('./config/passport');
@@ -1313,6 +1313,91 @@ app.put('/api/meetings/:id/speaker-name', optionalAuth, dashboardController.upda
 // Download dashboard as PDF
 app.get('/api/meetings/:id/download-pdf', optionalAuth, dashboardController.downloadDashboardPDF);
 
+// AI Search through meeting transcripts
+app.post('/api/meetings/ai-search', optionalAuth, async (req, res) => {
+    try {
+        const { query, meetings } = req.body;
+
+        if (!query || !meetings || meetings.length === 0) {
+            return res.status(400).json({ success: false, error: 'Query and meetings are required' });
+        }
+
+        // Filter out meetings without transcripts
+        const meetingsWithTranscripts = meetings.filter(m => m.transcript && m.transcript.trim());
+
+        if (meetingsWithTranscripts.length === 0) {
+            return res.json({ success: true, relevantMeetingIds: [], message: 'No meetings with transcripts found' });
+        }
+
+        // Prepare context for Gemini
+        const meetingsContext = meetingsWithTranscripts.map(m => 
+            `Meeting ID: ${m.id}\nMeeting Name: ${m.name}\nDate: ${new Date(m.date).toLocaleDateString()}\nTranscript: ${m.transcript.substring(0, 3000)}`
+        ).join('\n\n---\n\n');
+
+        const prompt = `You are an AI assistant helping to search through meeting transcripts.
+
+User Query: "${query}"
+
+Below are the available meetings with their transcripts:
+
+${meetingsContext}
+
+Based on the user's query, identify which meetings are most relevant. Consider:
+- Direct mentions of the topics, tasks, or keywords
+- Context and related discussions
+- Action items and decisions related to the query
+
+Return ONLY a JSON array of meeting IDs that are relevant to the query, ordered by relevance (most relevant first).
+If no meetings are relevant, return an empty array.
+
+Format: ["meetingId1", "meetingId2", ...]
+
+Do not include any explanation, just the JSON array.`;
+
+        // Call Gemini AI
+        const model = genAI.getGenerativeModel({ 
+            model: "gemini-2.0-flash-exp",
+            generationConfig: {
+                temperature: 0.3,
+                topP: 0.8,
+                topK: 40,
+                maxOutputTokens: 500,
+            }
+        });
+
+        const result = await model.generateContent(prompt);
+        const responseText = result.response.text().trim();
+
+        // Parse the JSON response
+        let relevantMeetingIds = [];
+        try {
+            // Remove markdown code blocks if present
+            const cleanedResponse = responseText.replace(/```json\n?|\n?```/g, '').trim();
+            relevantMeetingIds = JSON.parse(cleanedResponse);
+        } catch (parseError) {
+            console.error('Failed to parse AI response:', responseText);
+            // Fallback: try to extract meeting IDs from the response
+            const idMatches = responseText.match(/[a-f0-9]{24}/g);
+            if (idMatches) {
+                relevantMeetingIds = [...new Set(idMatches)];
+            }
+        }
+
+        res.json({ 
+            success: true, 
+            relevantMeetingIds,
+            totalSearched: meetingsWithTranscripts.length
+        });
+
+    } catch (error) {
+        console.error('AI search error:', error);
+        res.status(500).json({ 
+            success: false, 
+            error: 'Failed to perform AI search',
+            details: error.message 
+        });
+    }
+});
 
 
 // 5. Delete Meeting

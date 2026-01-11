@@ -118,18 +118,24 @@ const Navigation = () => {
 
                 {/* Center Links */}
                 <div className="flex items-center gap-8">
-                    {navItems.map(item => (
-                        <Link
-                            key={item.path}
-                            to={item.path}
-                            className={`text-sm font-medium transition-all duration-200 ${location.pathname === item.path
-                                ? 'text-white'
-                                : 'text-slate-400 hover:text-white'
-                                }`}
-                        >
-                            {item.label}
-                        </Link>
-                    ))}
+                    {navItems.map(item => {
+                        const isActive = item.path === '/dashboard' 
+                            ? location.pathname === item.path || location.pathname.startsWith('/dashboard/')
+                            : location.pathname === item.path;
+                        
+                        return (
+                            <Link
+                                key={item.path}
+                                to={item.path}
+                                className={`text-sm font-medium transition-all duration-200 ${isActive
+                                    ? 'text-white'
+                                    : 'text-slate-400 hover:text-white'
+                                    }`}
+                            >
+                                {item.label}
+                            </Link>
+                        );
+                    })}
                 </div>
 
                 {/* Right Side - Settings & Profile */}

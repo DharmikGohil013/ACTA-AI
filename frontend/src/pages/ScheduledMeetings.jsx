@@ -270,8 +270,8 @@ const ScheduledMeetings = () => {
 
     return (
         <div className="min-h-screen bg-[#050505] text-slate-100" style={{
-            backgroundImage: 'radial-gradient(circle at 50% 50%, rgba(59, 130, 246, 0.15) 0%, rgba(59, 130, 246, 0.05) 40%, transparent 80%), radial-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1px)',
-            backgroundSize: '100% 100%, 20px 20px',
+            backgroundImage: 'radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.03) 0%, transparent 80%), radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px)',
+            backgroundSize: '100% 100%, 24px 24px',
             backgroundAttachment: 'fixed'
         }}>
             {/* Header */}
@@ -294,10 +294,10 @@ const ScheduledMeetings = () => {
                     <div className="flex items-center gap-3">
                         <button
                             onClick={() => setShowGeminiModal(true)}
-                            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-semibold rounded-lg transition-all shadow-lg shadow-purple-500/20"
+                            className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 text-white rounded-md transition-all font-medium text-sm"
                             title="Generate with Gemini AI"
                         >
-                            <Sparkles size={18} />
+                            <Sparkles size={18} className="text-slate-400" />
                             <span className="hidden sm:inline">AI Bot</span>
                         </button>
                         <button

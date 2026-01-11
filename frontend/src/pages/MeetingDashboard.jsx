@@ -367,10 +367,24 @@ const MeetingDashboard = () => {
                     </div>
 
                     <div className="flex items-center gap-3">
-                        <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 rounded-full">
-                            <Zap size={14} className="text-emerald-400 fill-emerald-400/20" />
-                            <span className="text-xs font-bold text-emerald-400 uppercase tracking-wide">AI Analysis Active</span>
-                        </div>
+                        <button
+                            onClick={generateAnalysis}
+                            disabled={generating}
+                            className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            title="Regenerate AI Analysis"
+                        >
+                            {generating ? (
+                                <>
+                                    <Loader2 size={16} className="animate-spin" />
+                                    <span>Regenerating...</span>
+                                </>
+                            ) : (
+                                <>
+                                    <Sparkles size={16} />
+                                    <span>Load</span>
+                                </>
+                            )}
+                        </button>
                         <button
                             onClick={handleDownloadPDF}
                             disabled={downloadingPDF}
@@ -396,24 +410,6 @@ const MeetingDashboard = () => {
                             title="Refresh Data"
                         >
                             <RefreshCw size={18} className={reloading ? 'animate-spin' : ''} />
-                        </button>
-                        <button
-                            onClick={generateAnalysis}
-                            disabled={generating}
-                            className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                            title="Regenerate AI Analysis"
-                        >
-                            {generating ? (
-                                <>
-                                    <Loader2 size={16} className="animate-spin" />
-                                    <span>Regenerating...</span>
-                                </>
-                            ) : (
-                                <>
-                                    <Sparkles size={16} />
-                                    <span>Regenerate</span>
-                                </>
-                            )}
                         </button>
                     </div>
                 </div>
@@ -688,7 +684,7 @@ const OverviewTab = ({ data, meetingId }) => {
                 <StatCard label="Duration" value={data.totalDuration} icon={<Clock size={16} className="text-blue-400" />} />
                 <StatCard label="Action Items" value={data.actionItemCount || data.actionItems?.length || 0} icon={<CheckCircle2 size={16} className="text-emerald-400" />} />
                 <StatCard label="Decisions" value={data.decisions?.length || 0} icon={<ShieldCheck size={16} className="text-purple-400" />} />
-                <StatCard label="Sentiment" value={data.overallSentiment} icon={<Zap size={16} className="text-amber-400" />} />
+                <StatCard label="Sentiment" value={data.overallSentiment} icon={<Zap size={16} className="text-white" />} />
             </div>
 
             {/* Speakers Section */}
@@ -699,8 +695,16 @@ const OverviewTab = ({ data, meetingId }) => {
                 </h3>
                 <div className="space-y-3">
                     {participants?.map((speaker, i) => {
-                        const colors = ['bg-blue-500', 'bg-emerald-500', 'bg-orange-500', 'bg-pink-500', 'bg-purple-500', 'bg-cyan-500', 'bg-yellow-500', 'bg-red-500'];
-                        const color = colors[i % colors.length];
+                        const colors = [
+                            'bg-[#000000]', // Black
+                            'bg-[#1F3345]', // Navy
+                            'bg-[#B54745]', // Red
+                            'bg-[#C78F57]', // Gold
+                            'bg-[#85ABAB]', // Sea Green
+                            'bg-[#F0EDE5]'  // Beige
+                        ];
+                        // If 7th+ speaker, choose a random color from the palette
+                        const color = i < 6 ? colors[i] : colors[Math.floor(Math.random() * colors.length)];
 
                         // Use letter-based naming (A, B, C, D) when speaker name matches generic pattern
                         const isGenericSpeaker = speaker.name?.match(/^Speaker \d+$/);
@@ -712,7 +716,7 @@ const OverviewTab = ({ data, meetingId }) => {
 
                         return (
                             <div key={i} className="group flex items-center gap-3 p-3 bg-[#0B0E14] rounded-xl border border-white/5 hover:border-white/10 transition-colors">
-                                <div className={`w-10 h-10 rounded-xl ${color} flex items-center justify-center text-white font-bold text-sm flex-shrink-0`}>
+                                <div className={`w-10 h-10 rounded-xl ${color} flex items-center justify-center ${color === 'bg-[#F0EDE5]' ? 'text-gray-800' : 'text-white'} font-bold text-sm flex-shrink-0`}>
                                     {initial}
                                 </div>
                                 <div className="flex-1 min-w-0">
@@ -863,7 +867,7 @@ const OverviewTab = ({ data, meetingId }) => {
                 {/* Productivity Hub */}
                 <div className="bg-[#1C1F2E] rounded-3xl p-6 border border-white/5 shadow-sm flex flex-col h-[400px]">
                     <div className="flex items-center justify-between mb-6">
-                        <h3 className="text-lg font-bold text-white">Productivity Hub</h3>
+                        <h3 className="text-lg font-bold text-white">Productivity</h3>
                         <div className="flex bg-[#0B0E14] p-1 rounded-lg">
                             {['email', 'slack', 'risks'].map(tab => (
                                 <button
@@ -1165,7 +1169,7 @@ const AnalyticsTab = ({ data }) => {
                                     contentStyle={{ backgroundColor: '#0F172A', border: '1px solid #1e293b', borderRadius: '12px', color: '#fff' }}
                                     cursor={{ fill: '#ffffff05' }}
                                 />
-                                <Bar dataKey="contribution" fill="#10b981" radius={[0, 4, 4, 0]} barSize={24} />
+                                <Bar dataKey="contribution" fill="#ffffff" radius={[0, 4, 4, 0]} barSize={24} />
                             </BarChart>
                         </ResponsiveContainer>
                     </div>
@@ -1187,7 +1191,7 @@ const AnalyticsTab = ({ data }) => {
                                     dataKey="percentage"
                                 >
                                     {topics.map((entry, index) => (
-                                        <Cell key={`cell-${index}`} fill={['#10b981', '#3b82f6', '#8b5cf6', '#f59e0b', '#ef4444'][index % 5]} />
+                                        <Cell key={`cell-${index}`} fill={['#ffffff', '#ffffff99', '#ffffff80', '#ffffff66', '#ffffff4d'][index % 5]} />
                                     ))}
                                 </Pie>
                                 <Tooltip contentStyle={{ backgroundColor: '#0F172A', border: '1px solid #1e293b', borderRadius: '12px', color: '#fff' }} />
@@ -1209,7 +1213,7 @@ const AnalyticsTab = ({ data }) => {
                 <div className="grid gap-4 md:grid-cols-2">
                     {data.topicBreakdown?.map((item, i) => (
                         <div key={i} className="bg-[#0B0E14] p-5 rounded-2xl border border-white/5">
-                            <h4 className="text-base font-bold text-emerald-400 mb-2">{item.topic}</h4>
+                            <h4 className="text-base font-bold text-white mb-2">{item.topic}</h4>
                             <p className="text-sm text-slate-300 mb-4">{item.details}</p>
                             <div className="flex flex-wrap gap-2">
                                 {item.subtopics?.map((sub, j) => (
@@ -1230,13 +1234,13 @@ const AnalyticsTab = ({ data }) => {
 const AskAiTab = ({ chatHistory, chatQuery, setChatQuery, handleAskAi, askingAi, chatEndRef, suggestedQuestions, handleSuggestedQuestion }) => {
     return (
         <div className="bg-[#1C1F2E] rounded-[2.5rem] border border-white/5 shadow-sm overflow-hidden h-[600px] flex flex-col relative">
-            <div className="absolute inset-0 bg-gradient-to-b from-emerald-500/5 to-transparent pointer-events-none"></div>
+            <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent pointer-events-none"></div>
 
             {/* Messages Area */}
             <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
                 {chatHistory.length === 0 && (
                     <div className="h-full flex flex-col items-center justify-center text-center">
-                        <Zap size={64} className="text-emerald-500 mb-4 opacity-40" />
+                        <Zap size={64} className="text-white mb-4 opacity-40" />
                         <h3 className="text-2xl font-bold text-white mb-2">Ask AI about the meeting</h3>
                         <p className="text-sm text-gray-400 mb-6">Powered by Google Gemini AI</p>
 
@@ -1248,10 +1252,10 @@ const AskAiTab = ({ chatHistory, chatQuery, setChatQuery, handleAskAi, askingAi,
                                     <button
                                         key={idx}
                                         onClick={() => handleSuggestedQuestion(question)}
-                                        className="text-left p-4 bg-[#0B0E14] hover:bg-emerald-500/10 border border-white/10 hover:border-emerald-500/30 rounded-xl text-sm text-slate-300 transition-all group"
+                                        className="text-left p-4 bg-[#0B0E14] hover:bg-white/10 border border-white/10 hover:border-white/20 rounded-xl text-sm text-slate-300 transition-all group"
                                     >
                                         <span className="flex items-center gap-2">
-                                            <MessageSquare size={14} className="text-emerald-400 opacity-60 group-hover:opacity-100" />
+                                            <MessageSquare size={14} className="text-white opacity-60 group-hover:opacity-100" />
                                             {question}
                                         </span>
                                     </button>
@@ -1264,18 +1268,18 @@ const AskAiTab = ({ chatHistory, chatQuery, setChatQuery, handleAskAi, askingAi,
                 {chatHistory.map((msg, i) => (
                     <div key={i} className={`flex gap-4 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                         {msg.role === 'ai' && (
-                            <div className="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400 border border-emerald-500/30 flex-shrink-0">
+                            <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-white border border-white/30 flex-shrink-0">
                                 <Zap size={14} />
                             </div>
                         )}
                         <div className={`max-w-[80%] p-4 rounded-2xl text-sm leading-relaxed ${msg.role === 'user'
-                            ? 'bg-emerald-600 text-white rounded-br-none'
+                            ? 'bg-white/10 text-white rounded-br-none'
                             : 'bg-[#0B0E14] text-slate-200 border border-white/10 rounded-bl-none'
                             }`}>
                             {msg.content}
                         </div>
                         {msg.role === 'user' && (
-                            <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-white flex-shrink-0">
+                            <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-white flex-shrink-0">
                                 <User size={14} />
                             </div>
                         )}
@@ -1283,13 +1287,13 @@ const AskAiTab = ({ chatHistory, chatQuery, setChatQuery, handleAskAi, askingAi,
                 ))}
                 {askingAi && (
                     <div className="flex gap-4 justify-start">
-                        <div className="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400 border border-emerald-500/30">
+                        <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-white border border-white/30">
                             <Zap size={14} />
                         </div>
                         <div className="bg-[#0B0E14] px-4 py-3 rounded-2xl rounded-bl-none border border-white/10 flex items-center gap-2">
-                            <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-bounce"></span>
-                            <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-bounce delay-100"></span>
-                            <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-bounce delay-200"></span>
+                            <span className="w-1.5 h-1.5 bg-white rounded-full animate-bounce"></span>
+                            <span className="w-1.5 h-1.5 bg-white rounded-full animate-bounce delay-100"></span>
+                            <span className="w-1.5 h-1.5 bg-white rounded-full animate-bounce delay-200"></span>
                         </div>
                     </div>
                 )}
@@ -1306,7 +1310,7 @@ const AskAiTab = ({ chatHistory, chatQuery, setChatQuery, handleAskAi, askingAi,
                                 key={idx}
                                 onClick={() => handleSuggestedQuestion(question)}
                                 disabled={askingAi}
-                                className="text-xs px-3 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 hover:border-emerald-500/40 text-emerald-400 rounded-full transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="text-xs px-3 py-1.5 bg-white/10 hover:bg-white/20 border border-white/20 hover:border-white/40 text-white rounded-full transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 {question}
                             </button>
@@ -1321,12 +1325,12 @@ const AskAiTab = ({ chatHistory, chatQuery, setChatQuery, handleAskAi, askingAi,
                         onChange={(e) => setChatQuery(e.target.value)}
                         placeholder="Ask anything about the meeting..."
                         disabled={askingAi}
-                        className="w-full bg-[#1C1F2E] border border-white/10 rounded-xl pl-4 pr-12 py-3.5 text-sm text-white focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all placeholder:text-gray-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="w-full bg-[#1C1F2E] border border-white/10 rounded-xl pl-4 pr-12 py-3.5 text-sm text-white focus:outline-none focus:border-white/50 focus:ring-1 focus:ring-white/50 transition-all placeholder:text-gray-500 disabled:opacity-50 disabled:cursor-not-allowed"
                     />
                     <button
                         type="submit"
                         disabled={!chatQuery.trim() || askingAi}
-                        className="absolute right-2 top-2 p-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="absolute right-2 top-2 p-1.5 bg-white/20 hover:bg-white/30 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         <Send size={18} />
                     </button>
@@ -1345,14 +1349,14 @@ const TranscriptTimelineTab = ({ data, exportToSRT }) => {
                 <div className="flex items-center justify-between">
                     <div>
                         <h2 className="text-2xl font-bold text-white mb-1 flex items-center gap-2">
-                            <FileText size={24} className="text-emerald-400" />
+                            <FileText size={24} className="text-white" />
                             Transcript Timeline
                         </h2>
                         <p className="text-gray-400 text-sm">Timestamped conversation with speakers (SRT Format)</p>
                     </div>
                     <button
                         onClick={exportToSRT}
-                        className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold rounded-lg transition-colors"
+                        className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 text-white text-sm font-semibold rounded-lg transition-colors"
                     >
                         <Download size={16} />
                         Export SRT
@@ -1383,7 +1387,7 @@ const TranscriptTimelineTab = ({ data, exportToSRT }) => {
                                     {/* Content */}
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-center gap-3 mb-2">
-                                            <span className="text-xs font-mono text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded border border-emerald-500/20">
+                                            <span className="text-xs font-mono text-white bg-white/10 px-2 py-1 rounded border border-white/20">
                                                 {segment.startTime}
                                             </span>
                                             <span className="text-xs text-gray-500">→</span>
@@ -1468,11 +1472,19 @@ const SpeakerTimelineVisualization = ({ data }) => {
     // Get unique speakers
     const speakers = [...new Set(data.transcriptTimeline.map(seg => seg.speaker))];
 
-    // Assign colors to speakers
+    // Assign colors to speakers - using the same 6-color palette
     const speakerColors = {};
-    const colorPalette = ['#6366f1', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6', '#14b8a6', '#f97316', '#06b6d4'];
+    const colorPalette = [
+        '#000000', // Black
+        '#1F3345', // Navy
+        '#B54745', // Red
+        '#C78F57', // Gold
+        '#85ABAB', // Sea Green
+        '#F0EDE5'  // Beige
+    ];
     speakers.forEach((speaker, idx) => {
-        speakerColors[speaker] = colorPalette[idx % colorPalette.length];
+        // If 7th+ speaker, choose a random color from the palette
+        speakerColors[speaker] = idx < 6 ? colorPalette[idx] : colorPalette[Math.floor(Math.random() * colorPalette.length)];
     });
 
     // Format time for display
@@ -1574,9 +1586,9 @@ const SentimentAnalysisTab = ({ data }) => {
     const totalNegative = speakerSentiments.reduce((acc, s) => acc + (s.negativeCount || 0), 0);
 
     const getSentimentColor = (score) => {
-        if (score >= 65) return 'text-emerald-400';
-        if (score >= 35) return 'text-yellow-400';
-        return 'text-red-400';
+        if (score >= 65) return 'text-white';
+        if (score >= 35) return 'text-white/80';
+        return 'text-white/60';
     };
 
     const getSentimentLabel = (score) => {
@@ -1587,21 +1599,13 @@ const SentimentAnalysisTab = ({ data }) => {
 
     const getSentimentIcon = (sentiment) => {
         const lower = sentiment?.toLowerCase();
-        if (lower === 'positive') return <Smile className="text-emerald-400" size={16} />;
-        if (lower === 'negative') return <Frown className="text-red-400" size={16} />;
-        return <Meh className="text-yellow-400" size={16} />;
+        if (lower === 'positive') return <Smile className="text-white" size={16} />;
+        if (lower === 'negative') return <Frown className="text-white/60" size={16} />;
+        return <Meh className="text-white/80" size={16} />;
     };
 
     const getEmotionColor = (emotion) => {
-        const colors = {
-            excited: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
-            enthusiastic: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
-            frustrated: 'bg-red-500/20 text-red-400 border-red-500/30',
-            concerned: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
-            confident: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
-            uncertain: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
-        };
-        return colors[emotion?.toLowerCase()] || 'bg-gray-500/20 text-gray-400 border-gray-500/30';
+        return 'bg-white/5 text-white border-white/10';
     };
 
     return (
@@ -1618,25 +1622,25 @@ const SentimentAnalysisTab = ({ data }) => {
                 <div className="bg-[#1C1F2E] p-6 rounded-2xl border border-white/5">
                     <div className="flex items-center justify-between mb-3">
                         <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wide">Positive</h3>
-                        <Smile className="text-emerald-400" size={20} />
+                        <Smile className="text-white" size={20} />
                     </div>
-                    <p className="text-3xl font-bold text-emerald-400">{totalPositive}</p>
+                    <p className="text-3xl font-bold text-white">{totalPositive}</p>
                     <p className="text-xs text-gray-500 mt-1">{totalStatements > 0 ? ((totalPositive / totalStatements) * 100).toFixed(1) : 0}%</p>
                 </div>
                 <div className="bg-[#1C1F2E] p-6 rounded-2xl border border-white/5">
                     <div className="flex items-center justify-between mb-3">
                         <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wide">Neutral</h3>
-                        <Meh className="text-yellow-400" size={20} />
+                        <Meh className="text-white/80" size={20} />
                     </div>
-                    <p className="text-3xl font-bold text-yellow-400">{totalNeutral}</p>
+                    <p className="text-3xl font-bold text-white/80">{totalNeutral}</p>
                     <p className="text-xs text-gray-500 mt-1">{totalStatements > 0 ? ((totalNeutral / totalStatements) * 100).toFixed(1) : 0}%</p>
                 </div>
                 <div className="bg-[#1C1F2E] p-6 rounded-2xl border border-white/5">
                     <div className="flex items-center justify-between mb-3">
                         <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wide">Negative</h3>
-                        <Frown className="text-red-400" size={20} />
+                        <Frown className="text-white/60" size={20} />
                     </div>
-                    <p className="text-3xl font-bold text-red-400">{totalNegative}</p>
+                    <p className="text-3xl font-bold text-white/60">{totalNegative}</p>
                     <p className="text-xs text-gray-500 mt-1">{totalStatements > 0 ? ((totalNegative / totalStatements) * 100).toFixed(1) : 0}%</p>
                 </div>
             </div>
@@ -1645,7 +1649,7 @@ const SentimentAnalysisTab = ({ data }) => {
                 {/* Speaker Sentiment Breakdown */}
                 <div className="bg-[#1C1F2E] rounded-2xl p-6 border border-white/5">
                     <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                        <Users className="text-emerald-400" size={20} />
+                        <Users className="text-white" size={20} />
                         Sentiment by Speaker
                     </h3>
                     <div className="space-y-4">
@@ -1659,7 +1663,7 @@ const SentimentAnalysisTab = ({ data }) => {
                                 <div key={idx} className="bg-[#0B0E14] rounded-xl p-4 border border-white/5">
                                     <div className="flex items-center justify-between mb-3">
                                         <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white font-bold text-sm">
+                                            <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-white font-bold text-sm">
                                                 {speaker.speaker?.charAt(0) || 'S'}
                                             </div>
                                             <div>
@@ -1678,26 +1682,26 @@ const SentimentAnalysisTab = ({ data }) => {
                                     {/* Sentiment distribution bar */}
                                     <div className="w-full h-2 bg-[#1C1F2E] rounded-full overflow-hidden flex">
                                         <div 
-                                            className="h-full bg-emerald-500 transition-all"
+                                            className="h-full bg-white transition-all"
                                             style={{ width: `${posPercent}%` }}
                                             title={`Positive: ${posPercent.toFixed(1)}%`}
                                         />
                                         <div 
-                                            className="h-full bg-yellow-500 transition-all"
+                                            className="h-full bg-white/60 transition-all"
                                             style={{ width: `${neuPercent}%` }}
                                             title={`Neutral: ${neuPercent.toFixed(1)}%`}
                                         />
                                         <div 
-                                            className="h-full bg-red-500 transition-all"
+                                            className="h-full bg-white/30 transition-all"
                                             style={{ width: `${negPercent}%` }}
                                             title={`Negative: ${negPercent.toFixed(1)}%`}
                                         />
                                     </div>
                                     
                                     <div className="flex gap-4 mt-2 text-xs">
-                                        <span className="text-emerald-400">{speaker.positiveCount || 0} Pos</span>
-                                        <span className="text-yellow-400">{speaker.neutralCount || 0} Neu</span>
-                                        <span className="text-red-400">{speaker.negativeCount || 0} Neg</span>
+                                        <span className="text-white">{speaker.positiveCount || 0} Pos</span>
+                                        <span className="text-white/80">{speaker.neutralCount || 0} Neu</span>
+                                        <span className="text-white/60">{speaker.negativeCount || 0} Neg</span>
                                     </div>
                                 </div>
                             );
@@ -1714,7 +1718,7 @@ const SentimentAnalysisTab = ({ data }) => {
                 {/* Sentiment Trends per Speaker */}
                 <div className="bg-[#1C1F2E] rounded-2xl p-6 border border-white/5">
                     <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                        <TrendingUp className="text-emerald-400" size={20} />
+                        <TrendingUp className="text-white" size={20} />
                         Sentiment Trends
                     </h3>
                     <div className="space-y-4 max-h-[500px] overflow-y-auto custom-scrollbar">
@@ -1732,9 +1736,9 @@ const SentimentAnalysisTab = ({ data }) => {
                                                     <p className="text-gray-300 leading-relaxed">"{trend.text}"</p>
                                                     <div className="flex items-center gap-2 mt-1">
                                                         <span className={`font-semibold ${
-                                                            trend.sentiment?.toLowerCase() === 'positive' ? 'text-emerald-400' :
-                                                            trend.sentiment?.toLowerCase() === 'negative' ? 'text-red-400' :
-                                                            'text-yellow-400'
+                                                            trend.sentiment?.toLowerCase() === 'positive' ? 'text-white' :
+                                                            trend.sentiment?.toLowerCase() === 'negative' ? 'text-white/60' :
+                                                            'text-white/80'
                                                         }`}>
                                                             {trend.sentiment}
                                                         </span>
@@ -1762,18 +1766,18 @@ const SentimentAnalysisTab = ({ data }) => {
             {/* Buzzwords Section */}
             <div className="bg-[#1C1F2E] rounded-2xl p-6 border border-white/5">
                 <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                    <Target className="text-emerald-400" size={20} />
+                    <Target className="text-white" size={20} />
                     Frequently Used Terms
                 </h3>
                 <div className="flex flex-wrap gap-3">
                     {buzzwords.slice(0, 20).map((buzz, idx) => (
                         <div
                             key={idx}
-                            className="group relative bg-[#0B0E14] px-4 py-2 rounded-xl border border-white/5 hover:border-emerald-500/30 transition-all cursor-default"
+                            className="group relative bg-[#0B0E14] px-4 py-2 rounded-xl border border-white/5 hover:border-white/20 transition-all cursor-default"
                         >
                             <div className="flex items-center gap-2">
                                 <span className="text-sm font-medium text-white">{buzz.word}</span>
-                                <span className="text-xs font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">
+                                <span className="text-xs font-bold text-white bg-white/10 px-2 py-0.5 rounded-full">
                                     {buzz.frequency}
                                 </span>
                             </div>
@@ -1796,7 +1800,7 @@ const SentimentAnalysisTab = ({ data }) => {
             {/* Emotional Moments */}
             <div className="bg-[#1C1F2E] rounded-2xl p-6 border border-white/5">
                 <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                    <Heart className="text-emerald-400" size={20} />
+                    <Heart className="text-white" size={20} />
                     Key Emotional Moments
                 </h3>
                 <div className="space-y-3">
@@ -1816,7 +1820,7 @@ const SentimentAnalysisTab = ({ data }) => {
                                             <div className="flex items-center gap-1">
                                                 <div className="w-12 h-1.5 bg-[#1C1F2E] rounded-full overflow-hidden">
                                                     <div 
-                                                        className="h-full bg-emerald-500 rounded-full"
+                                                        className="h-full bg-white rounded-full"
                                                         style={{ width: `${moment.intensity}%` }}
                                                     />
                                                 </div>
@@ -1875,7 +1879,7 @@ const CollaborationTab = ({
                 <div className="flex items-center justify-between mb-6">
                     <div>
                         <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                            <Users size={18} className="text-emerald-400" />
+                            <Users size={18} className="text-white" />
                             Share Dashboard
                         </h3>
                         <p className="text-sm text-gray-400 mt-1">
@@ -1901,7 +1905,7 @@ const CollaborationTab = ({
                         <button
                             type="submit"
                             disabled={addingCollaborator || !newCollaboratorEmail.trim()}
-                            className="px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                            className="px-6 py-3 bg-white/10 hover:bg-white/20 text-white font-semibold rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                         >
                             {addingCollaborator ? (
                                 <>
@@ -1937,8 +1941,8 @@ const CollaborationTab = ({
                                     className="flex items-center justify-between p-4 bg-[#0B0E14] rounded-xl border border-white/5 hover:border-white/10 transition-colors"
                                 >
                                     <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
-                                            <Mail size={18} className="text-emerald-400" />
+                                        <div className="w-10 h-10 rounded-full bg-white/10 border border-white/20 flex items-center justify-center">
+                                            <Mail size={18} className="text-white" />
                                         </div>
                                         <div>
                                             <p className="text-white font-medium">{email}</p>
@@ -1960,12 +1964,12 @@ const CollaborationTab = ({
             </div>
 
             {/* Info Box */}
-            <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4">
+            <div className="bg-white/5 border border-white/10 rounded-xl p-4">
                 <div className="flex gap-3">
-                    <AlertTriangle size={20} className="text-blue-400 flex-shrink-0 mt-0.5" />
+                    <AlertTriangle size={20} className="text-white flex-shrink-0 mt-0.5" />
                     <div>
-                        <h4 className="text-blue-300 font-semibold text-sm mb-1">Sharing Information</h4>
-                        <p className="text-blue-200/70 text-sm">
+                        <h4 className="text-white font-semibold text-sm mb-1">Sharing Information</h4>
+                        <p className="text-gray-400 text-sm">
                             Collaborators will be able to view all meeting details, transcripts, analytics, and AI insights. 
                             They can access this dashboard using the shared link.
                         </p>

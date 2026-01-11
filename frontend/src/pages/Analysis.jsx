@@ -13,9 +13,9 @@ const StatCard = ({ icon, value, label, change, changeType = 'positive' }) => {
                     {icon}
                 </div>
                 {change && (
-                    <div className={`flex items-center gap-1 text-xs font-semibold ${changeType === 'positive' ? 'text-white' : 'text-slate-400'}`}>
-                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                            <path d="M6 2L6 10M6 2L3 5M6 2L9 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                    <div className={`flex items-center gap-1 text-xs font-semibold ${changeType === 'positive' ? 'text-emerald-400' : 'text-red-400'}`}>
+                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" className={changeType === 'positive' ? 'rotate-[45deg]' : '-rotate-[45deg]'}>
+                            <path d={changeType === 'positive' ? "M6 2L6 10M6 2L3 5M6 2L9 5" : "M6 10L6 2M6 10L3 7M6 10L9 7"} stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                         </svg>
                         {change}
                     </div>
@@ -234,9 +234,9 @@ const Analysis = () => {
                     totalBotTime: analyticsRes.data.stats?.totalBotTime || '0h 0m',
                     totalWords: analyticsRes.data.stats?.totalWords || 0,
                     totalWordsFormatted: analyticsRes.data.stats?.totalWordsFormatted || '0 words',
-                    wordsChange: analyticsRes.data.stats?.wordsChange || 0,
+                    wordsChange: 56, // Temp test value
                     meetingsRecorded: analyticsRes.data.stats?.meetingsRecorded || 0,
-                    meetingsChange: analyticsRes.data.stats?.meetingsChange || 0,
+                    meetingsChange: 30, // Temp test value
                     actionItems: analyticsRes.data.stats?.actionItems || 0,
                     itemsChange: analyticsRes.data.stats?.itemsChange || 0,
                     teamMembers: analyticsRes.data.stats?.uniqueSpeakers || 0,

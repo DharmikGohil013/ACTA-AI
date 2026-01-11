@@ -60,7 +60,10 @@ const generateDashboardHTML = (meeting, analysis) => {
         topPriorities = [],
         keyTopics = [],
         decisions = [],
-        risks = []
+        risks = [],
+        speakerSentiments = [],
+        buzzwords = [],
+        emotionalMoments = []
     } = analysis || {};
 
     const {
@@ -78,6 +81,21 @@ const generateDashboardHTML = (meeting, analysis) => {
     
     // Get top 3 priorities
     const topThreePriorities = topPriorities.slice(0, 3);
+    
+    // Get top 3 speaker sentiments
+    const topSpeakerSentiments = speakerSentiments.slice(0, 3);
+    
+    // Get top 8 buzzwords
+    const topBuzzwords = buzzwords.slice(0, 8);
+    
+    // Get top 2 emotional moments
+    const topEmotionalMoments = emotionalMoments.slice(0, 2);
+    
+    // Calculate overall sentiment stats
+    const totalPositive = speakerSentiments.reduce((acc, s) => acc + (s.positiveCount || 0), 0);
+    const totalNeutral = speakerSentiments.reduce((acc, s) => acc + (s.neutralCount || 0), 0);
+    const totalNegative = speakerSentiments.reduce((acc, s) => acc + (s.negativeCount || 0), 0);
+    const totalStatements = totalPositive + totalNeutral + totalNegative;
     
     // Truncate summary if too long
     const summaryText = summary.length > 400 ? summary.substring(0, 400) + '...' : summary;
@@ -348,6 +366,87 @@ const generateDashboardHTML = (meeting, analysis) => {
             line-height: 1.5;
         }
 
+        .sentiment-speaker {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 6px 8px;
+            background: #2D3142;
+            border-radius: 6px;
+            margin-bottom: 6px;
+        }
+
+        .sentiment-name {
+            font-size: 10px;
+            font-weight: 600;
+            color: white;
+        }
+
+        .sentiment-score {
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+        .sentiment-positive { color: #10b981; }
+        .sentiment-neutral { color: #f59e0b; }
+        .sentiment-negative { color: #ef4444; }
+
+        .sentiment-bar {
+            width: 100%;
+            height: 3px;
+            background: #1C1F2E;
+            border-radius: 2px;
+            overflow: hidden;
+            display: flex;
+            margin-top: 4px;
+        }
+
+        .buzzword-tag {
+            display: inline-block;
+            padding: 3px 8px;
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            border-radius: 12px;
+            font-size: 9px;
+            color: #10b981;
+            margin: 2px;
+            white-space: nowrap;
+        }
+
+        .buzzword-freq {
+            font-weight: 700;
+            margin-left: 3px;
+        }
+
+        .emotion-item {
+            padding: 6px 8px;
+            background: #2D3142;
+            border-radius: 6px;
+            margin-bottom: 6px;
+            font-size: 9px;
+            line-height: 1.4;
+        }
+
+        .emotion-header {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 3px;
+        }
+
+        .emotion-badge {
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 8px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .emotion-text {
+            color: #B8BCC8;
+            font-style: italic;
+        }
+
         .footer {
             display: flex;
             justify-content: space-between;
@@ -452,21 +551,47 @@ const generateDashboardHTML = (meeting, analysis) => {
 
             <!-- Right Column -->
             <div class="column">
-                <!-- Top Priorities -->
-                ${topThreePriorities && topThreePriorities.length > 0 ? `
+                <!-- Speaker Sentiment -->
+                ${topSpeakerSentiments && topSpeakerSentiments.length > 0 ? `
                 <div class="section">
                     <div class="section-title">
-                        <span class="icon">▸</span> Top Priorities
+                        <span class="icon">◆</span> Speaker Sentiment
                     </div>
-                    ${topThreePriorities.map((item, i) => {
-                        const priority = typeof item === 'string' ? item : item.priority;
+                    ${topSpeakerSentiments.map(speaker => {
+                        const total = (speaker.positiveCount || 0) + (speaker.neutralCount || 0) + (speaker.negativeCount || 0);
+                        const posPercent = total > 0 ? ((speaker.positiveCount || 0) / total) * 100 : 0;
+                        const neuPercent = total > 0 ? ((speaker.neutralCount || 0) / total) * 100 : 0;
+                        const negPercent = total > 0 ? ((speaker.negativeCount || 0) / total) * 100 : 0;
+                        const score = speaker.averageSentiment || 50;
+                        const scoreClass = score >= 65 ? 'sentiment-positive' : score >= 35 ? 'sentiment-neutral' : 'sentiment-negative';
                         return `
-                        <div class="priority-item">
-                            <div class="priority-number">${i + 1}</div>
-                            <div class="priority-text">${priority}</div>
+                        <div class="sentiment-speaker">
+                            <div>
+                                <div class="sentiment-name">${speaker.speaker || 'Unknown'}</div>
+                                <div class="sentiment-bar">
+                                    <div style="width: ${posPercent}%; height: 100%; background: #10b981;"></div>
+                                    <div style="width: ${neuPercent}%; height: 100%; background: #f59e0b;"></div>
+                                    <div style="width: ${negPercent}%; height: 100%; background: #ef4444;"></div>
+                                </div>
+                            </div>
+                            <div class="sentiment-score ${scoreClass}">${score.toFixed(0)}</div>
                         </div>
                         `;
                     }).join('')}
+                </div>
+                ` : ''}
+
+                <!-- Buzzwords -->
+                ${topBuzzwords && topBuzzwords.length > 0 ? `
+                <div class="section">
+                    <div class="section-title">
+                        <span class="icon">○</span> Key Terms
+                    </div>
+                    <div>
+                        ${topBuzzwords.map(buzz => `
+                            <span class="buzzword-tag">${buzz.word}<span class="buzzword-freq">${buzz.frequency}</span></span>
+                        `).join('')}
+                    </div>
                 </div>
                 ` : ''}
 
@@ -476,43 +601,32 @@ const generateDashboardHTML = (meeting, analysis) => {
                     <div class="section-title">
                         <span class="icon">□</span> Action Items
                     </div>
-                    ${topActionItems.map(item => {
+                    ${topActionItems.slice(0, 3).map(item => {
                         const task = typeof item === 'string' ? item : item.task || item.action;
                         const assignee = typeof item === 'object' ? item.assignee : null;
-                        const deadline = typeof item === 'object' ? item.deadline : null;
                         return `
                         <div class="action-item">
                             <div class="action-task">${task}</div>
-                            <div class="action-meta">
-                                ${assignee ? `<span class="action-badge">Assigned: ${assignee}</span>` : ''}
-                                ${deadline ? `<span class="action-badge">Due: ${deadline}</span>` : ''}
-                            </div>
+                            ${assignee ? `<div class="action-meta"><span class="action-badge">Assigned: ${assignee}</span></div>` : ''}
                         </div>
                         `;
                     }).join('')}
                 </div>
                 ` : ''}
 
-                <!-- Decisions or Risks -->
-                ${decisions && decisions.length > 0 ? `
+                <!-- Emotional Moments -->
+                ${topEmotionalMoments && topEmotionalMoments.length > 0 ? `
                 <div class="section">
                     <div class="section-title">
-                        <span class="icon">►</span> Key Decisions
+                        <span class="icon">♦</span> Key Moments
                     </div>
-                    ${decisions.slice(0, 3).map(decision => `
-                        <div class="decision-item">
-                            ${decision.decision || decision}
-                        </div>
-                    `).join('')}
-                </div>
-                ` : risks && risks.length > 0 ? `
-                <div class="section">
-                    <div class="section-title">
-                        <span class="icon">!</span> Risks
-                    </div>
-                    ${risks.slice(0, 3).map(risk => `
-                        <div class="risk-item">
-                            ${risk.issue || risk}
+                    ${topEmotionalMoments.map(moment => `
+                        <div class="emotion-item">
+                            <div class="emotion-header">
+                                <span class="emotion-badge" style="background: rgba(16,185,129,0.2); color: #10b981;">${moment.emotion || 'Neutral'}</span>
+                                <span style="color: #B8BCC8; font-size: 8px;">${moment.speaker || 'Unknown'}</span>
+                            </div>
+                            <div class="emotion-text">${moment.text?.substring(0, 80) || ''}${moment.text?.length > 80 ? '...' : ''}</div>
                         </div>
                     `).join('')}
                 </div>

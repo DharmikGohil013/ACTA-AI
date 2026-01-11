@@ -111,6 +111,54 @@ const ANALYSIS_SCHEMA = {
                 }
             }
         },
+        speakerSentiments: {
+            type: Type.ARRAY,
+            items: {
+                type: Type.OBJECT,
+                properties: {
+                    speaker: { type: Type.STRING },
+                    averageSentiment: { type: Type.NUMBER },
+                    positiveCount: { type: Type.NUMBER },
+                    neutralCount: { type: Type.NUMBER },
+                    negativeCount: { type: Type.NUMBER },
+                    sentimentTrend: {
+                        type: Type.ARRAY,
+                        items: {
+                            type: Type.OBJECT,
+                            properties: {
+                                text: { type: Type.STRING },
+                                sentiment: { type: Type.STRING },
+                                score: { type: Type.NUMBER }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        buzzwords: {
+            type: Type.ARRAY,
+            items: {
+                type: Type.OBJECT,
+                properties: {
+                    word: { type: Type.STRING },
+                    frequency: { type: Type.NUMBER },
+                    context: { type: Type.STRING }
+                }
+            }
+        },
+        emotionalMoments: {
+            type: Type.ARRAY,
+            items: {
+                type: Type.OBJECT,
+                properties: {
+                    timestamp: { type: Type.STRING },
+                    speaker: { type: Type.STRING },
+                    emotion: { type: Type.STRING },
+                    text: { type: Type.STRING },
+                    intensity: { type: Type.NUMBER }
+                }
+            }
+        },
         keyTopics: {
             type: Type.ARRAY,
             items: {
@@ -369,6 +417,9 @@ exports.generateDashboard = async (req, res) => {
         7. Provide a Topic Breakdown with subtopics.
         8. Identify speaker names from the transcript (look for patterns like "Speaker 1:", "John:", names followed by colons, etc.).
         9. Create a Transcript Timeline in SRT subtitle format: Break the transcript into segments with startTime (HH:MM:SS), endTime (HH:MM:SS), speaker name, and text for each segment. Estimate timestamps based on word count (average 2-3 words per second).
+        10. Sentiment Analysis: For each speaker, analyze their sentiment across the conversation. Provide averageSentiment (0-100, where 0=negative, 50=neutral, 100=positive), count of positive/neutral/negative statements, and a sentimentTrend array with their key statements labeled as positive/neutral/negative with scores.
+        11. Buzzwords: Extract 15-20 frequently used words or phrases (excluding common words) with their frequency count and context of usage.
+        12. Emotional Moments: Identify 5-10 key emotional moments in the meeting with timestamp, speaker, emotion type (excited, frustrated, concerned, enthusiastic, etc.), the text spoken, and intensity (0-100).
         Focus on accuracy and detail. Return raw JSON matching the schema.
         TRANSCRIPT: ${meeting.transcription}`;
 

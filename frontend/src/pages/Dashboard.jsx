@@ -19,41 +19,41 @@ const getPlatformDetails = (link) => {
     if (link.includes('zoom.us')) return {
         name: 'Zoom Meeting',
         logo: zoomLogo,
-        color: 'text-blue-400',
-        bgColor: 'bg-blue-500',
-        border: 'from-blue-600 to-blue-900',
-        shadow: 'shadow-blue-500/20',
-        glow: 'group-hover:shadow-[0_0_30px_-5px_rgba(59,130,246,0.3)]'
+        color: 'text-white',
+        bgColor: 'bg-white/5',
+        border: 'from-white/10 to-white/5',
+        shadow: 'shadow-white/10',
+        glow: 'group-hover:shadow-[0_0_30px_-5px_rgba(255,255,255,0.1)]'
     };
 
     if (link.includes('meet.google.com')) return {
         name: 'Google Meet',
         logo: googleMeetLogo,
-        color: 'text-emerald-400',
-        bgColor: 'bg-emerald-500',
-        border: 'from-emerald-500 to-green-900',
-        shadow: 'shadow-emerald-500/20',
-        glow: 'group-hover:shadow-[0_0_30px_-5px_rgba(16,185,129,0.3)]'
+        color: 'text-white',
+        bgColor: 'bg-white/5',
+        border: 'from-white/10 to-white/5',
+        shadow: 'shadow-white/10',
+        glow: 'group-hover:shadow-[0_0_30px_-5px_rgba(255,255,255,0.1)]'
     };
 
     if (link.includes('teams')) return {
         name: 'Microsoft Teams',
         logo: teamsLogo,
-        color: 'text-indigo-400',
-        bgColor: 'bg-indigo-500',
-        border: 'from-indigo-600 to-purple-900',
-        shadow: 'shadow-indigo-500/20',
-        glow: 'group-hover:shadow-[0_0_30px_-5px_rgba(99,102,241,0.3)]'
+        color: 'text-white',
+        bgColor: 'bg-white/5',
+        border: 'from-white/10 to-white/5',
+        shadow: 'shadow-white/10',
+        glow: 'group-hover:shadow-[0_0_30px_-5px_rgba(255,255,255,0.1)]'
     };
 
     return {
         name: 'Web Meeting',
         logo: null,
-        color: 'text-purple-400',
-        bgColor: 'bg-purple-500',
-        border: 'from-purple-600 to-pink-900',
-        shadow: 'shadow-purple-500/20',
-        glow: 'group-hover:shadow-[0_0_30px_-5px_rgba(168,85,247,0.3)]'
+        color: 'text-white',
+        bgColor: 'bg-white/5',
+        border: 'from-white/10 to-white/5',
+        shadow: 'shadow-white/10',
+        glow: 'group-hover:shadow-[0_0_30px_-5px_rgba(255,255,255,0.1)]'
     };
 };
 
@@ -616,15 +616,15 @@ const Dashboard = () => {
         const message = live?.message || '';
 
         switch (status) {
-            case 'starting': return { color: 'bg-blue-500', text: 'Live', pulse: true, message };
-            case 'navigating': return { color: 'bg-blue-500', text: 'Live', pulse: true, message };
-            case 'joining': return { color: 'bg-yellow-500', text: 'Live', pulse: true, message };
-            case 'waiting': return { color: 'bg-yellow-500', text: 'Live', pulse: true, message };
-            case 'in-meeting': return { color: 'bg-orange-500', text: 'Live', pulse: true, message };
-            case 'recording': return { color: 'bg-red-500', text: 'Live', pulse: true, message: live?.size ? `${live.size} MB` : message };
-            case 'completed': return { color: 'bg-emerald-500', text: 'Completed', pulse: false, message };
-            case 'failed': return { color: 'bg-red-600', text: 'Failed', pulse: false, message };
-            default: return { color: 'bg-gray-500', text: status || 'Pending', pulse: false, message };
+            case 'starting': return { color: 'bg-white/20', text: 'Live', pulse: true, message };
+            case 'navigating': return { color: 'bg-white/20', text: 'Live', pulse: true, message };
+            case 'joining': return { color: 'bg-white/30', text: 'Live', pulse: true, message };
+            case 'waiting': return { color: 'bg-white/30', text: 'Live', pulse: true, message };
+            case 'in-meeting': return { color: 'bg-white/40', text: 'Live', pulse: true, message };
+            case 'recording': return { color: 'bg-white/50', text: 'Live', pulse: true, message: live?.size ? `${live.size} MB` : message };
+            case 'completed': return { color: 'bg-white/60', text: 'Completed', pulse: false, message };
+            case 'failed': return { color: 'bg-slate-500', text: 'Failed', pulse: false, message };
+            default: return { color: 'bg-white/20', text: status || 'Pending', pulse: false, message };
         }
     };
 
@@ -698,7 +698,7 @@ const Dashboard = () => {
                     <h1 className="text-3xl font-bold tracking-tight text-white">Meetings Archive</h1>
                     <div className="h-6 w-px bg-white/10"></div>
                     <p className="text-gray-400 font-medium flex items-center gap-2 text-sm">
-                        <Volume2 size={16} className="text-purple-500" />
+                        <Volume2 size={16} className="text-white" />
                         {meetings.filter(m => m.audioPath).length} Recordings
                     </p>
                 </div>
@@ -706,8 +706,8 @@ const Dashboard = () => {
                 {/* Search Bar - Fully Functional */}
                 <div className="flex-1 max-w-xl mx-8 hidden md:block">
                     <div className="relative group">
-                        <div className="absolute inset-0 bg-gradient-to-r from-purple-500/20 to-blue-500/20 rounded-full blur-md opacity-0 group-hover:opacity-100 transition-opacity" />
-                        <div className="relative flex items-center bg-[#0B0E14] border border-white/10 rounded-full px-4 py-2.5 focus-within:border-purple-500/50 transition-colors">
+                        <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-white/5 rounded-full blur-md opacity-0 group-hover:opacity-100 transition-opacity" />
+                        <div className="relative flex items-center bg-[#0B0E14] border border-white/10 rounded-full px-4 py-2.5 focus-within:border-white/50 transition-colors">
                             <Sparkles size={16} className="text-gray-500 mr-2" />
                             <input
                                 type="text"
@@ -729,19 +729,6 @@ const Dashboard = () => {
                 </div>
 
                 <div className="flex items-center gap-3">
-                    {/* Test Button */}
-                    <button
-                        onClick={createSampleMeeting}
-                        className="px-4 py-2.5 bg-white/5 hover:bg-white/10 rounded-full text-sm font-medium border border-white/10 transition-all flex items-center gap-2"
-                    >
-                        <Sparkles size={14} className="text-purple-400" />
-                        Test Record
-                    </button>
-
-                    <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold ${connected ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-red-500/10 text-red-400 border border-red-500/20'}`}>
-                        {connected ? <Wifi size={14} /> : <WifiOff size={14} />}
-                        {connected ? 'ONLINE' : 'OFFLINE'}
-                    </div>
                 </div>
             </header>
 
@@ -753,7 +740,7 @@ const Dashboard = () => {
                 <button
                     onClick={() => toggleFilter('zoom')}
                     className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1.5 ${activeFilters.includes('zoom')
-                            ? 'bg-blue-500/20 border-2 border-blue-500/50 text-blue-400'
+                            ? 'bg-white/20 border-2 border-white/50 text-white'
                             : 'bg-white/5 border border-white/10 text-gray-400 hover:bg-white/10'
                         }`}
                 >
@@ -764,7 +751,7 @@ const Dashboard = () => {
                 <button
                     onClick={() => toggleFilter('meet')}
                     className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1.5 ${activeFilters.includes('meet')
-                            ? 'bg-emerald-500/20 border-2 border-emerald-500/50 text-emerald-400'
+                            ? 'bg-white/20 border-2 border-white/50 text-white'
                             : 'bg-white/5 border border-white/10 text-gray-400 hover:bg-white/10'
                         }`}
                 >
@@ -775,7 +762,7 @@ const Dashboard = () => {
                 <button
                     onClick={() => toggleFilter('teams')}
                     className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1.5 ${activeFilters.includes('teams')
-                            ? 'bg-indigo-500/20 border-2 border-indigo-500/50 text-indigo-400'
+                            ? 'bg-white/20 border-2 border-white/50 text-white'
                             : 'bg-white/5 border border-white/10 text-gray-400 hover:bg-white/10'
                         }`}
                 >
@@ -789,7 +776,7 @@ const Dashboard = () => {
                 <button
                     onClick={() => toggleFilter('transcript')}
                     className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1.5 ${activeFilters.includes('transcript')
-                            ? 'bg-purple-500/20 border-2 border-purple-500/50 text-purple-400'
+                            ? 'bg-white/20 border-2 border-white/50 text-white'
                             : 'bg-white/5 border border-white/10 text-gray-400 hover:bg-white/10'
                         }`}
                 >
@@ -800,7 +787,7 @@ const Dashboard = () => {
                 <button
                     onClick={() => toggleFilter('completed')}
                     className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1.5 ${activeFilters.includes('completed')
-                            ? 'bg-green-500/20 border-2 border-green-500/50 text-green-400'
+                            ? 'bg-white/20 border-2 border-white/50 text-white'
                             : 'bg-white/5 border border-white/10 text-gray-400 hover:bg-white/10'
                         }`}
                 >
@@ -811,7 +798,7 @@ const Dashboard = () => {
                 <button
                     onClick={() => toggleFilter('failed')}
                     className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1.5 ${activeFilters.includes('failed')
-                            ? 'bg-red-500/20 border-2 border-red-500/50 text-red-400'
+                            ? 'bg-white/20 border-2 border-white/50 text-white'
                             : 'bg-white/5 border border-white/10 text-gray-400 hover:bg-white/10'
                         }`}
                 >
@@ -824,7 +811,7 @@ const Dashboard = () => {
                         <div className="h-5 w-px bg-white/10 mx-1"></div>
                         <button
                             onClick={() => setActiveFilters([])}
-                            className="px-3 py-1.5 rounded-full text-xs font-medium bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 transition-all"
+                            className="px-3 py-1.5 rounded-full text-xs font-medium bg-white/10 hover:bg-white/20 border border-white/20 text-white transition-all"
                         >
                             Clear All
                         </button>
@@ -836,8 +823,8 @@ const Dashboard = () => {
                 <div className="flex justify-center py-40">
                     <div className="flex flex-col items-center">
                         <div className="relative">
-                            <div className="absolute inset-0 bg-purple-500 blur-xl opacity-20 animate-pulse"></div>
-                            <Loader2 className="animate-spin text-purple-400 relative z-10" size={40} />
+                            <div className="absolute inset-0 bg-white blur-xl opacity-20 animate-pulse"></div>
+                            <Loader2 className="animate-spin text-white relative z-10" size={40} />
                         </div>
                         <p className="mt-4 text-gray-500 font-medium">Loading archives...</p>
                     </div>
@@ -905,7 +892,7 @@ const Dashboard = () => {
                                                     <div className="flex items-center gap-2 text-xs text-gray-400 mt-1">
                                                         <span>{new Date(meeting.createdAt).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}</span>
                                                         {meeting.liveTranscriptUpdatedAt && (
-                                                            <span className="flex items-center gap-1 text-[10px] text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full" title={`Saved: ${new Date(meeting.liveTranscriptUpdatedAt).toLocaleString()}`}>
+                                                            <span className="flex items-center gap-1 text-[10px] text-white bg-white/10 px-2 py-0.5 rounded-full" title={`Saved: ${new Date(meeting.liveTranscriptUpdatedAt).toLocaleString()}`}>
                                                                 <Download size={10} />
                                                                 Saved
                                                             </span>
@@ -914,8 +901,8 @@ const Dashboard = () => {
                                                 </div>
                                             </div>
 
-                                            <div className={`flex items-center gap-1.5 px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${statusInfo.text === 'Live' ? 'bg-red-500/10 text-red-500 border-red-500/20' :
-                                                'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'
+                                            <div className={`flex items-center gap-1.5 px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${statusInfo.text === 'Live' ? 'bg-white/10 text-white border-white/20' :
+                                                'bg-white/10 text-white border-white/20'
                                                 }`}>
                                                 <div className={`w-1.5 h-1.5 rounded-full ${statusInfo.color} ${statusInfo.pulse ? 'animate-pulse' : ''}`} />
                                                 {statusInfo.text}
@@ -925,17 +912,6 @@ const Dashboard = () => {
 
                                     {/* Body */}
                                     <div className="flex-1 px-5 py-2">
-                                        <div className="mb-3">
-                                            <a
-                                                href={meeting.meetingLink}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="flex items-center gap-2 text-xs text-gray-400 hover:text-white transition-colors group/link p-2 rounded-lg bg-white/5 border border-white/5 hover:bg-white/10"
-                                            >
-                                                <ExternalLink size={12} className="text-gray-500 group-hover/link:text-white" />
-                                                <span className="truncate max-w-[200px]">{meeting.meetingLink}</span>
-                                            </a>
-                                        </div>
                                         <div className="bg-[#1C1F2E] rounded-xl p-4 min-h-[100px] border border-white/5 relative group/content">
                                             {meeting.transcription ? (
                                                 <>
@@ -943,7 +919,7 @@ const Dashboard = () => {
                                                         {meeting.transcription}
                                                     </p>
                                                     <div className="absolute top-2 right-2 opacity-0 group-hover/content:opacity-100 transition-opacity">
-                                                        <Sparkles size={12} className="text-purple-400" />
+                                                        <Sparkles size={12} className="text-white" />
                                                     </div>
                                                 </>
                                             ) : (
@@ -974,27 +950,6 @@ const Dashboard = () => {
                                                         </div>
                                                         View Live Transcript
                                                     </button>
-                                                    
-                                                    {/* Save Transcript Button - Only for live meetings with transcript data */}
-                                                    {(liveTranscripts[meeting._id]?.length > 0 || meeting.liveTranscriptFull) && (
-                                                        <button
-                                                            onClick={() => saveLiveTranscript(meeting)}
-                                                            disabled={savingTranscript[meeting._id]}
-                                                            className="w-full py-2.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 text-sm font-semibold transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                                                        >
-                                                            {savingTranscript[meeting._id] ? (
-                                                                <>
-                                                                    <Loader2 size={16} className="animate-spin" />
-                                                                    Saving...
-                                                                </>
-                                                            ) : (
-                                                                <>
-                                                                    <Download size={16} />
-                                                                    Save Transcript to DB
-                                                                </>
-                                                            )}
-                                                        </button>
-                                                    )}
                                                 </div>
                                             ) : (
                                                 <div className="space-y-2">
@@ -1003,7 +958,7 @@ const Dashboard = () => {
                                                             onClick={() => meeting.transcription ? navigate(`/dashboard/${meeting._id}`) : startTranscription(meeting)}
                                                             className="flex-1 relative group py-2.5 rounded-lg bg-[#0B0E14] hover:bg-[#151820] border border-white/10 hover:border-white/20 text-white text-sm font-semibold transition-all shadow-lg flex items-center justify-center gap-2 overflow-hidden"
                                                         >
-                                                            <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-lg blur opacity-0 group-hover:opacity-30 transition duration-500"></div>
+                                                            <div className="absolute -inset-0.5 bg-gradient-to-r from-white/10 to-white/5 rounded-lg blur opacity-0 group-hover:opacity-30 transition duration-500"></div>
                                                             <span className="relative">{meeting.transcription ? 'View Dashboard' : 'Start Transcription'}</span>
                                                         </button>
 
@@ -1016,7 +971,7 @@ const Dashboard = () => {
                                                                 className="relative group px-4 py-2.5 rounded-lg bg-[#0B0E14] hover:bg-[#151820] border border-white/10 hover:border-white/20 text-white text-sm font-semibold transition-all shadow-lg flex items-center justify-center gap-2 overflow-hidden"
                                                                 title="View Action Items & Tasks"
                                                             >
-                                                                <div className="absolute -inset-0.5 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg blur opacity-0 group-hover:opacity-30 transition duration-500"></div>
+                                                                <div className="absolute -inset-0.5 bg-gradient-to-r from-white/10 to-white/5 rounded-lg blur opacity-0 group-hover:opacity-30 transition duration-500"></div>
                                                                 <div className="relative flex items-center gap-2">
                                                                     <CheckCircle2 size={16} />
                                                                     <span className="hidden xl:inline">Tasks</span>
@@ -1024,48 +979,6 @@ const Dashboard = () => {
                                                             </button>
                                                         )}
                                                     </div>
-
-                                                    {/* Save to Database button - Always visible when transcript exists */}
-                                                    {(meeting.transcription || meeting.liveTranscriptFull || liveTranscripts[meeting._id]?.length > 0) && (
-                                                        <button
-                                                            onClick={() => saveLiveTranscript(meeting)}
-                                                            disabled={savingTranscript[meeting._id]}
-                                                            className="w-full py-2 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 text-xs font-semibold transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                                                        >
-                                                            {savingTranscript[meeting._id] ? (
-                                                                <>
-                                                                    <Loader2 size={14} className="animate-spin" />
-                                                                    Saving...
-                                                                </>
-                                                            ) : (
-                                                                <>
-                                                                    <Download size={14} />
-                                                                    Save Transcript to DB
-                                                                </>
-                                                            )}
-                                                        </button>
-                                                    )}
-                                                    
-                                                    {/* Save Tasks button - Optional manual save (auto-saves on extraction) */}
-                                                    {meeting.extractedTasks && meeting.extractedTasks.length > 0 && (
-                                                        <button
-                                                            onClick={() => saveTasks(meeting)}
-                                                            disabled={savingTasks[meeting._id]}
-                                                            className="w-full py-2 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 text-blue-400 text-xs font-semibold transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                                                        >
-                                                            {savingTasks[meeting._id] ? (
-                                                                <>
-                                                                    <Loader2 size={14} className="animate-spin" />
-                                                                    Saving...
-                                                                </>
-                                                            ) : (
-                                                                <>
-                                                                    <CheckCircle2 size={14} />
-                                                                    Re-save Tasks ({meeting.extractedTasks.length})
-                                                                </>
-                                                            )}
-                                                        </button>
-                                                    )}
                                                 </div>
                                             )}
                                         </div>
@@ -1073,7 +986,7 @@ const Dashboard = () => {
                                         <div className="flex items-center justify-between border-t border-white/5 pt-4">
                                             <div className="flex items-center gap-3">
                                                 {meeting.totalSpeakers ? (
-                                                    <div className="flex items-center gap-2 pl-2 pr-3 py-1.5 bg-gradient-to-r from-purple-500/10 to-blue-500/10 border border-purple-500/20 rounded-full group/speakers hover:border-purple-500/40 transition-colors">
+                                                    <div className="flex items-center gap-2 pl-2 pr-3 py-1.5 bg-white/10 border border-white/20 rounded-full group/speakers hover:border-white/40 transition-colors">
                                                         <div className="flex -space-x-2">
                                                             {[...Array(Math.min(3, meeting.totalSpeakers))].map((_, idx) => (
                                                                 <div key={idx} className="w-5 h-5 rounded-full bg-gray-800 border-2 border-[#1C1F2E] flex items-center justify-center overflow-hidden relative z-[3] first:ml-0">
@@ -1081,7 +994,7 @@ const Dashboard = () => {
                                                                 </div>
                                                             ))}
                                                         </div>
-                                                        <span className="text-xs font-semibold text-purple-300">
+                                                        <span className="text-xs font-semibold text-white">
                                                             {meeting.totalSpeakers} Speakers
                                                         </span>
                                                     </div>
@@ -1093,9 +1006,9 @@ const Dashboard = () => {
                                                 )}
 
                                                 {meeting.extractedTasks && meeting.extractedTasks.length > 0 && (
-                                                    <div className="flex items-center gap-2 pl-2 pr-3 py-1.5 bg-gradient-to-r from-emerald-500/10 to-cyan-500/10 border border-emerald-500/20 rounded-full hover:border-emerald-500/40 transition-colors">
-                                                        <CheckCircle2 size={12} className="text-emerald-400" />
-                                                        <span className="text-xs font-semibold text-emerald-300">
+                                                    <div className="flex items-center gap-2 pl-2 pr-3 py-1.5 bg-white/10 border border-white/20 rounded-full hover:border-white/40 transition-colors">
+                                                        <CheckCircle2 size={12} className="text-white" />
+                                                        <span className="text-xs font-semibold text-white">
                                                             {meeting.extractedTasks.length} {meeting.extractedTasks.length === 1 ? 'Task' : 'Tasks'}
                                                         </span>
                                                     </div>
@@ -1106,7 +1019,7 @@ const Dashboard = () => {
                                                 {meeting.audioPath && (
                                                     <button
                                                         onClick={() => togglePlay(meeting._id, meeting.audioPath)}
-                                                        className={`p-2 rounded-full transition-colors ${playing === meeting._id ? 'bg-purple-500 text-white' : 'bg-white/5 text-gray-400 hover:text-white hover:bg-white/10'}`}
+                                                        className={`p-2 rounded-full transition-colors ${playing === meeting._id ? 'bg-white/20 text-white' : 'bg-white/5 text-gray-400 hover:text-white hover:bg-white/10'}`}
                                                     >
                                                         {playing === meeting._id ? <Pause size={14} /> : <Play size={14} />}
                                                     </button>
@@ -1184,12 +1097,12 @@ const Dashboard = () => {
                                 <div>
                                     <label className="text-xs text-gray-500 uppercase tracking-wide mb-1 block">Meeting URL</label>
                                     <div className="flex items-center gap-2">
-                                        <ExternalLink size={16} className="text-purple-400" />
+                                        <ExternalLink size={16} className="text-white" />
                                         <a
                                             href={liveOverlay.meetingUrl}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            className="text-purple-400 hover:text-purple-300 truncate"
+                                            className="text-white hover:text-slate-300 truncate"
                                         >
                                             {liveOverlay.meetingUrl}
                                         </a>
@@ -1213,8 +1126,8 @@ const Dashboard = () => {
                                 </div>
 
                                 {getStatusInfo(liveOverlay).message && (
-                                    <div className="p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
-                                        <p className="text-sm text-yellow-300">{getStatusInfo(liveOverlay).message}</p>
+                                    <div className="p-3 bg-white/10 border border-white/20 rounded-lg">
+                                        <p className="text-sm text-white">{getStatusInfo(liveOverlay).message}</p>
                                     </div>
                                 )}
                             </div>
@@ -1222,11 +1135,11 @@ const Dashboard = () => {
                             {/* Live Transcript Section */}
                             <div className="flex-1 overflow-hidden flex flex-col">
                                 <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-                                    <Sparkles size={20} className="text-purple-400" />
+                                    <Sparkles size={20} className="text-white" />
                                     Live Transcript (Deepgram AI)
                                     {liveStatus[liveOverlay._id]?.liveStatus === 'connected' && (
-                                        <span className="text-xs bg-green-500/20 text-green-400 px-2 py-1 rounded-full ml-auto flex items-center gap-1">
-                                            <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
+                                        <span className="text-xs bg-white/20 text-white px-2 py-1 rounded-full ml-auto flex items-center gap-1">
+                                            <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
                                             Live
                                         </span>
                                     )}
@@ -1246,15 +1159,15 @@ const Dashboard = () => {
                                                     initial={{ opacity: 0, y: 10 }}
                                                     animate={{ opacity: 1, y: 0 }}
                                                     className={`p-3 rounded-lg transition-colors ${item.isFinal
-                                                        ? 'bg-green-500/5 border border-green-500/20 hover:bg-green-500/10'
-                                                        : 'bg-yellow-500/5 border border-yellow-500/20 hover:bg-yellow-500/10 opacity-70'
+                                                        ? 'bg-white/5 border border-white/20 hover:bg-white/10'
+                                                        : 'bg-white/5 border border-white/20 hover:bg-white/10 opacity-70'
                                                         }`}
                                                 >
                                                     <div className="flex items-center gap-2 mb-1 text-xs text-gray-500">
                                                         {item.isFinal ? (
-                                                            <span className="px-2 py-0.5 bg-green-500/20 text-green-400 rounded text-xs font-semibold">✅ Final</span>
+                                                            <span className="px-2 py-0.5 bg-white/20 text-white rounded text-xs font-semibold">✅ Final</span>
                                                         ) : (
-                                                            <span className="px-2 py-0.5 bg-yellow-500/20 text-yellow-400 rounded text-xs font-semibold">⏳ Interim</span>
+                                                            <span className="px-2 py-0.5 bg-white/10 text-slate-400 rounded text-xs font-semibold">⏳ Interim</span>
                                                         )}
                                                         <Clock size={12} />
                                                         {new Date(item.timestamp).toLocaleTimeString()}
@@ -1270,13 +1183,13 @@ const Dashboard = () => {
                                         </div>
                                     ) : liveStatus[liveOverlay._id]?.liveStatus === 'connected' ? (
                                         <div className="h-full flex flex-col items-center justify-center text-gray-600">
-                                            <Loader2 size={40} className="animate-spin mb-4 text-purple-400" />
+                                            <Loader2 size={40} className="animate-spin mb-4 text-white" />
                                             <p>Connected to Deepgram Live Stream</p>
                                             <p className="text-xs text-gray-700 mt-2">Waiting for speech to transcribe...</p>
                                         </div>
                                     ) : (
                                         <div className="h-full flex flex-col items-center justify-center text-gray-600">
-                                            <Loader2 size={40} className="animate-spin mb-4 text-purple-400" />
+                                            <Loader2 size={40} className="animate-spin mb-4 text-white" />
                                             <p>Waiting for transcript data...</p>
                                             <p className="text-xs text-gray-700 mt-2">Live transcription will appear here</p>
                                         </div>
@@ -1328,7 +1241,7 @@ const Dashboard = () => {
                             <button onClick={() => { stopTranscription(); setSelectedMeeting(null) }} className="absolute top-6 right-6 text-gray-500 hover:text-white z-10"><X /></button>
 
                             <h2 className="text-2xl font-bold mb-6 flex items-center gap-3">
-                                <div className={`p-2 rounded-full ${transcribing ? 'bg-purple-500/20 text-purple-400 animate-pulse' : transcript ? 'bg-green-500/20 text-green-400' : 'bg-gray-800 text-gray-400'}`}>
+                                <div className={`p-2 rounded-full ${transcribing ? 'bg-white/20 text-white animate-pulse' : transcript ? 'bg-white/20 text-white' : 'bg-gray-800 text-gray-400'}`}>
                                     {transcribing ? <Loader2 size={20} className="animate-spin" /> : <FileText size={20} />}
                                 </div>
                                 <span>
@@ -1349,7 +1262,7 @@ const Dashboard = () => {
                                 {transcribing ? (
                                     <div className="flex flex-col items-center justify-center h-full gap-4">
                                         <div className="relative">
-                                            <Sparkles size={40} className="text-purple-400 animate-pulse" />
+                                            <Sparkles size={40} className="text-white animate-pulse" />
                                         </div>
                                         <p className="text-gray-400">AI is transcribing your audio...</p>
                                         <p className="text-xs text-gray-600">This may take 30-60 seconds</p>
@@ -1361,7 +1274,7 @@ const Dashboard = () => {
                                             <div className="space-y-4">
                                                 {selectedMeeting.speakerSegments.map((segment, idx) => (
                                                     <div key={idx} className="flex gap-3 p-3 rounded-lg hover:bg-white/5 transition-colors">
-                                                        <div className="font-semibold text-purple-400 min-w-[100px] flex-shrink-0">
+                                                        <div className="font-semibold text-white min-w-[100px] flex-shrink-0">
                                                             {segment.speaker}:
                                                         </div>
                                                         <div className="text-gray-300 leading-relaxed flex-1">
@@ -1388,7 +1301,7 @@ const Dashboard = () => {
                                                         {Object.entries(selectedMeeting.speakerStats).map(([speaker, stats]) => (
                                                             <div key={speaker} className="p-4 bg-white/5 rounded-xl backdrop-blur-sm border border-white/10">
                                                                 <div className="flex items-center justify-between mb-2">
-                                                                    <span className="font-semibold text-purple-400">{speaker}</span>
+                                                                    <span className="font-semibold text-white">{speaker}</span>
                                                                     <span className="text-xs text-gray-500">{stats.segment_count} segments</span>
                                                                 </div>
                                                                 <div className="text-sm text-gray-400">
@@ -1408,7 +1321,7 @@ const Dashboard = () => {
                                                             {selectedMeeting.speakerSegments.map((segment, idx) => (
                                                                 <div key={idx} className="text-sm p-3 bg-white/5 rounded-lg hover:bg-white/10 transition-colors">
                                                                     <div className="flex items-center gap-3 mb-2">
-                                                                        <span className="font-medium text-purple-400">{segment.speaker}</span>
+                                                                        <span className="font-medium text-white">{segment.speaker}</span>
                                                                         <span className="text-gray-500 font-mono text-xs">
                                                                             {Math.floor(segment.start / 60)}:{String(Math.floor(segment.start % 60)).padStart(2, '0')} -
                                                                             {Math.floor(segment.end / 60)}:{String(Math.floor(segment.end % 60)).padStart(2, '0')}
@@ -1416,7 +1329,7 @@ const Dashboard = () => {
                                                                         <span className="text-gray-600 text-xs">({segment.duration.toFixed(1)}s)</span>
                                                                     </div>
                                                                     {segment.text && (
-                                                                        <div className="text-gray-400 text-xs mt-1 pl-2 border-l-2 border-purple-500/30">
+                                                                        <div className="text-gray-400 text-xs mt-1 pl-2 border-l-2 border-white/30">
                                                                             {segment.text}
                                                                         </div>
                                                                     )}
@@ -1434,7 +1347,7 @@ const Dashboard = () => {
                                         <p>No transcript available</p>
                                         <button
                                             onClick={() => startTranscription(selectedMeeting)}
-                                            className="mt-2 px-4 py-2 bg-purple-500/20 text-purple-400 rounded-lg text-sm font-medium hover:bg-purple-500/30 flex items-center gap-2"
+                                            className="mt-2 px-4 py-2 bg-white/20 text-white rounded-lg text-sm font-medium hover:bg-white/30 flex items-center gap-2"
                                         >
                                             <Sparkles size={14} /> Generate AI Transcript
                                         </button>
@@ -1482,7 +1395,7 @@ const Dashboard = () => {
                             <div className="flex items-center justify-between px-8 py-6 border-b border-white/5">
                                 <div>
                                     <h2 className="text-2xl font-bold text-white flex items-center gap-2">
-                                        <Mic className="text-blue-400" size={24} />
+                                        <Mic className="text-white" size={24} />
                                         Action Items & Tasks
                                     </h2>
                                     <p className="text-sm text-gray-400 mt-1">
@@ -1497,7 +1410,7 @@ const Dashboard = () => {
                             <div className="flex-1 overflow-y-auto px-8 py-6">
                                 {extractingTasks ? (
                                     <div className="flex flex-col items-center justify-center h-full gap-4">
-                                        <Loader2 className="animate-spin text-blue-400" size={48} />
+                                        <Loader2 className="animate-spin text-white" size={48} />
                                         <div className="text-center">
                                             <p className="text-white font-medium text-lg">Extracting tasks with AI...</p>
                                             <p className="text-sm text-gray-400 mt-2">Analyzing transcript and identifying action items</p>
@@ -1511,11 +1424,11 @@ const Dashboard = () => {
                                                 initial={{ x: -20, opacity: 0 }}
                                                 animate={{ x: 0, opacity: 1 }}
                                                 transition={{ delay: index * 0.05 }}
-                                                className="p-4 bg-white/5 rounded-lg border border-white/5 hover:border-blue-500/30 transition-colors"
+                                                className="p-4 bg-white/5 rounded-lg border border-white/5 hover:border-white/30 transition-colors"
                                             >
                                                 <div className="flex items-start gap-3">
-                                                    <div className="mt-1 w-5 h-5 rounded-full bg-blue-500/20 flex items-center justify-center flex-shrink-0">
-                                                        <span className="text-blue-400 text-xs font-bold">{index + 1}</span>
+                                                    <div className="mt-1 w-5 h-5 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
+                                                        <span className="text-white text-xs font-bold">{index + 1}</span>
                                                     </div>
                                                     <div className="flex-1">
                                                         <p className="text-white font-medium">{task.task || task}</p>
@@ -1532,15 +1445,15 @@ const Dashboard = () => {
                                                         <div className="flex flex-wrap gap-2 mt-3">
                                                             <div className="flex gap-2">
                                                                 {task.priority && (
-                                                                    <span className={`text-xs px-2 py-1 rounded-full ${task.priority === 'high' ? 'bg-red-500/20 text-red-400' :
-                                                                        task.priority === 'medium' ? 'bg-yellow-500/20 text-yellow-400' :
-                                                                            'bg-green-500/20 text-green-400'
+                                                                    <span className={`text-xs px-2 py-1 rounded-full ${task.priority === 'high' ? 'bg-white/30 text-white' :
+                                                                        task.priority === 'medium' ? 'bg-white/20 text-white' :
+                                                                            'bg-white/10 text-white'
                                                                         }`}>
                                                                         {task.priority}
                                                                     </span>
                                                                 )}
                                                                 {task.category && (
-                                                                    <span className="text-xs px-2 py-1 rounded-full bg-blue-500/20 text-blue-400">
+                                                                    <span className="text-xs px-2 py-1 rounded-full bg-white/20 text-white">
                                                                         {task.category}
                                                                     </span>
                                                                 )}
@@ -1555,24 +1468,24 @@ const Dashboard = () => {
                                                                                 onClick={() => !taskStatus.jira && addTaskToJira(task, index)}
                                                                                 disabled={taskStatus.jira}
                                                                                 className={`relative group text-xs px-3 py-1.5 rounded-lg font-medium transition-all overflow-hidden ${taskStatus.jira
-                                                                                        ? 'bg-green-500/20 border border-green-500/50 text-green-400 cursor-default'
-                                                                                        : 'bg-[#0B0E14] hover:bg-[#151820] border border-blue-500/30 hover:border-blue-500/50 text-blue-400 hover:text-blue-300'
+                                                                                        ? 'bg-white/20 border border-white/50 text-white cursor-default'
+                                                                                        : 'bg-[#0B0E14] hover:bg-[#151820] border border-white/30 hover:border-white/50 text-white hover:text-slate-300'
                                                                                     }`}
                                                                                 title={taskStatus.jira ? `Added to Jira: ${taskStatus.issueKey}` : 'Add this task to Jira'}
                                                                             >
-                                                                                {!taskStatus.jira && <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-lg blur opacity-0 group-hover:opacity-20 transition duration-500"></div>}
+                                                                                {!taskStatus.jira && <div className="absolute -inset-0.5 bg-gradient-to-r from-white/10 to-white/5 rounded-lg blur opacity-0 group-hover:opacity-20 transition duration-500"></div>}
                                                                                 <span className="relative">{taskStatus.jira ? `✓ ${taskStatus.issueKey}` : '+ Jira'}</span>
                                                                             </button>
                                                                             <button
                                                                                 onClick={() => !taskStatus.trello && addTaskToTrello(task, index)}
                                                                                 disabled={taskStatus.trello}
                                                                                 className={`relative group text-xs px-3 py-1.5 rounded-lg font-medium transition-all overflow-hidden ${taskStatus.trello
-                                                                                        ? 'bg-green-500/20 border border-green-500/50 text-green-400 cursor-default'
-                                                                                        : 'bg-[#0B0E14] hover:bg-[#151820] border border-emerald-500/30 hover:border-emerald-500/50 text-emerald-400 hover:text-emerald-300'
+                                                                                        ? 'bg-white/20 border border-white/50 text-white cursor-default'
+                                                                                        : 'bg-[#0B0E14] hover:bg-[#151820] border border-white/30 hover:border-white/50 text-white hover:text-slate-300'
                                                                                     }`}
                                                                                 title={taskStatus.trello ? 'Already added to Trello' : 'Add this task to Trello'}
                                                                             >
-                                                                                {!taskStatus.trello && <div className="absolute -inset-0.5 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-lg blur opacity-0 group-hover:opacity-20 transition duration-500"></div>}
+                                                                                {!taskStatus.trello && <div className="absolute -inset-0.5 bg-gradient-to-r from-white/10 to-white/5 rounded-lg blur opacity-0 group-hover:opacity-20 transition duration-500"></div>}
                                                                                 <span className="relative">{taskStatus.trello ? '✓ Trello' : '+ Trello'}</span>
                                                                             </button>
                                                                         </>
@@ -1587,7 +1500,7 @@ const Dashboard = () => {
                                     </div>
                                 ) : (
                                     <div className="flex flex-col items-center justify-center h-full gap-4 text-gray-600">
-                                        <Sparkles size={48} className="opacity-30 text-blue-400" />
+                                        <Sparkles size={48} className="opacity-30 text-white" />
                                         <div className="text-center">
                                             <p className="text-white text-lg font-medium mb-2">No tasks extracted yet</p>
                                             <p className="text-sm text-gray-500 mb-6">
@@ -1599,9 +1512,9 @@ const Dashboard = () => {
                                                 <button
                                                     onClick={() => extractTasks(selectedTasksMeeting)}
                                                     disabled={extractingTasks}
-                                                    className="relative group px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:from-blue-600/50 disabled:to-purple-600/50 rounded-xl text-white text-sm font-semibold flex items-center gap-2 mx-auto transition-all shadow-lg disabled:cursor-not-allowed overflow-hidden"
+                                                    className="relative group px-6 py-3 bg-gradient-to-r from-white/10 to-white/5 hover:from-white/20 hover:to-white/10 disabled:from-white/5 disabled:to-white/5 rounded-xl text-white text-sm font-semibold flex items-center gap-2 mx-auto transition-all shadow-lg disabled:cursor-not-allowed overflow-hidden border border-white/20"
                                                 >
-                                                    <div className="absolute -inset-1 bg-gradient-to-r from-blue-500 to-purple-500 rounded-xl blur opacity-0 group-hover:opacity-30 group-disabled:opacity-0 transition duration-500"></div>
+                                                    <div className="absolute -inset-1 bg-gradient-to-r from-white/10 to-white/5 rounded-xl blur opacity-0 group-hover:opacity-30 group-disabled:opacity-0 transition duration-500"></div>
                                                     <div className="relative flex items-center gap-2">
                                                         {extractingTasks ? (
                                                             <>
@@ -1656,7 +1569,7 @@ const Dashboard = () => {
                                 value={newMeetingName}
                                 onChange={(e) => setNewMeetingName(e.target.value)}
                                 placeholder="Enter new meeting name..."
-                                className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:border-blue-500 focus:outline-none transition-colors mb-6"
+                                className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:border-white focus:outline-none transition-colors mb-6"
                                 onKeyDown={(e) => e.key === 'Enter' && saveMeetingName()}
                                 autoFocus
                             />

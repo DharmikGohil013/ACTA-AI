@@ -153,7 +153,7 @@ const Upload = () => {
         if (!file) return <File size={40} />;
         const ext = file.name.split('.').pop().toLowerCase();
         if (['mp4', 'webm', 'mov', 'avi', 'mkv'].includes(ext)) {
-            return <FileVideo size={40} className="text-purple-400" />;
+            return <FileVideo size={40} className="text-white" />;
         }
         return <FileAudio size={40} className="text-blue-400" />;
     };
@@ -170,7 +170,7 @@ const Upload = () => {
         <div className="max-w-4xl mx-auto w-full px-6 py-8">
             <header className="mb-8">
                 <h1 className="text-4xl font-bold mb-2 flex items-center gap-3">
-                    <UploadIcon className="text-purple-500" />
+                    <UploadIcon className="text-white" />
                     Upload Recording
                 </h1>
                 <p className="text-gray-400 font-light">
@@ -188,10 +188,10 @@ const Upload = () => {
                     <div
                         onDrop={handleDrop}
                         onDragOver={handleDragOver}
-                        className="border-2 border-dashed border-purple-500/30 rounded-xl p-12 text-center hover:border-purple-500/60 transition-colors cursor-pointer"
+                        className="border-2 border-dashed border-white/30 rounded-xl p-12 text-center hover:border-white/60 transition-colors cursor-pointer"
                         onClick={() => document.getElementById('fileInput').click()}
                     >
-                        <UploadIcon size={60} className="mx-auto mb-4 text-purple-400 opacity-50" />
+                        <UploadIcon size={60} className="mx-auto mb-4 text-white opacity-50" />
                         <h3 className="text-xl font-semibold mb-2">Drop your file here</h3>
                         <p className="text-gray-400 mb-4">or click to browse</p>
                         <p className="text-sm text-gray-500">
@@ -215,7 +215,7 @@ const Upload = () => {
                                 value={meetingTitle}
                                 onChange={(e) => setMeetingTitle(e.target.value)}
                                 placeholder="e.g., Q1 Planning Meeting"
-                                className="w-full px-4 py-3 bg-black/30 border border-white/10 rounded-lg focus:outline-none focus:border-purple-500 text-white"
+                                className="w-full px-4 py-3 bg-black/30 border border-white/10 rounded-lg focus:outline-none focus:border-white text-white"
                             />
                         </div>
 
@@ -249,7 +249,7 @@ const Upload = () => {
                                     <motion.div
                                         initial={{ width: 0 }}
                                         animate={{ width: `${uploadProgress}%` }}
-                                        className="h-full bg-gradient-to-r from-purple-500 to-blue-500"
+                                        className="h-full bg-gradient-to-r from-white to-gray-200"
                                     />
                                 </div>
                             </div>
@@ -257,9 +257,9 @@ const Upload = () => {
 
                         {/* Processing Status */}
                         {processing && (
-                            <div className="p-4 bg-purple-500/10 border border-purple-500/20 rounded-lg">
+                            <div className="p-4 bg-white/10 border border-white/20 rounded-lg">
                                 <div className="flex items-center gap-3">
-                                    <Loader2 className="animate-spin text-purple-400" size={24} />
+                                    <Loader2 className="animate-spin text-white" size={24} />
                                     <div>
                                         <p className="text-white font-medium">Processing your recording...</p>
                                         <p className="text-sm text-gray-400">
@@ -274,7 +274,7 @@ const Upload = () => {
                         {!uploading && !processing && !result && (
                             <button
                                 onClick={handleUpload}
-                                className="w-full py-4 bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 rounded-xl font-semibold transition-all flex items-center justify-center gap-2"
+                                className="w-full py-4 bg-gradient-to-r from-white to-gray-200 hover:from-gray-100 hover:to-gray-300 text-black rounded-xl font-semibold transition-all flex items-center justify-center gap-2"
                             >
                                 <Sparkles size={20} />
                                 Start AI Transcription
@@ -318,7 +318,7 @@ const Upload = () => {
                             <div className="grid grid-cols-2 gap-4 mb-6">
                                 <div className="p-4 bg-white/5 rounded-xl">
                                     <p className="text-sm text-gray-400 mb-1">Speakers Detected</p>
-                                    <p className="text-2xl font-bold text-purple-400">{result.speakers || 'N/A'}</p>
+                                    <p className="text-2xl font-bold text-white">{result.speakers || 'N/A'}</p>
                                 </div>
                                 <div className="p-4 bg-white/5 rounded-xl">
                                     <p className="text-sm text-gray-400 mb-1">Meeting ID</p>
@@ -335,7 +335,7 @@ const Upload = () => {
                                 </button>
                                 <a
                                     href="/dashboard"
-                                    className="px-6 py-3 bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 rounded-xl font-semibold transition-all"
+                                    className="px-6 py-3 bg-gradient-to-r from-white to-gray-200 hover:from-gray-100 hover:to-gray-300 text-black rounded-xl font-semibold transition-all"
                                 >
                                     View in Dashboard
                                 </a>
@@ -350,20 +350,20 @@ const Upload = () => {
                 <h3 className="text-lg font-semibold mb-4">What happens after upload?</h3>
                 <div className="space-y-3 text-sm text-gray-400">
                     <div className="flex items-start gap-3">
-                        <div className="w-6 h-6 rounded-full bg-purple-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-                            <span className="text-purple-400 font-semibold">1</span>
+                        <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                            <span className="text-white font-semibold">1</span>
                         </div>
                         <p>Your file is uploaded securely to our server</p>
                     </div>
                     <div className="flex items-start gap-3">
-                        <div className="w-6 h-6 rounded-full bg-purple-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-                            <span className="text-purple-400 font-semibold">2</span>
+                        <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                            <span className="text-white font-semibold">2</span>
                         </div>
                         <p>AI transcribes the audio using Deepgram's Nova-2 model (95%+ accuracy)</p>
                     </div>
                     <div className="flex items-start gap-3">
-                        <div className="w-6 h-6 rounded-full bg-purple-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-                            <span className="text-purple-400 font-semibold">3</span>
+                        <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                            <span className="text-white font-semibold">3</span>
                         </div>
                         <p>Assembly AI identifies individual speakers and creates a timeline</p>
                     </div>

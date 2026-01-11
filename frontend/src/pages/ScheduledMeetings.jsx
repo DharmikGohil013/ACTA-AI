@@ -432,113 +432,141 @@ const ScheduledMeetings = () => {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+                        className="fixed inset-0 bg-black/70 backdrop-blur-lg z-50 flex items-center justify-center p-4"
                         onClick={() => setShowCreateForm(false)}
                     >
                         <motion.div
-                            initial={{ scale: 0.9, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            exit={{ scale: 0.9, opacity: 0 }}
+                            initial={{ scale: 0.9, opacity: 0, y: 20 }}
+                            animate={{ scale: 1, opacity: 1, y: 0 }}
+                            exit={{ scale: 0.9, opacity: 0, y: 20 }}
+                            transition={{ duration: 0.3, ease: "easeOut" }}
                             onClick={(e) => e.stopPropagation()}
-                            className="bg-[#1C1F2E] rounded-2xl p-6 border border-white/10 max-w-md w-full"
+                            className="max-w-md w-full relative group"
                         >
-                            <div className="flex items-center justify-between mb-6">
-                                <h2 className="text-xl font-bold text-white">Create Scheduled Meeting</h2>
-                                <button
-                                    onClick={() => setShowCreateForm(false)}
-                                    className="p-2 hover:bg-white/10 rounded-lg transition-colors"
-                                >
-                                    <X size={20} className="text-gray-400" />
-                                </button>
-                            </div>
+                            {/* Gradient Glow Effect */}
+                            <div className="absolute -inset-1 bg-gradient-to-r from-blue-500 via-emerald-500 to-blue-500 rounded-2xl blur opacity-25 group-hover:opacity-40 transition duration-500"></div>
 
-                            <form onSubmit={handleCreateMeeting} className="space-y-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-400 mb-2">
-                                        Meeting Title
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={formData.title}
-                                        onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                                        placeholder="e.g., Team Standup"
-                                        className="w-full px-4 py-3 bg-[#0B0E14] border border-white/10 rounded-lg text-white placeholder:text-gray-500 focus:outline-none focus:border-emerald-500/50 transition-colors"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-400 mb-2">
-                                        Meeting Type * <span className="text-xs text-gray-500">(Auto-detected from link)</span>
-                                    </label>
-                                    <select
-                                        value={formData.meetingType}
-                                        onChange={(e) => setFormData({ ...formData, meetingType: e.target.value })}
-                                        className="w-full px-4 py-3 bg-[#0B0E14] border border-white/10 rounded-lg text-white focus:outline-none focus:border-emerald-500/50 transition-colors"
-                                        required
-                                    >
-                                        <option value="zoom">Zoom</option>
-                                        <option value="meet">Google Meet</option>
-                                        <option value="teams">Microsoft Teams</option>
-                                    </select>
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-400 mb-2">
-                                        Meeting Link *
-                                    </label>
-                                    <input
-                                        type="url"
-                                        value={formData.meetingLink}
-                                        onChange={(e) => handleLinkChange(e.target.value)}
-                                        placeholder="https://zoom.us/j/... or https://meet.google.com/..."
-                                        className="w-full px-4 py-3 bg-[#0B0E14] border border-white/10 rounded-lg text-white placeholder:text-gray-500 focus:outline-none focus:border-emerald-500/50 transition-colors"
-                                        required
-                                    />
-                                    <p className="text-xs text-emerald-400 mt-1">Meeting type will be auto-detected from the link</p>
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-400 mb-2">
-                                        Scheduled Time *
-                                    </label>
-                                    <div className="relative">
-                                        <input
-                                            type="datetime-local"
-                                            value={formData.scheduledTime}
-                                            onChange={(e) => setFormData({ ...formData, scheduledTime: e.target.value })}
-                                            className="w-full px-4 py-3 bg-[#0B0E14] border border-white/10 rounded-lg text-white focus:outline-none focus:border-emerald-500/50 transition-colors cursor-pointer"
-                                            required
-                                            min={new Date().toISOString().slice(0, 16)}
-                                        />
-                                        <Clock size={18} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
-                                    </div>
-                                    <p className="text-xs text-gray-500 mt-1">Click to select date and time</p>
-                                </div>
-
-                                <div className="flex gap-3 pt-4">
+                            {/* Modal Content */}
+                            <div className="relative bg-gradient-to-br from-[#1C1F2E] to-[#252940] rounded-2xl p-6 border border-white/10 shadow-2xl">
+                                {/* Header */}
+                                <div className="flex items-center justify-between mb-6">
+                                    <h2 className="text-xl font-bold text-white">Create Scheduled Meeting</h2>
                                     <button
-                                        type="button"
                                         onClick={() => setShowCreateForm(false)}
-                                        className="flex-1 px-4 py-3 bg-white/5 hover:bg-white/10 text-white rounded-lg transition-colors"
+                                        className="p-2 hover:bg-white/10 rounded-lg transition-all hover:rotate-90 duration-300"
                                     >
-                                        Cancel
-                                    </button>
-                                    <button
-                                        type="submit"
-                                        disabled={creating}
-                                        className="flex-1 px-4 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                                    >
-                                        {creating ? (
-                                            <>
-                                                <Loader2 size={18} className="animate-spin" />
-                                                Creating...
-                                            </>
-                                        ) : (
-                                            'Create'
-                                        )}
+                                        <X size={20} className="text-gray-400 hover:text-white transition-colors" />
                                     </button>
                                 </div>
-                            </form>
+
+                                <form onSubmit={handleCreateMeeting} className="space-y-5">
+                                    {/* Meeting Title */}
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-300 mb-2">
+                                            Meeting Title
+                                        </label>
+                                        <div className="relative group/input">
+                                            <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-500 to-emerald-500 rounded-lg blur opacity-0 group-hover/input:opacity-10 group-focus-within/input:opacity-20 transition duration-300"></div>
+                                            <input
+                                                type="text"
+                                                value={formData.title}
+                                                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                                                placeholder="e.g., Team Standup"
+                                                className="relative w-full px-4 py-3 bg-[#12151C] border border-white/10 rounded-lg text-white placeholder-slate-500 focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all duration-300"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {/* Meeting Type */}
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-300 mb-2">
+                                            Meeting Type * <span className="text-xs text-slate-500">(Auto-detected from link)</span>
+                                        </label>
+                                        <div className="relative group/input">
+                                            <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-500 to-emerald-500 rounded-lg blur opacity-0 group-hover/input:opacity-10 group-focus-within/input:opacity-20 transition duration-300"></div>
+                                            <select
+                                                value={formData.meetingType}
+                                                onChange={(e) => setFormData({ ...formData, meetingType: e.target.value })}
+                                                className="relative w-full px-4 py-3 bg-[#12151C] border border-white/10 rounded-lg text-white focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all duration-300 cursor-pointer"
+                                                required
+                                            >
+                                                <option value="zoom">Zoom</option>
+                                                <option value="meet">Google Meet</option>
+                                                <option value="teams">Microsoft Teams</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    {/* Meeting Link */}
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-300 mb-2">
+                                            Meeting Link *
+                                        </label>
+                                        <div className="relative group/input">
+                                            <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-500 to-emerald-500 rounded-lg blur opacity-0 group-hover/input:opacity-10 group-focus-within/input:opacity-20 transition duration-300"></div>
+                                            <input
+                                                type="url"
+                                                value={formData.meetingLink}
+                                                onChange={(e) => handleLinkChange(e.target.value)}
+                                                placeholder="https://zoom.us/j/... or https://meet.google.com/..."
+                                                className="relative w-full px-4 py-3 bg-[#12151C] border border-white/10 rounded-lg text-white placeholder-slate-500 focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all duration-300"
+                                                required
+                                            />
+                                        </div>
+                                        <p className="text-xs text-emerald-400 mt-1.5">Meeting type will be auto-detected from the link</p>
+                                    </div>
+
+                                    {/* Scheduled Date & Time - Improved UI */}
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-300 mb-2">
+                                            Scheduled Date & Time *
+                                        </label>
+                                        <div className="relative group/input">
+                                            <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-500 to-emerald-500 rounded-lg blur opacity-0 group-hover/input:opacity-10 group-focus-within/input:opacity-20 transition duration-300"></div>
+                                            <div className="relative bg-[#12151C] border border-white/10 rounded-lg overflow-hidden">
+                                                <input
+                                                    type="datetime-local"
+                                                    value={formData.scheduledTime}
+                                                    onChange={(e) => setFormData({ ...formData, scheduledTime: e.target.value })}
+                                                    className="w-full px-4 py-3 bg-transparent text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all duration-300 cursor-pointer [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-70 [&::-webkit-calendar-picker-indicator]:hover:opacity-100 [&::-webkit-calendar-picker-indicator]:transition-opacity"
+                                                    required
+                                                    min={new Date().toISOString().slice(0, 16)}
+                                                />
+                                                <Clock size={18} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
+                                            </div>
+                                        </div>
+                                        <p className="text-xs text-slate-500 mt-1.5">Select the date and time for your meeting</p>
+                                    </div>
+
+                                    {/* Action Buttons */}
+                                    <div className="flex gap-3 pt-4">
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowCreateForm(false)}
+                                            className="flex-1 px-4 py-3 bg-white/5 hover:bg-white/10 text-white rounded-lg transition-all font-medium"
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button
+                                            type="submit"
+                                            disabled={creating}
+                                            className="flex-1 px-4 py-3 bg-white text-black hover:bg-slate-200 rounded-md font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg hover:scale-[1.02]"
+                                        >
+                                            {creating ? (
+                                                <>
+                                                    <Loader2 size={18} className="animate-spin" />
+                                                    Creating...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Plus size={18} />
+                                                    Create
+                                                </>
+                                            )}
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
                         </motion.div>
                     </motion.div>
                 )}

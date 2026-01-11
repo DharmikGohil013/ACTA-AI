@@ -155,7 +155,7 @@ const Home = () => {
                     {/* Input Field - Professional */}
                     <div className="w-full max-w-xl mx-auto mb-6 relative group">
                         <div className="absolute -inset-1 bg-gradient-to-r from-blue-500 via-purple-500 to-indigo-500 rounded-lg blur opacity-25 group-hover:opacity-50 transition duration-500"></div>
-                        <div className="relative flex items-center bg-[#0B0E14] border border-white/10 rounded-lg focus-within:border-white/20 transition-colors h-16 shadow-2xl p-1.5">
+                        <div className="relative flex items-center bg-[#0B0E14] border border-white/10 rounded-lg focus-within:border-white/20 transition-colors h-12 shadow-2xl p-1">
                             <input
                                 type="text"
                                 placeholder="Paste Zoom, Teams, or Meet link..."
@@ -168,12 +168,12 @@ const Home = () => {
                             <button
                                 onClick={handleJoin}
                                 disabled={loading || !link}
-                                className="h-full px-6 bg-white text-black hover:bg-slate-200 rounded-md transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium text-sm flex items-center gap-2"
+                                className="h-full px-4 bg-white text-black hover:bg-slate-200 rounded-md transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium text-xs flex items-center gap-1.5"
                             >
-                                {loading ? <Loader size={18} className="animate-spin" /> :
+                                {loading ? <Loader size={14} className="animate-spin" /> :
                                     <>
                                         <span>ANALYZE MEETING</span>
-                                        <ArrowRight size={16} />
+                                        <ArrowRight size={13} />
                                     </>
                                 }
                             </button>

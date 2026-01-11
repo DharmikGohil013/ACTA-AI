@@ -7,13 +7,13 @@ const API_URL = 'http://localhost:3000';
 // Stat Card Component
 const StatCard = ({ icon, value, label, change, changeType = 'positive' }) => {
     return (
-        <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-xl p-6 hover:bg-white/8 transition-all duration-300 hover:border-cyan-500/30 hover:shadow-[0_0_30px_rgba(6,182,212,0.1)]">
+        <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-xl p-6 hover:bg-white/8 transition-all duration-300 hover:border-white/20">
             <div className="flex items-start justify-between mb-4">
-                <div className="p-3 bg-cyan-500/10 rounded-lg border border-cyan-500/20">
+                <div className="p-3 bg-white/5 rounded-lg border border-white/10">
                     {icon}
                 </div>
                 {change && (
-                    <div className={`flex items-center gap-1 text-xs font-semibold ${changeType === 'positive' ? 'text-emerald-400' : 'text-red-400'}`}>
+                    <div className={`flex items-center gap-1 text-xs font-semibold ${changeType === 'positive' ? 'text-white' : 'text-slate-400'}`}>
                         <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
                             <path d="M6 2L6 10M6 2L3 5M6 2L9 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                         </svg>
@@ -35,28 +35,28 @@ const MeetingItem = ({ meeting, isLive = false, onStopBot, getPlatformFromLink, 
         switch (platform?.toLowerCase()) {
             case 'zoom':
                 return (
-                    <div className="w-10 h-10 bg-blue-500/20 rounded-full flex items-center justify-center border border-blue-500/30">
-                        <span className="text-blue-400 font-bold text-xs">Z</span>
+                    <div className="w-10 h-10 bg-white/5 rounded-full flex items-center justify-center border border-white/10">
+                        <span className="text-white font-bold text-xs">Z</span>
                     </div>
                 );
             case 'meet':
             case 'google meet':
                 return (
-                    <div className="w-10 h-10 bg-green-500/20 rounded-full flex items-center justify-center border border-green-500/30">
-                        <span className="text-green-400 font-bold text-xs">G</span>
+                    <div className="w-10 h-10 bg-white/5 rounded-full flex items-center justify-center border border-white/10">
+                        <span className="text-white font-bold text-xs">G</span>
                     </div>
                 );
             case 'teams':
             case 'microsoft teams':
                 return (
-                    <div className="w-10 h-10 bg-purple-500/20 rounded-full flex items-center justify-center border border-purple-500/30">
-                        <span className="text-purple-400 font-bold text-xs">T</span>
+                    <div className="w-10 h-10 bg-white/5 rounded-full flex items-center justify-center border border-white/10">
+                        <span className="text-white font-bold text-xs">T</span>
                     </div>
                 );
             default:
                 return (
-                    <div className="w-10 h-10 bg-cyan-500/20 rounded-full flex items-center justify-center border border-cyan-500/30">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <div className="w-10 h-10 bg-white/5 rounded-full flex items-center justify-center border border-white/10">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-white">
                             <path d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
                         </svg>
                     </div>
@@ -70,7 +70,7 @@ const MeetingItem = ({ meeting, isLive = false, onStopBot, getPlatformFromLink, 
         const duration = formatDuration(meeting.createdAt);
 
         return (
-            <div className="flex items-center justify-between p-4 bg-white/5 rounded-lg border border-white/5 hover:bg-white/8 hover:border-cyan-500/30 transition-all duration-300 group">
+            <div className="flex items-center justify-between p-4 bg-white/5 rounded-lg border border-white/5 hover:bg-white/8 hover:border-white/20 transition-all duration-300 group">
                 <div className="flex items-center gap-3 flex-1">
                     {getPlatformIcon(platform)}
                     <div className="flex-1">
@@ -102,7 +102,7 @@ const MeetingItem = ({ meeting, isLive = false, onStopBot, getPlatformFromLink, 
     const duration = formatDuration(meeting.createdAt);
 
     return (
-        <div className="flex items-center justify-between p-4 bg-white/5 rounded-lg border border-white/5 hover:bg-white/8 hover:border-cyan-500/30 transition-all duration-300 group">
+        <div className="flex items-center justify-between p-4 bg-white/5 rounded-lg border border-white/5 hover:bg-white/8 hover:border-white/20 transition-all duration-300 group">
             <div className="flex items-center gap-3 flex-1">
                 {getPlatformIcon(platform)}
                 <div className="flex-1">
@@ -113,16 +113,16 @@ const MeetingItem = ({ meeting, isLive = false, onStopBot, getPlatformFromLink, 
                         <span>{duration}</span>
                         <span className="text-slate-500">•</span>
                         <span className={`px-2 py-0.5 rounded text-xs ${meeting.status === 'completed'
-                            ? 'bg-emerald-500/10 text-emerald-400'
-                            : 'bg-red-500/10 text-red-400'
+                            ? 'bg-white/10 text-white'
+                            : 'bg-slate-500/10 text-slate-400'
                             }`}>
                             {meeting.status}
                         </span>
                     </div>
                 </div>
             </div>
-            <button className="p-2 bg-cyan-500/20 rounded-lg hover:bg-cyan-500/30 transition-all duration-200 border border-cyan-500/30">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="text-cyan-400">
+            <button className="p-2 bg-white/5 rounded-lg hover:bg-white/10 transition-all duration-200 border border-white/10">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="text-white">
                     <path d="M8 5v14l11-7z" />
                 </svg>
             </button>
@@ -135,9 +135,9 @@ const QuickAction = ({ icon, label, description, onClick }) => {
     return (
         <button
             onClick={onClick}
-            className="flex items-center gap-3 p-4 bg-white/5 rounded-lg border border-white/5 hover:bg-white/8 hover:border-cyan-500/30 transition-all duration-300 w-full text-left group"
+            className="flex items-center gap-3 p-4 bg-white/5 rounded-lg border border-white/5 hover:bg-white/8 hover:border-white/20 transition-all duration-300 w-full text-left group"
         >
-            <div className="p-2 bg-cyan-500/10 rounded-lg border border-cyan-500/20 group-hover:bg-cyan-500/20 transition-colors">
+            <div className="p-2 bg-white/5 rounded-lg border border-white/10 group-hover:bg-white/10 transition-colors">
                 {icon}
             </div>
             <div>
@@ -149,12 +149,12 @@ const QuickAction = ({ icon, label, description, onClick }) => {
 };
 
 // Important Date Item Component
-const DateItem = ({ date, month, title, color = 'cyan' }) => {
+const DateItem = ({ date, month, title, color = 'white' }) => {
     const colorClasses = {
-        cyan: 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30',
-        red: 'bg-red-500/20 text-red-400 border-red-500/30',
-        green: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
-        orange: 'bg-orange-500/20 text-orange-400 border-orange-500/30'
+        white: 'bg-white/5 text-white border-white/10',
+        red: 'bg-white/5 text-white border-white/10',
+        green: 'bg-white/5 text-white border-white/10',
+        orange: 'bg-white/5 text-white border-white/10'
     };
 
     return (
@@ -173,9 +173,9 @@ const DateItem = ({ date, month, title, color = 'cyan' }) => {
 // Task Item Component
 const TaskItem = ({ task, priority = 'medium' }) => {
     const priorityColors = {
-        high: 'text-red-400',
-        medium: 'text-orange-400',
-        low: 'text-emerald-400'
+        high: 'text-white',
+        medium: 'text-slate-300',
+        low: 'text-slate-400'
     };
 
     return (
@@ -315,7 +315,7 @@ const Analysis = () => {
 
     // Mock important dates
     const importantDates = [
-        { date: '20', month: 'DEC', title: 'Sprint Review', color: 'cyan' },
+        { date: '20', month: 'DEC', title: 'Sprint Review', color: 'white' },
         { date: '22', month: 'DEC', title: 'Q4 Deadline', color: 'red' },
         { date: '25', month: 'DEC', title: 'Holiday - Office Closed', color: 'green' },
         { date: '2', month: 'JAN', title: 'New Year Kickoff', color: 'orange' }
@@ -348,7 +348,7 @@ const Analysis = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                     <StatCard
                         icon={
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-cyan-400">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-white">
                                 <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-2 7h.01" />
                             </svg>
                         }
@@ -359,7 +359,7 @@ const Analysis = () => {
                     />
                     <StatCard
                         icon={
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-cyan-400">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-white">
                                 <path d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
                             </svg>
                         }
@@ -370,7 +370,7 @@ const Analysis = () => {
                     />
                     <StatCard
                         icon={
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-cyan-400">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-white">
                                 <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                             </svg>
                         }
@@ -381,7 +381,7 @@ const Analysis = () => {
                     />
                     <StatCard
                         icon={
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-cyan-400">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-white">
                                 <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
                                 <circle cx="9" cy="7" r="4" />
                                 <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" />
@@ -425,7 +425,7 @@ const Analysis = () => {
                                     ))
                                 ) : (
                                     <div className="text-center py-8 text-slate-400">
-                                        No live meetings. Start a bot from the <a href="/" className="text-cyan-400 hover:underline">Home page</a>.
+                                        No live meetings. Start a bot from the <a href="/" className="text-white hover:underline">Home page</a>.
                                     </div>
                                 )}
                             </div>
@@ -437,7 +437,7 @@ const Analysis = () => {
                                 <h2 className="text-xl font-bold text-white">Recent Meetings</h2>
                                 <a
                                     href="/dashboard"
-                                    className="flex items-center gap-1 text-cyan-400 text-sm font-medium hover:text-cyan-300 transition-colors"
+                                    className="flex items-center gap-1 text-white text-sm font-medium hover:text-slate-300 transition-colors"
                                 >
                                     View all
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -472,7 +472,7 @@ const Analysis = () => {
                             <div className="space-y-3">
                                 <QuickAction
                                     icon={
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-cyan-400">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-white">
                                             <circle cx="12" cy="12" r="10" />
                                             <path d="M12 6v6l4 2" />
                                         </svg>
@@ -483,7 +483,7 @@ const Analysis = () => {
                                 />
                                 <QuickAction
                                     icon={
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-purple-400">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-white">
                                             <path d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
                                         </svg>
                                     }
@@ -493,7 +493,7 @@ const Analysis = () => {
                                 />
                                 <QuickAction
                                     icon={
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-pink-400">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-white">
                                             <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
                                             <path d="M16 2v4M8 2v4M3 10h18" />
                                         </svg>

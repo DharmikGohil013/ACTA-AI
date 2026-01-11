@@ -106,6 +106,11 @@ const MeetingSchema = new mongoose.Schema({
     default: [],
     // Array of email addresses who have access to this meeting dashboard
   },
+  speakerNameMapping: {
+    type: Object,
+    default: {},
+    // Maps original speaker names to custom names: { "Speaker_A": "John Doe", "Speaker_B": "Jane Smith" }
+  },
   createdAt: {
     type: Date,
     default: Date.now,

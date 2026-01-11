@@ -448,6 +448,19 @@ exports.getDashboard = async (req, res) => {
 
         let analysis = meeting.analysis || null;
 
+        // Apply speaker name mappings if they exist
+        if (analysis && analysis.participants && meeting.speakerNameMapping) {
+            analysis.participants = analysis.participants.map(participant => {
+                const mappedName = meeting.speakerNameMapping[participant.name];
+                if (mappedName) {
+                    return { ...participant, name: mappedName };
+                }
+                return participant;
+            });
+            
+            console.log('[Dashboard] Applied speaker name mappings:', meeting.speakerNameMapping);
+        }
+
         // No dynamic overwriting - return exactly what was generated and saved.
         // This ensures that "what you see is what you get" stored in the database.
         // If the user wants to update the analysis with new data/transcript, they must Regenerate.
@@ -625,5 +638,99 @@ exports.exportDashboardToEmail = async (req, res) => {
     } catch (err) {
         console.error('[Dashboard] Export to email error:', err);
         res.status(500).json({ error: 'Failed to export dashboard to email' });
+    }
+};
+
+// Generate and download dashboard PDF
+exports.downloadDashboardPDF = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const meeting = await Meeting.findById(id);
+
+        if (!meeting) {
+            return res.status(404).json({ error: 'Meeting not found' });
+        }
+
+        if (!meeting.analysis) {
+            return res.status(400).json({ error: 'Meeting analysis not available. Please generate dashboard first.' });
+        }
+
+        console.log(`[Dashboard] Generating PDF for meeting: ${id}`);
+        
+        const { generateDashboardPDF } = require('../services/pdfService');
+        const pdfBuffer = await generateDashboardPDF(meeting, meeting.analysis);
+
+        // Set headers for PDF download
+        const filename = `${meeting.meetingName || 'Meeting'}_${meeting.analysis.title || 'Dashboard'}.pdf`.replace(/[^a-z0-9_\-]/gi, '_');
+        
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+        res.setHeader('Content-Length', pdfBuffer.length);
+        
+        res.send(pdfBuffer);
+        console.log(`[Dashboard] ✅ PDF generated and sent: ${filename}`);
+
+    } catch (err) {
+        console.error('[Dashboard] PDF generation error:', err);
+        res.status(500).json({ error: 'Failed to generate PDF: ' + err.message });
+    }
+};
+
+// Update speaker name mapping
+exports.updateSpeakerName = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { originalName, newName } = req.body;
+
+        if (!originalName || !newName) {
+            return res.status(400).json({ error: 'Original name and new name are required' });
+        }
+
+        const meeting = await Meeting.findById(id);
+        if (!meeting) {
+            return res.status(404).json({ error: 'Meeting not found' });
+        }
+
+        // Initialize speakerNameMapping if it doesn't exist
+        if (!meeting.speakerNameMapping) {
+            meeting.speakerNameMapping = {};
+        }
+
+        // Update the mapping
+        meeting.speakerNameMapping[originalName] = newName.trim();
+        
+        // Mark as modified (required for nested objects in Mongoose)
+        meeting.markModified('speakerNameMapping');
+        
+        // Also update in analysis if it exists
+        if (meeting.analysis && meeting.analysis.participants) {
+            meeting.analysis.participants = meeting.analysis.participants.map(p => {
+                if (p.name === originalName) {
+                    return { ...p, name: newName.trim() };
+                }
+                return p;
+            });
+            
+            // Mark analysis as modified too
+            meeting.markModified('analysis');
+        }
+
+        await meeting.save();
+
+        // Verify the update was saved by fetching fresh data
+        const updatedMeeting = await Meeting.findById(id);
+        console.log(`[Dashboard] Speaker name update saved to database:`);
+        console.log(`  - Original: "${originalName}" -> New: "${newName}"`);
+        console.log(`  - Mapping in DB:`, updatedMeeting.speakerNameMapping);
+
+        res.json({ 
+            success: true, 
+            speakerNameMapping: updatedMeeting.speakerNameMapping,
+            analysis: updatedMeeting.analysis
+        });
+
+    } catch (err) {
+        console.error('[Dashboard] Update speaker name error:', err);
+        res.status(500).json({ error: 'Failed to update speaker name' });
     }
 };

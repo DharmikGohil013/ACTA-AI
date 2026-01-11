@@ -11,7 +11,7 @@ import {
     Copy, Zap, AlertTriangle, FileText, Loader2, Calendar,
     MessageSquare, BarChart2, LayoutDashboard, ChevronRight, Send, User,
     MoreHorizontal, Filter, ChevronDown, RefreshCw, Sparkles, Download, Users, X, Mail,
-    Volume2, VolumeX, Pause
+    Volume2, VolumeX, Pause, Edit2, Check, FileDown
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -40,6 +40,7 @@ const MeetingDashboard = () => {
     const [meetingOwnerEmail, setMeetingOwnerEmail] = useState('');
     const [currentUserEmail, setCurrentUserEmail] = useState('');
     const [isOwner, setIsOwner] = useState(true); // Default to true to show tab initially
+    const [downloadingPDF, setDownloadingPDF] = useState(false);
 
     // Suggested Questions
     const suggestedQuestions = [
@@ -205,6 +206,32 @@ const MeetingDashboard = () => {
         }
     };
 
+    const handleDownloadPDF = async () => {
+        setDownloadingPDF(true);
+        try {
+            const response = await axios.get(`${API_URL}/api/meetings/${id}/download-pdf`, {
+                responseType: 'blob'
+            });
+
+            // Create blob link to download
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `${data.title || 'Meeting'}_Dashboard.pdf`);
+            document.body.appendChild(link);
+            link.click();
+            link.parentNode.removeChild(link);
+            window.URL.revokeObjectURL(url);
+
+            console.log('✅ PDF downloaded successfully');
+        } catch (err) {
+            console.error('Error downloading PDF:', err);
+            alert('Failed to download PDF. Please try again.');
+        } finally {
+            setDownloadingPDF(false);
+        }
+    };
+
     const exportToSRT = () => {
         if (!data.transcriptTimeline || data.transcriptTimeline.length === 0) {
             alert('No transcript timeline available to export');
@@ -337,6 +364,24 @@ const MeetingDashboard = () => {
                             <span className="text-xs font-bold text-emerald-400 uppercase tracking-wide">AI Analysis Active</span>
                         </div>
                         <button
+                            onClick={handleDownloadPDF}
+                            disabled={downloadingPDF}
+                            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            title="Download Dashboard as PDF"
+                        >
+                            {downloadingPDF ? (
+                                <>
+                                    <Loader2 size={16} className="animate-spin" />
+                                    <span>Generating...</span>
+                                </>
+                            ) : (
+                                <>
+                                    <FileDown size={16} />
+                                    <span>Download PDF</span>
+                                </>
+                            )}
+                        </button>
+                        <button
                             onClick={() => fetchDashboardData(true)}
                             disabled={reloading}
                             className="p-2 hover:bg-white/5 rounded-lg text-gray-400 hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
@@ -444,6 +489,9 @@ const OverviewTab = ({ data, meetingId }) => {
     const [isSpeaking, setIsSpeaking] = useState(false);
     const [isPaused, setIsPaused] = useState(false);
     const speechSynthesisRef = useRef(null);
+    const [editingSpeaker, setEditingSpeaker] = useState(null);
+    const [editedName, setEditedName] = useState('');
+    const [participants, setParticipants] = useState(data.participants || []);
 
     const handleTranslateSummary = async () => {
         if (selectedLanguage === 'English') {
@@ -578,6 +626,48 @@ const OverviewTab = ({ data, meetingId }) => {
         };
     }, []);
 
+    // Update participants when data changes
+    useEffect(() => {
+        setParticipants(data.participants || []);
+    }, [data.participants]);
+
+    const handleEditSpeaker = (index, currentName) => {
+        setEditingSpeaker(index);
+        setEditedName(currentName);
+    };
+
+    const handleSaveSpeakerName = async (index, originalName) => {
+        if (!editedName.trim() || editedName === originalName) {
+            setEditingSpeaker(null);
+            return;
+        }
+
+        try {
+            const res = await axios.put(`${API_URL}/api/meetings/${meetingId}/speaker-name`, {
+                originalName,
+                newName: editedName.trim()
+            });
+
+            if (res.data.success) {
+                // Reload full data from database to ensure consistency
+                await fetchDashboardData();
+                setEditingSpeaker(null);
+                
+                // Show success message
+                console.log('Speaker name updated successfully in database');
+            }
+        } catch (err) {
+            console.error('Error updating speaker name:', err);
+            alert(err.response?.data?.error || 'Failed to update speaker name');
+            setEditingSpeaker(null);
+        }
+    };
+
+    const handleCancelEdit = () => {
+        setEditingSpeaker(null);
+        setEditedName('');
+    };
+
     const displaySummary = (selectedLanguage !== 'English' && translatedSummary)
         ? translatedSummary
         : data.summary;
@@ -599,7 +689,7 @@ const OverviewTab = ({ data, meetingId }) => {
                     Speakers
                 </h3>
                 <div className="space-y-3">
-                    {data.participants?.map((speaker, i) => {
+                    {participants?.map((speaker, i) => {
                         const colors = ['bg-blue-500', 'bg-emerald-500', 'bg-orange-500', 'bg-pink-500', 'bg-purple-500', 'bg-cyan-500', 'bg-yellow-500', 'bg-red-500'];
                         const color = colors[i % colors.length];
 
@@ -609,16 +699,56 @@ const OverviewTab = ({ data, meetingId }) => {
                         const displayName = isGenericSpeaker ? `Speaker ${speakerLetter}` : speaker.name;
                         const initial = displayName?.charAt(0).toUpperCase() || 'S';
                         const utterances = Math.round((speaker.contribution || 0) * 100 / 5) || Math.floor(Math.random() * 30) + 10;
+                        const isEditing = editingSpeaker === i;
 
                         return (
-                            <div key={i} className="flex items-center gap-3 p-3 bg-[#0B0E14] rounded-xl border border-white/5 hover:border-white/10 transition-colors">
+                            <div key={i} className="group flex items-center gap-3 p-3 bg-[#0B0E14] rounded-xl border border-white/5 hover:border-white/10 transition-colors">
                                 <div className={`w-10 h-10 rounded-xl ${color} flex items-center justify-center text-white font-bold text-sm flex-shrink-0`}>
                                     {initial}
                                 </div>
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-2 mb-1">
-                                        <span className="text-sm font-semibold text-white">{displayName || `Speaker ${speakerLetter}`}</span>
-                                        {speaker.role && (
+                                        {isEditing ? (
+                                            <div className="flex items-center gap-2">
+                                                <input
+                                                    type="text"
+                                                    value={editedName}
+                                                    onChange={(e) => setEditedName(e.target.value)}
+                                                    onKeyDown={(e) => {
+                                                        if (e.key === 'Enter') handleSaveSpeakerName(i, speaker.name);
+                                                        if (e.key === 'Escape') handleCancelEdit();
+                                                    }}
+                                                    className="bg-[#1C1F2E] text-white text-sm px-2 py-1 rounded border border-emerald-500/50 focus:outline-none focus:border-emerald-500 w-32"
+                                                    autoFocus
+                                                />
+                                                <button
+                                                    onClick={() => handleSaveSpeakerName(i, speaker.name)}
+                                                    className="p-1 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 rounded transition-colors"
+                                                    title="Save"
+                                                >
+                                                    <Check size={14} />
+                                                </button>
+                                                <button
+                                                    onClick={handleCancelEdit}
+                                                    className="p-1 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded transition-colors"
+                                                    title="Cancel"
+                                                >
+                                                    <X size={14} />
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <>
+                                                <span className="text-sm font-semibold text-white">{displayName || `Speaker ${speakerLetter}`}</span>
+                                                <button
+                                                    onClick={() => handleEditSpeaker(i, speaker.name)}
+                                                    className="p-1 opacity-0 group-hover:opacity-100 hover:bg-white/10 rounded transition-all"
+                                                    title="Edit speaker name"
+                                                >
+                                                    <Edit2 size={12} className="text-gray-400 hover:text-white" />
+                                                </button>
+                                            </>
+                                        )}
+                                        {speaker.role && !isEditing && (
                                             <span className="text-xs px-2 py-0.5 bg-white/5 rounded-full text-gray-400">
                                                 {speaker.role}
                                             </span>

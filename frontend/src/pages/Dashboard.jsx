@@ -640,9 +640,10 @@ const Dashboard = () => {
 
     // AI Search through transcripts
     const handleAiSearch = async () => {
-        if (!searchQuery.trim() || !aiSearchMode) return;
+        if (!searchQuery.trim()) return;
 
         setAiSearching(true);
+        setAiSearchMode(true); // Ensure AI mode is enabled when searching
         try {
             const response = await axios.post(`${API_URL}/api/meetings/ai-search`, {
                 query: searchQuery,
@@ -667,8 +668,15 @@ const Dashboard = () => {
 
     // Toggle AI search mode
     const toggleAiSearch = () => {
-        setAiSearchMode(!aiSearchMode);
-        if (aiSearchMode) {
+        const newMode = !aiSearchMode;
+        setAiSearchMode(newMode);
+        
+        if (newMode) {
+            // Turning on AI mode - if there's already a search query, perform search immediately
+            if (searchQuery.trim()) {
+                handleAiSearch();
+            }
+        } else {
             // Turning off AI mode
             setAiSearchResults([]);
         }
@@ -767,21 +775,6 @@ const Dashboard = () => {
                                 }}
                                 className="bg-transparent border-none outline-none text-sm text-white w-full placeholder-gray-600 mx-2"
                             />
-                            {aiSearchMode && searchQuery && (
-                                <button
-                                    onClick={handleAiSearch}
-                                    disabled={aiSearching}
-                                    className="flex items-center gap-1 px-3 py-1.5 bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 rounded-full text-xs font-semibold transition-colors disabled:opacity-50"
-                                    title="Search with AI"
-                                >
-                                    {aiSearching ? (
-                                        <Loader2 size={12} className="animate-spin" />
-                                    ) : (
-                                        <Sparkles size={12} />
-                                    )}
-                                    <span>Search</span>
-                                </button>
-                            )}
                             {searchQuery && (
                                 <button
                                     onClick={() => {
@@ -799,14 +792,19 @@ const Dashboard = () => {
                     {/* AI Toggle Button */}
                     <button
                         onClick={toggleAiSearch}
+                        disabled={aiSearching}
                         className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center transition-all ${
                             aiSearchMode 
                                 ? 'bg-purple-500/20 border-2 border-purple-500/50 text-purple-400 shadow-[0_0_20px_rgba(168,85,247,0.2)]' 
                                 : 'bg-white/5 border border-white/10 text-gray-400 hover:bg-white/10 hover:text-white'
-                        }`}
+                        } ${aiSearching ? 'opacity-50 cursor-not-allowed' : ''}`}
                         title={aiSearchMode ? "Switch to Normal Search" : "AI Search (Search through transcripts)"}
                     >
-                        <Sparkles size={16} className={aiSearchMode ? 'animate-pulse' : ''} />
+                        {aiSearching ? (
+                            <Loader2 size={16} className="animate-spin" />
+                        ) : (
+                            <Sparkles size={16} className={aiSearchMode ? 'animate-pulse' : ''} />
+                        )}
                     </button>
                 </div>
 

@@ -7,6 +7,87 @@ import { ZoomLogo, TeamsLogo, MeetLogo } from '../components/Logos';
 
 const API_URL = 'http://localhost:3000';
 
+// Animated Text Component with letter-by-letter reveal
+const AnimatedText = ({ text, isVisible }) => {
+    const words = text.split(' ');
+    
+    const containerVariants = {
+        hidden: { opacity: 0 },
+        visible: {
+            opacity: 1,
+            transition: {
+                staggerChildren: 0.08,
+                delayChildren: 0.1
+            }
+        },
+        exit: {
+            opacity: 0,
+            transition: {
+                staggerChildren: 0.03,
+                staggerDirection: -1
+            }
+        }
+    };
+
+    const wordVariants = {
+        hidden: { 
+            opacity: 0, 
+            y: 40,
+            rotateX: 90,
+            scale: 0.5,
+            filter: 'blur(10px)'
+        },
+        visible: { 
+            opacity: 1, 
+            y: 0,
+            rotateX: 0,
+            scale: 1,
+            filter: 'blur(0px)',
+            transition: {
+                type: 'spring',
+                damping: 12,
+                stiffness: 100,
+                duration: 0.6
+            }
+        },
+        exit: { 
+            opacity: 0, 
+            y: -40,
+            rotateX: -90,
+            scale: 0.5,
+            filter: 'blur(10px)',
+            transition: {
+                duration: 0.3
+            }
+        }
+    };
+
+    return (
+        <motion.span
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+            className="inline-flex gap-[0.3em] flex-wrap justify-center md:justify-start"
+            style={{ perspective: '1000px' }}
+        >
+            {words.map((word, index) => (
+                <motion.span
+                    key={index}
+                    variants={wordVariants}
+                    className="inline-block bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500 bg-clip-text text-transparent"
+                    style={{ 
+                        transformStyle: 'preserve-3d',
+                        textShadow: '0 0 60px rgba(139, 92, 246, 0.4)'
+                    }}
+                >
+                    {word}
+                </motion.span>
+            ))}
+        </motion.span>
+    );
+};
+
 const Home = () => {
     const [link, setLink] = useState('');
     const [meetingName, setMeetingName] = useState('');
@@ -16,7 +97,17 @@ const Home = () => {
     const [botConfigured, setBotConfigured] = useState(true);  // Default true to avoid flashing
     const [setupLoading, setSetupLoading] = useState(false);
     const [showAdvanced, setShowAdvanced] = useState(false);
+    const [currentPhraseIndex, setCurrentPhraseIndex] = useState(0);
     const navigate = useNavigate();
+
+    const rotatingPhrases = [
+        'Actionable Intelligence',
+        'Strategic Insights',
+        'Business Insights',
+        'Smart Decisions',
+        'Clear Action Plans',
+        'Powerful Analytics'
+    ];
 
     const defaultMeetingNames = [
         'Daily Standup',
@@ -33,6 +124,15 @@ const Home = () => {
 
     useEffect(() => {
         checkBotSetup();
+    }, []);
+
+    // Rotate phrases every 3.5 seconds
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setCurrentPhraseIndex((prev) => (prev + 1) % rotatingPhrases.length);
+        }, 3500);
+
+        return () => clearInterval(interval);
     }, []);
 
     const checkBotSetup = async () => {
@@ -145,7 +245,31 @@ const Home = () => {
 
                     <h1 className="text-5xl md:text-7xl font-bold mb-6 tracking-tight text-white max-w-4xl leading-[1.1]">
                         Turn Conversations into <br />
-                        <span className="text-gradient">Actionable Intelligence</span>
+                        <span className="relative inline-block min-w-[450px] min-h-[1.2em]">
+                            <AnimatePresence mode="wait">
+                                <motion.span
+                                    key={currentPhraseIndex}
+                                    className="inline-block"
+                                >
+                                    <AnimatedText text={rotatingPhrases[currentPhraseIndex]} />
+                                </motion.span>
+                            </AnimatePresence>
+                            {/* Animated glow effect */}
+                            <motion.div
+                                key={`glow-${currentPhraseIndex}`}
+                                initial={{ opacity: 0, scale: 0.8 }}
+                                animate={{ 
+                                    opacity: [0.3, 0.6, 0.3], 
+                                    scale: [0.8, 1.2, 1]
+                                }}
+                                transition={{ 
+                                    duration: 2,
+                                    repeat: Infinity,
+                                    repeatType: 'reverse'
+                                }}
+                                className="absolute inset-0 bg-gradient-to-r from-blue-500/30 via-purple-500/30 to-pink-500/30 blur-3xl -z-10 rounded-full"
+                            />
+                        </span>
                     </h1>
 
                     <p className="text-lg text-slate-400 mb-10 max-w-2xl mx-auto leading-relaxed">

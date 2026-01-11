@@ -53,7 +53,7 @@ const Profile = () => {
             <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="glass rounded-2xl p-6 border border-white/5">
+                className="glass rounded-2xl p-6 border border-white/5"
             >
                 <div className="flex flex-col items-center mb-6">
                     <div className="relative mb-3">

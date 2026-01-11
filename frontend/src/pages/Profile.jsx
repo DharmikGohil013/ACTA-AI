@@ -49,15 +49,15 @@ const Profile = () => {
     if (!user) return null;
 
     return (
-        <div className="min-h-[80vh] max-w-2xl mx-auto px-4 py-12">
+        <div className="min-h-[80vh] max-w-xl mx-auto px-4 py-8">
             <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="glass rounded-2xl p-8 border border-white/10"
+                className="glass rounded-2xl p-6 border border-white/5">
             >
-                <div className="flex flex-col items-center mb-8">
-                    <div className="relative mb-4">
-                        <div className="w-24 h-24 rounded-full p-1 bg-gradient-to-tr from-blue-500 to-purple-500">
+                <div className="flex flex-col items-center mb-6">
+                    <div className="relative mb-3">
+                        <div className="w-20 h-20 rounded-full p-[2px] bg-gradient-to-br from-white/20 via-white/10 to-transparent">
                             {user.picture && !imgError ? (
                                 <img
                                     src={user.picture}
@@ -66,46 +66,46 @@ const Profile = () => {
                                     onError={() => setImgError(true)}
                                 />
                             ) : (
-                                <div className="w-full h-full rounded-full bg-[#0B0E14] flex items-center justify-center text-2xl font-bold text-white">
+                                <div className="w-full h-full rounded-full bg-[#0B0E14] flex items-center justify-center text-xl font-bold text-white">
                                     {user.name && user.name[0] ? user.name[0].toUpperCase() : 'U'}
                                 </div>
                             )}
                         </div>
                     </div>
-                    <h1 className="text-2xl font-bold text-white">{user.name}</h1>
-                    <p className="text-slate-400">{user.email}</p>
+                    <h1 className="text-xl font-bold text-white">{user.name}</h1>
+                    <p className="text-slate-400 text-xs mt-0.5">{user.email}</p>
                 </div>
 
-                <div className="space-y-4 mb-8">
-                    <div className="p-4 rounded-xl bg-white/5 border border-white/10 flex items-center gap-4">
-                        <div className="p-2 rounded-lg bg-blue-500/20 text-blue-400">
-                            <User size={20} />
+                <div className="space-y-2.5 mb-6">
+                    <div className="p-3 rounded-xl bg-white/5 border border-white/5 flex items-center gap-3 hover:bg-white/[0.07] transition-colors">
+                        <div className="p-2 rounded-lg bg-white/5 text-white/70">
+                            <User size={16} />
                         </div>
-                        <div>
-                            <p className="text-xs text-slate-500 uppercase tracking-wider">Display Name</p>
-                            <p className="text-white font-medium">{user.name}</p>
-                        </div>
-                    </div>
-
-                    <div className="p-4 rounded-xl bg-white/5 border border-white/10 flex items-center gap-4">
-                        <div className="p-2 rounded-lg bg-purple-500/20 text-purple-400">
-                            <Mail size={20} />
-                        </div>
-                        <div>
-                            <p className="text-xs text-slate-500 uppercase tracking-wider">Email Address</p>
-                            <p className="text-white font-medium">{user.email}</p>
+                        <div className="flex-1">
+                            <p className="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">Name</p>
+                            <p className="text-white/90 font-medium text-sm">{user.name}</p>
                         </div>
                     </div>
 
-                    <div className="p-4 rounded-xl bg-white/5 border border-white/10 flex items-center gap-4">
-                        <div className="p-2 rounded-lg bg-emerald-500/20 text-emerald-400">
-                            <Shield size={20} />
+                    <div className="p-3 rounded-xl bg-white/5 border border-white/5 flex items-center gap-3 hover:bg-white/[0.07] transition-colors">
+                        <div className="p-2 rounded-lg bg-white/5 text-white/70">
+                            <Mail size={16} />
                         </div>
-                        <div>
-                            <p className="text-xs text-slate-500 uppercase tracking-wider">Account Status</p>
+                        <div className="flex-1">
+                            <p className="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">Email</p>
+                            <p className="text-white/90 font-medium text-sm break-all">{user.email}</p>
+                        </div>
+                    </div>
+
+                    <div className="p-3 rounded-xl bg-emerald-500/5 border border-emerald-500/20 flex items-center gap-3 hover:bg-emerald-500/10 transition-colors">
+                        <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400">
+                            <Shield size={16} />
+                        </div>
+                        <div className="flex-1">
+                            <p className="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">Account Status</p>
                             <div className="flex items-center gap-2">
-                                <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                                <p className="text-white font-medium">Active</p>
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                                <p className="text-white/90 font-medium text-sm">Active</p>
                             </div>
                         </div>
                     </div>
@@ -113,9 +113,9 @@ const Profile = () => {
 
                 <button
                     onClick={handleLogout}
-                    className="w-full py-3 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/20 transition-all font-medium flex items-center justify-center gap-2"
+                    className="w-full py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-white/70 hover:text-white border border-white/5 hover:border-white/10 transition-all font-medium flex items-center justify-center gap-2 text-sm"
                 >
-                    <LogOut size={18} />
+                    <LogOut size={16} />
                     Sign Out
                 </button>
             </motion.div>

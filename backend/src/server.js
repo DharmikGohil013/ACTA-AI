@@ -1304,6 +1304,9 @@ app.post('/api/meetings/:id/ask', optionalAuth, dashboardController.askQuestion)
 app.post('/api/meetings/:id/collaborators', optionalAuth, dashboardController.addCollaborator);
 app.delete('/api/meetings/:id/collaborators', optionalAuth, dashboardController.removeCollaborator);
 
+// Export dashboard to email (Outlook)
+app.post('/api/meetings/:id/export-email', optionalAuth, dashboardController.exportDashboardToEmail);
+
 
 
 // 5. Delete Meeting

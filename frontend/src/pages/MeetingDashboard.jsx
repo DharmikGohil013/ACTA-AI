@@ -10,7 +10,8 @@ import {
     ArrowLeft, Plus, Search, Bell, Clock, CheckCircle2, ShieldCheck,
     Copy, Zap, AlertTriangle, FileText, Loader2, Calendar,
     MessageSquare, BarChart2, LayoutDashboard, ChevronRight, Send, User,
-    MoreHorizontal, Filter, ChevronDown, RefreshCw, Sparkles, Download, Users, X, Mail
+    MoreHorizontal, Filter, ChevronDown, RefreshCw, Sparkles, Download, Users, X, Mail,
+    Volume2, VolumeX, Pause
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -438,6 +439,11 @@ const OverviewTab = ({ data, meetingId }) => {
     const [selectedLanguage, setSelectedLanguage] = useState('English');
     const [translatedSummary, setTranslatedSummary] = useState(null);
     const [isTranslating, setIsTranslating] = useState(false);
+    const [exportingEmail, setExportingEmail] = useState(false);
+    const [emailExported, setEmailExported] = useState(false);
+    const [isSpeaking, setIsSpeaking] = useState(false);
+    const [isPaused, setIsPaused] = useState(false);
+    const speechSynthesisRef = useRef(null);
 
     const handleTranslateSummary = async () => {
         if (selectedLanguage === 'English') {
@@ -463,6 +469,114 @@ const OverviewTab = ({ data, meetingId }) => {
             setIsTranslating(false);
         }
     };
+
+    const handleExportToEmail = async () => {
+        setExportingEmail(true);
+        try {
+            // Get current user's email
+            const userRes = await axios.get(`${API_URL}/api/auth/user`);
+            if (!userRes.data.user || !userRes.data.user.email) {
+                alert('Unable to get user email. Please log in again.');
+                return;
+            }
+
+            const recipientEmail = userRes.data.user.email;
+
+            // Send dashboard to email
+            const res = await axios.post(`${API_URL}/api/meetings/${meetingId}/export-email`, {
+                recipientEmail
+            });
+
+            if (res.data.success) {
+                setEmailExported(true);
+                alert(`✅ Dashboard successfully exported to ${recipientEmail}!\n\nCheck your Outlook inbox for the complete meeting summary.`);
+                
+                // Reset the exported state after 3 seconds
+                setTimeout(() => setEmailExported(false), 3000);
+            }
+        } catch (err) {
+            console.error('Export to email error:', err);
+            alert(err.response?.data?.error || 'Failed to export dashboard to email. Please try again.');
+        } finally {
+            setExportingEmail(false);
+        }
+    };
+
+    const handleTextToSpeech = () => {
+        // Check if browser supports speech synthesis
+        if (!('speechSynthesis' in window)) {
+            alert('Sorry, your browser does not support text-to-speech.');
+            return;
+        }
+
+        const synth = window.speechSynthesis;
+
+        // If already speaking, handle pause/resume/stop
+        if (isSpeaking) {
+            if (isPaused) {
+                synth.resume();
+                setIsPaused(false);
+            } else {
+                synth.pause();
+                setIsPaused(true);
+            }
+            return;
+        }
+
+        // Create new speech utterance
+        const utterance = new SpeechSynthesisUtterance(displaySummary);
+        speechSynthesisRef.current = utterance;
+
+        // Configure voice settings
+        utterance.rate = 1.0; // Speed (0.1 to 10)
+        utterance.pitch = 1.0; // Pitch (0 to 2)
+        utterance.volume = 1.0; // Volume (0 to 1)
+
+        // Try to use a good English voice
+        const voices = synth.getVoices();
+        const englishVoice = voices.find(voice => voice.lang.startsWith('en-'));
+        if (englishVoice) {
+            utterance.voice = englishVoice;
+        }
+
+        // Event handlers
+        utterance.onstart = () => {
+            setIsSpeaking(true);
+            setIsPaused(false);
+        };
+
+        utterance.onend = () => {
+            setIsSpeaking(false);
+            setIsPaused(false);
+        };
+
+        utterance.onerror = (event) => {
+            console.error('Speech synthesis error:', event);
+            setIsSpeaking(false);
+            setIsPaused(false);
+            alert('Error playing audio. Please try again.');
+        };
+
+        // Start speaking
+        synth.speak(utterance);
+    };
+
+    const handleStopSpeech = () => {
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.cancel();
+            setIsSpeaking(false);
+            setIsPaused(false);
+        }
+    };
+
+    // Cleanup on unmount
+    useEffect(() => {
+        return () => {
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+            }
+        };
+    }, []);
 
     const displaySummary = (selectedLanguage !== 'English' && translatedSummary)
         ? translatedSummary
@@ -563,6 +677,28 @@ const OverviewTab = ({ data, meetingId }) => {
                             >
                                 {isTranslating ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
                             </button>
+                            <button
+                                onClick={handleTextToSpeech}
+                                className={`p-1.5 rounded-lg transition-colors ${
+                                    isSpeaking
+                                        ? isPaused
+                                            ? 'bg-amber-600/20 hover:bg-amber-600/40 text-amber-400'
+                                            : 'bg-purple-600/20 hover:bg-purple-600/40 text-purple-400'
+                                        : 'bg-blue-600/20 hover:bg-blue-600/40 text-blue-400'
+                                }`}
+                                title={isSpeaking ? (isPaused ? 'Resume' : 'Pause') : 'Listen to Summary'}
+                            >
+                                {isSpeaking ? (isPaused ? <Volume2 size={12} /> : <Pause size={12} />) : <Volume2 size={12} />}
+                            </button>
+                            {isSpeaking && (
+                                <button
+                                    onClick={handleStopSpeech}
+                                    className="p-1.5 bg-red-600/20 hover:bg-red-600/40 text-red-400 rounded-lg transition-colors"
+                                    title="Stop"
+                                >
+                                    <VolumeX size={12} />
+                                </button>
+                            )}
                         </div>
                     </div>
                     <p className="text-slate-300 leading-relaxed text-sm whitespace-pre-line">
@@ -608,7 +744,36 @@ const OverviewTab = ({ data, meetingId }) => {
                             <div className="h-full flex flex-col animate-in fade-in duration-300">
                                 <div className="flex justify-between items-center mb-3">
                                     <span className="text-xs text-gray-500">Draft</span>
-                                    <CopyButton text={data.followUpDrafts?.email} />
+                                    <div className="flex items-center gap-2">
+                                        <button
+                                            onClick={handleExportToEmail}
+                                            disabled={exportingEmail}
+                                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                                                emailExported 
+                                                    ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' 
+                                                    : 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 border border-blue-500/30'
+                                            } disabled:opacity-50 disabled:cursor-not-allowed`}
+                                            title="Auto-export dashboard to your Outlook email"
+                                        >
+                                            {exportingEmail ? (
+                                                <>
+                                                    <Loader2 size={12} className="animate-spin" />
+                                                    Sending...
+                                                </>
+                                            ) : emailExported ? (
+                                                <>
+                                                    <CheckCircle2 size={12} />
+                                                    Sent to Outlook!
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Mail size={12} />
+                                                    Export to Outlook
+                                                </>
+                                            )}
+                                        </button>
+                                        <CopyButton text={data.followUpDrafts?.email} />
+                                    </div>
                                 </div>
                                 <div className="overflow-y-auto flex-1 custom-scrollbar text-xs text-slate-300 font-mono whitespace-pre-wrap">
                                     {data.followUpDrafts?.email || "No draft available."}

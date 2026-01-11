@@ -589,3 +589,41 @@ exports.getSharedMeetings = async (req, res) => {
         res.status(500).json({ error: 'Failed to fetch shared meetings' });
     }
 };
+
+// Export dashboard to email (Outlook)
+exports.exportDashboardToEmail = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { recipientEmail } = req.body;
+
+        if (!recipientEmail) {
+            return res.status(400).json({ error: 'Recipient email is required' });
+        }
+
+        const meeting = await Meeting.findById(id);
+        if (!meeting) {
+            return res.status(404).json({ error: 'Meeting not found' });
+        }
+
+        if (!meeting.analysis) {
+            return res.status(400).json({ error: 'Meeting analysis not available. Please generate dashboard first.' });
+        }
+
+        console.log(`[Dashboard] Exporting dashboard to email: ${recipientEmail}`);
+        const result = await sendDashboardSummary(meeting._id, meeting.analysis, recipientEmail);
+
+        if (result.success) {
+            res.json({ 
+                success: true, 
+                message: 'Dashboard exported to your email successfully!',
+                messageId: result.messageId 
+            });
+        } else {
+            res.status(500).json({ error: 'Failed to send email: ' + result.error });
+        }
+
+    } catch (err) {
+        console.error('[Dashboard] Export to email error:', err);
+        res.status(500).json({ error: 'Failed to export dashboard to email' });
+    }
+};

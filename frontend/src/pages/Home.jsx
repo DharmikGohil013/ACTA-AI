@@ -244,32 +244,7 @@ const Home = () => {
                     </div>
 
                     <h1 className="text-5xl md:text-7xl font-bold mb-6 tracking-tight text-white max-w-4xl leading-[1.1]">
-                        Turn Conversations into <br />
-                        <span className="relative inline-block min-w-[450px] min-h-[1.2em]">
-                            <AnimatePresence mode="wait">
-                                <motion.span
-                                    key={currentPhraseIndex}
-                                    className="inline-block"
-                                >
-                                    <AnimatedText text={rotatingPhrases[currentPhraseIndex]} />
-                                </motion.span>
-                            </AnimatePresence>
-                            {/* Animated glow effect */}
-                            <motion.div
-                                key={`glow-${currentPhraseIndex}`}
-                                initial={{ opacity: 0, scale: 0.8 }}
-                                animate={{ 
-                                    opacity: [0.3, 0.6, 0.3], 
-                                    scale: [0.8, 1.2, 1]
-                                }}
-                                transition={{ 
-                                    duration: 2,
-                                    repeat: Infinity,
-                                    repeatType: 'reverse'
-                                }}
-                                className="absolute inset-0 bg-gradient-to-r from-blue-500/30 via-purple-500/30 to-pink-500/30 blur-3xl -z-10 rounded-full"
-                            />
-                        </span>
+                        Turn Conversations into Clear Action Plans
                     </h1>
 
                     <p className="text-lg text-slate-400 mb-10 max-w-2xl mx-auto leading-relaxed">

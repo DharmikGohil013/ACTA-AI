@@ -1307,6 +1307,12 @@ app.delete('/api/meetings/:id/collaborators', optionalAuth, dashboardController.
 // Export dashboard to email (Outlook)
 app.post('/api/meetings/:id/export-email', optionalAuth, dashboardController.exportDashboardToEmail);
 
+// Update speaker name
+app.put('/api/meetings/:id/speaker-name', optionalAuth, dashboardController.updateSpeakerName);
+
+// Download dashboard as PDF
+app.get('/api/meetings/:id/download-pdf', optionalAuth, dashboardController.downloadDashboardPDF);
+
 
 
 // 5. Delete Meeting

@@ -11,7 +11,7 @@ import {
     Copy, Zap, AlertTriangle, FileText, Loader2, Calendar,
     MessageSquare, BarChart2, LayoutDashboard, ChevronRight, Send, User,
     MoreHorizontal, Filter, ChevronDown, RefreshCw, Sparkles, Download, Users, X, Mail,
-    Volume2, VolumeX, Pause
+    Volume2, VolumeX, Pause, Edit2, Check, FileDown, TrendingUp, Smile, Frown, Meh, Heart, Target
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -40,6 +40,7 @@ const MeetingDashboard = () => {
     const [meetingOwnerEmail, setMeetingOwnerEmail] = useState('');
     const [currentUserEmail, setCurrentUserEmail] = useState('');
     const [isOwner, setIsOwner] = useState(true); // Default to true to show tab initially
+    const [downloadingPDF, setDownloadingPDF] = useState(false);
 
     // Suggested Questions
     const suggestedQuestions = [
@@ -205,6 +206,32 @@ const MeetingDashboard = () => {
         }
     };
 
+    const handleDownloadPDF = async () => {
+        setDownloadingPDF(true);
+        try {
+            const response = await axios.get(`${API_URL}/api/meetings/${id}/download-pdf`, {
+                responseType: 'blob'
+            });
+
+            // Create blob link to download
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `${data.title || 'Meeting'}_Dashboard.pdf`);
+            document.body.appendChild(link);
+            link.click();
+            link.parentNode.removeChild(link);
+            window.URL.revokeObjectURL(url);
+
+            console.log('✅ PDF downloaded successfully');
+        } catch (err) {
+            console.error('Error downloading PDF:', err);
+            alert('Failed to download PDF. Please try again.');
+        } finally {
+            setDownloadingPDF(false);
+        }
+    };
+
     const exportToSRT = () => {
         if (!data.transcriptTimeline || data.transcriptTimeline.length === 0) {
             alert('No transcript timeline available to export');
@@ -302,6 +329,7 @@ const MeetingDashboard = () => {
     // Only show collaboration tab if user is the owner
     const tabs = [
         { id: 'overview', label: 'Overview', icon: LayoutDashboard },
+        { id: 'sentiment', label: 'Sentiment Analysis', icon: TrendingUp },
         { id: 'transcript', label: 'Transcript Timeline', icon: FileText },
         { id: 'calendar', label: 'Calendar', icon: Calendar },
         { id: 'analytics', label: 'Analytics', icon: BarChart2 },
@@ -343,6 +371,24 @@ const MeetingDashboard = () => {
                             <Zap size={14} className="text-emerald-400 fill-emerald-400/20" />
                             <span className="text-xs font-bold text-emerald-400 uppercase tracking-wide">AI Analysis Active</span>
                         </div>
+                        <button
+                            onClick={handleDownloadPDF}
+                            disabled={downloadingPDF}
+                            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            title="Download Dashboard as PDF"
+                        >
+                            {downloadingPDF ? (
+                                <>
+                                    <Loader2 size={16} className="animate-spin" />
+                                    <span>Generating...</span>
+                                </>
+                            ) : (
+                                <>
+                                    <FileDown size={16} />
+                                    <span>Download PDF</span>
+                                </>
+                            )}
+                        </button>
                         <button
                             onClick={() => fetchDashboardData(true)}
                             disabled={reloading}
@@ -406,6 +452,7 @@ const MeetingDashboard = () => {
                             transition={{ duration: 0.2 }}
                         >
                             {activeTab === 'overview' && <OverviewTab data={data} meetingId={id} />}
+                            {activeTab === 'sentiment' && <SentimentAnalysisTab data={data} />}
                             {activeTab === 'transcript' && <TranscriptTimelineTab data={data} exportToSRT={exportToSRT} />}
                             {activeTab === 'calendar' && <CalendarTab data={data} />}
                             {activeTab === 'analytics' && <AnalyticsTab data={data} />}
@@ -451,6 +498,9 @@ const OverviewTab = ({ data, meetingId }) => {
     const [isSpeaking, setIsSpeaking] = useState(false);
     const [isPaused, setIsPaused] = useState(false);
     const speechSynthesisRef = useRef(null);
+    const [editingSpeaker, setEditingSpeaker] = useState(null);
+    const [editedName, setEditedName] = useState('');
+    const [participants, setParticipants] = useState(data.participants || []);
 
     const handleTranslateSummary = async () => {
         if (selectedLanguage === 'English') {
@@ -585,6 +635,48 @@ const OverviewTab = ({ data, meetingId }) => {
         };
     }, []);
 
+    // Update participants when data changes
+    useEffect(() => {
+        setParticipants(data.participants || []);
+    }, [data.participants]);
+
+    const handleEditSpeaker = (index, currentName) => {
+        setEditingSpeaker(index);
+        setEditedName(currentName);
+    };
+
+    const handleSaveSpeakerName = async (index, originalName) => {
+        if (!editedName.trim() || editedName === originalName) {
+            setEditingSpeaker(null);
+            return;
+        }
+
+        try {
+            const res = await axios.put(`${API_URL}/api/meetings/${meetingId}/speaker-name`, {
+                originalName,
+                newName: editedName.trim()
+            });
+
+            if (res.data.success) {
+                // Reload full data from database to ensure consistency
+                await fetchDashboardData();
+                setEditingSpeaker(null);
+                
+                // Show success message
+                console.log('Speaker name updated successfully in database');
+            }
+        } catch (err) {
+            console.error('Error updating speaker name:', err);
+            alert(err.response?.data?.error || 'Failed to update speaker name');
+            setEditingSpeaker(null);
+        }
+    };
+
+    const handleCancelEdit = () => {
+        setEditingSpeaker(null);
+        setEditedName('');
+    };
+
     const displaySummary = (selectedLanguage !== 'English' && translatedSummary)
         ? translatedSummary
         : data.summary;
@@ -606,7 +698,7 @@ const OverviewTab = ({ data, meetingId }) => {
                     Speakers
                 </h3>
                 <div className="space-y-3">
-                    {data.participants?.map((speaker, i) => {
+                    {participants?.map((speaker, i) => {
                         const colors = ['bg-blue-500', 'bg-emerald-500', 'bg-orange-500', 'bg-pink-500', 'bg-purple-500', 'bg-cyan-500', 'bg-yellow-500', 'bg-red-500'];
                         const color = colors[i % colors.length];
 
@@ -616,16 +708,56 @@ const OverviewTab = ({ data, meetingId }) => {
                         const displayName = isGenericSpeaker ? `Speaker ${speakerLetter}` : speaker.name;
                         const initial = displayName?.charAt(0).toUpperCase() || 'S';
                         const utterances = Math.round((speaker.contribution || 0) * 100 / 5) || Math.floor(Math.random() * 30) + 10;
+                        const isEditing = editingSpeaker === i;
 
                         return (
-                            <div key={i} className="flex items-center gap-3 p-3 bg-[#0B0E14] rounded-xl border border-white/5 hover:border-white/10 transition-colors">
+                            <div key={i} className="group flex items-center gap-3 p-3 bg-[#0B0E14] rounded-xl border border-white/5 hover:border-white/10 transition-colors">
                                 <div className={`w-10 h-10 rounded-xl ${color} flex items-center justify-center text-white font-bold text-sm flex-shrink-0`}>
                                     {initial}
                                 </div>
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-2 mb-1">
-                                        <span className="text-sm font-semibold text-white">{displayName || `Speaker ${speakerLetter}`}</span>
-                                        {speaker.role && (
+                                        {isEditing ? (
+                                            <div className="flex items-center gap-2">
+                                                <input
+                                                    type="text"
+                                                    value={editedName}
+                                                    onChange={(e) => setEditedName(e.target.value)}
+                                                    onKeyDown={(e) => {
+                                                        if (e.key === 'Enter') handleSaveSpeakerName(i, speaker.name);
+                                                        if (e.key === 'Escape') handleCancelEdit();
+                                                    }}
+                                                    className="bg-[#1C1F2E] text-white text-sm px-2 py-1 rounded border border-emerald-500/50 focus:outline-none focus:border-emerald-500 w-32"
+                                                    autoFocus
+                                                />
+                                                <button
+                                                    onClick={() => handleSaveSpeakerName(i, speaker.name)}
+                                                    className="p-1 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 rounded transition-colors"
+                                                    title="Save"
+                                                >
+                                                    <Check size={14} />
+                                                </button>
+                                                <button
+                                                    onClick={handleCancelEdit}
+                                                    className="p-1 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded transition-colors"
+                                                    title="Cancel"
+                                                >
+                                                    <X size={14} />
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <>
+                                                <span className="text-sm font-semibold text-white">{displayName || `Speaker ${speakerLetter}`}</span>
+                                                <button
+                                                    onClick={() => handleEditSpeaker(i, speaker.name)}
+                                                    className="p-1 opacity-0 group-hover:opacity-100 hover:bg-white/10 rounded transition-all"
+                                                    title="Edit speaker name"
+                                                >
+                                                    <Edit2 size={12} className="text-gray-400 hover:text-white" />
+                                                </button>
+                                            </>
+                                        )}
+                                        {speaker.role && !isEditing && (
                                             <span className="text-xs px-2 py-0.5 bg-white/5 rounded-full text-gray-400">
                                                 {speaker.role}
                                             </span>
@@ -1426,6 +1558,290 @@ const StatCard = ({ label, value, icon }) => (
         </div>
     </div>
 );
+
+// Sentiment Analysis Tab Component
+const SentimentAnalysisTab = ({ data }) => {
+    const speakerSentiments = data.speakerSentiments || [];
+    const buzzwords = data.buzzwords || [];
+    const emotionalMoments = data.emotionalMoments || [];
+    const sentimentTimeline = data.sentimentTimeline || [];
+
+    // Calculate overall metrics
+    const totalStatements = speakerSentiments.reduce((acc, s) => 
+        acc + (s.positiveCount || 0) + (s.neutralCount || 0) + (s.negativeCount || 0), 0);
+    const totalPositive = speakerSentiments.reduce((acc, s) => acc + (s.positiveCount || 0), 0);
+    const totalNeutral = speakerSentiments.reduce((acc, s) => acc + (s.neutralCount || 0), 0);
+    const totalNegative = speakerSentiments.reduce((acc, s) => acc + (s.negativeCount || 0), 0);
+
+    const getSentimentColor = (score) => {
+        if (score >= 65) return 'text-emerald-400';
+        if (score >= 35) return 'text-yellow-400';
+        return 'text-red-400';
+    };
+
+    const getSentimentLabel = (score) => {
+        if (score >= 65) return 'Positive';
+        if (score >= 35) return 'Neutral';
+        return 'Negative';
+    };
+
+    const getSentimentIcon = (sentiment) => {
+        const lower = sentiment?.toLowerCase();
+        if (lower === 'positive') return <Smile className="text-emerald-400" size={16} />;
+        if (lower === 'negative') return <Frown className="text-red-400" size={16} />;
+        return <Meh className="text-yellow-400" size={16} />;
+    };
+
+    const getEmotionColor = (emotion) => {
+        const colors = {
+            excited: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
+            enthusiastic: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+            frustrated: 'bg-red-500/20 text-red-400 border-red-500/30',
+            concerned: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
+            confident: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
+            uncertain: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
+        };
+        return colors[emotion?.toLowerCase()] || 'bg-gray-500/20 text-gray-400 border-gray-500/30';
+    };
+
+    return (
+        <div className="space-y-6">
+            {/* Overall Sentiment Overview */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="bg-[#1C1F2E] p-6 rounded-2xl border border-white/5">
+                    <div className="flex items-center justify-between mb-3">
+                        <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wide">Total Statements</h3>
+                        <MessageSquare className="text-gray-500" size={20} />
+                    </div>
+                    <p className="text-3xl font-bold text-white">{totalStatements}</p>
+                </div>
+                <div className="bg-[#1C1F2E] p-6 rounded-2xl border border-white/5">
+                    <div className="flex items-center justify-between mb-3">
+                        <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wide">Positive</h3>
+                        <Smile className="text-emerald-400" size={20} />
+                    </div>
+                    <p className="text-3xl font-bold text-emerald-400">{totalPositive}</p>
+                    <p className="text-xs text-gray-500 mt-1">{totalStatements > 0 ? ((totalPositive / totalStatements) * 100).toFixed(1) : 0}%</p>
+                </div>
+                <div className="bg-[#1C1F2E] p-6 rounded-2xl border border-white/5">
+                    <div className="flex items-center justify-between mb-3">
+                        <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wide">Neutral</h3>
+                        <Meh className="text-yellow-400" size={20} />
+                    </div>
+                    <p className="text-3xl font-bold text-yellow-400">{totalNeutral}</p>
+                    <p className="text-xs text-gray-500 mt-1">{totalStatements > 0 ? ((totalNeutral / totalStatements) * 100).toFixed(1) : 0}%</p>
+                </div>
+                <div className="bg-[#1C1F2E] p-6 rounded-2xl border border-white/5">
+                    <div className="flex items-center justify-between mb-3">
+                        <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wide">Negative</h3>
+                        <Frown className="text-red-400" size={20} />
+                    </div>
+                    <p className="text-3xl font-bold text-red-400">{totalNegative}</p>
+                    <p className="text-xs text-gray-500 mt-1">{totalStatements > 0 ? ((totalNegative / totalStatements) * 100).toFixed(1) : 0}%</p>
+                </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Speaker Sentiment Breakdown */}
+                <div className="bg-[#1C1F2E] rounded-2xl p-6 border border-white/5">
+                    <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                        <Users className="text-emerald-400" size={20} />
+                        Sentiment by Speaker
+                    </h3>
+                    <div className="space-y-4">
+                        {speakerSentiments.map((speaker, idx) => {
+                            const total = (speaker.positiveCount || 0) + (speaker.neutralCount || 0) + (speaker.negativeCount || 0);
+                            const posPercent = total > 0 ? ((speaker.positiveCount || 0) / total) * 100 : 0;
+                            const neuPercent = total > 0 ? ((speaker.neutralCount || 0) / total) * 100 : 0;
+                            const negPercent = total > 0 ? ((speaker.negativeCount || 0) / total) * 100 : 0;
+
+                            return (
+                                <div key={idx} className="bg-[#0B0E14] rounded-xl p-4 border border-white/5">
+                                    <div className="flex items-center justify-between mb-3">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white font-bold text-sm">
+                                                {speaker.speaker?.charAt(0) || 'S'}
+                                            </div>
+                                            <div>
+                                                <p className="text-sm font-semibold text-white">{speaker.speaker || 'Unknown'}</p>
+                                                <p className="text-xs text-gray-500">{total} statements</p>
+                                            </div>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className={`text-lg font-bold ${getSentimentColor(speaker.averageSentiment || 50)}`}>
+                                                {(speaker.averageSentiment || 50).toFixed(0)}
+                                            </p>
+                                            <p className="text-xs text-gray-500">{getSentimentLabel(speaker.averageSentiment || 50)}</p>
+                                        </div>
+                                    </div>
+                                    
+                                    {/* Sentiment distribution bar */}
+                                    <div className="w-full h-2 bg-[#1C1F2E] rounded-full overflow-hidden flex">
+                                        <div 
+                                            className="h-full bg-emerald-500 transition-all"
+                                            style={{ width: `${posPercent}%` }}
+                                            title={`Positive: ${posPercent.toFixed(1)}%`}
+                                        />
+                                        <div 
+                                            className="h-full bg-yellow-500 transition-all"
+                                            style={{ width: `${neuPercent}%` }}
+                                            title={`Neutral: ${neuPercent.toFixed(1)}%`}
+                                        />
+                                        <div 
+                                            className="h-full bg-red-500 transition-all"
+                                            style={{ width: `${negPercent}%` }}
+                                            title={`Negative: ${negPercent.toFixed(1)}%`}
+                                        />
+                                    </div>
+                                    
+                                    <div className="flex gap-4 mt-2 text-xs">
+                                        <span className="text-emerald-400">{speaker.positiveCount || 0} Pos</span>
+                                        <span className="text-yellow-400">{speaker.neutralCount || 0} Neu</span>
+                                        <span className="text-red-400">{speaker.negativeCount || 0} Neg</span>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                        {speakerSentiments.length === 0 && (
+                            <div className="text-center py-8 text-gray-500">
+                                <Meh size={48} className="mx-auto mb-3 opacity-30" />
+                                <p className="text-sm">No speaker sentiment data available</p>
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* Sentiment Trends per Speaker */}
+                <div className="bg-[#1C1F2E] rounded-2xl p-6 border border-white/5">
+                    <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                        <TrendingUp className="text-emerald-400" size={20} />
+                        Sentiment Trends
+                    </h3>
+                    <div className="space-y-4 max-h-[500px] overflow-y-auto custom-scrollbar">
+                        {speakerSentiments.map((speaker, idx) => (
+                            speaker.sentimentTrend && speaker.sentimentTrend.length > 0 && (
+                                <div key={idx} className="bg-[#0B0E14] rounded-xl p-4 border border-white/5">
+                                    <h4 className="text-sm font-semibold text-white mb-3">{speaker.speaker || 'Unknown'}</h4>
+                                    <div className="space-y-2">
+                                        {speaker.sentimentTrend.slice(0, 4).map((trend, tIdx) => (
+                                            <div key={tIdx} className="flex items-start gap-2 text-xs">
+                                                <div className="mt-0.5">
+                                                    {getSentimentIcon(trend.sentiment)}
+                                                </div>
+                                                <div className="flex-1">
+                                                    <p className="text-gray-300 leading-relaxed">"{trend.text}"</p>
+                                                    <div className="flex items-center gap-2 mt-1">
+                                                        <span className={`font-semibold ${
+                                                            trend.sentiment?.toLowerCase() === 'positive' ? 'text-emerald-400' :
+                                                            trend.sentiment?.toLowerCase() === 'negative' ? 'text-red-400' :
+                                                            'text-yellow-400'
+                                                        }`}>
+                                                            {trend.sentiment}
+                                                        </span>
+                                                        {trend.score && (
+                                                            <span className="text-gray-600">• Score: {trend.score}</span>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )
+                        ))}
+                        {speakerSentiments.every(s => !s.sentimentTrend || s.sentimentTrend.length === 0) && (
+                            <div className="text-center py-8 text-gray-500">
+                                <TrendingUp size={48} className="mx-auto mb-3 opacity-30" />
+                                <p className="text-sm">No sentiment trend data available</p>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </div>
+
+            {/* Buzzwords Section */}
+            <div className="bg-[#1C1F2E] rounded-2xl p-6 border border-white/5">
+                <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                    <Target className="text-emerald-400" size={20} />
+                    Frequently Used Terms
+                </h3>
+                <div className="flex flex-wrap gap-3">
+                    {buzzwords.slice(0, 20).map((buzz, idx) => (
+                        <div
+                            key={idx}
+                            className="group relative bg-[#0B0E14] px-4 py-2 rounded-xl border border-white/5 hover:border-emerald-500/30 transition-all cursor-default"
+                        >
+                            <div className="flex items-center gap-2">
+                                <span className="text-sm font-medium text-white">{buzz.word}</span>
+                                <span className="text-xs font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">
+                                    {buzz.frequency}
+                                </span>
+                            </div>
+                            {buzz.context && (
+                                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-[#0B0E14] border border-white/10 rounded-lg text-xs text-gray-300 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 shadow-xl">
+                                    {buzz.context}
+                                </div>
+                            )}
+                        </div>
+                    ))}
+                    {buzzwords.length === 0 && (
+                        <div className="w-full text-center py-8 text-gray-500">
+                            <Target size={48} className="mx-auto mb-3 opacity-30" />
+                            <p className="text-sm">No buzzwords data available</p>
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* Emotional Moments */}
+            <div className="bg-[#1C1F2E] rounded-2xl p-6 border border-white/5">
+                <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                    <Heart className="text-emerald-400" size={20} />
+                    Key Emotional Moments
+                </h3>
+                <div className="space-y-3">
+                    {emotionalMoments.map((moment, idx) => (
+                        <div key={idx} className="bg-[#0B0E14] rounded-xl p-4 border border-white/5 hover:border-white/10 transition-colors">
+                            <div className="flex items-start gap-4">
+                                <div className="flex-shrink-0">
+                                    <div className={`px-3 py-1.5 rounded-lg border text-xs font-semibold uppercase tracking-wide ${getEmotionColor(moment.emotion)}`}>
+                                        {moment.emotion}
+                                    </div>
+                                    <p className="text-xs text-gray-600 text-center mt-2">{moment.timestamp}</p>
+                                </div>
+                                <div className="flex-1">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <p className="text-sm font-semibold text-white">{moment.speaker}</p>
+                                        {moment.intensity && (
+                                            <div className="flex items-center gap-1">
+                                                <div className="w-12 h-1.5 bg-[#1C1F2E] rounded-full overflow-hidden">
+                                                    <div 
+                                                        className="h-full bg-emerald-500 rounded-full"
+                                                        style={{ width: `${moment.intensity}%` }}
+                                                    />
+                                                </div>
+                                                <span className="text-xs text-gray-500">{moment.intensity}%</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                    <p className="text-sm text-gray-300 leading-relaxed italic">
+                                        "{moment.text}"
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                    {emotionalMoments.length === 0 && (
+                        <div className="text-center py-8 text-gray-500">
+                            <Heart size={48} className="mx-auto mb-3 opacity-30" />
+                            <p className="text-sm">No emotional moments data available</p>
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+};
 
 const CopyButton = ({ text }) => {
     const handleCopy = () => {

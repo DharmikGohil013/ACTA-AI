@@ -103,12 +103,12 @@ const CollaborateDashboard = () => {
                     animate={{ opacity: 1, y: 0 }}
                     className="max-w-md w-full"
                 >
-                    <div className="bg-[#1C1F2E] rounded-3xl p-8 border border-white/5 shadow-xl">
+                    <div className="bg-white/5 rounded-2xl p-8 border border-white/10 backdrop-blur-sm">
                         <div className="text-center mb-6">
-                            <div className="w-16 h-16 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                                <Users size={32} className="text-emerald-400" />
+                            <div className="w-14 h-14 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center mx-auto mb-4">
+                                <Users size={28} className="text-white" />
                             </div>
-                            <h1 className="text-2xl font-bold text-white mb-2">Collaborate Dashboard</h1>
+                            <h1 className="text-2xl font-bold text-white mb-2">Collaborate</h1>
                             <p className="text-gray-400 text-sm">
                                 Enter your email to view meetings shared with you
                             </p>
@@ -126,14 +126,14 @@ const CollaborateDashboard = () => {
                                         value={userEmail}
                                         onChange={(e) => setUserEmail(e.target.value)}
                                         placeholder="you@example.com"
-                                        className="w-full pl-10 pr-4 py-3 bg-[#0B0E14] border border-white/10 rounded-xl text-white placeholder:text-gray-500 focus:outline-none focus:border-emerald-500/50 transition-colors"
+                                        className="w-full pl-10 pr-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder:text-gray-500 focus:outline-none focus:border-white/30 transition-colors"
                                         required
                                     />
                                 </div>
                             </div>
                             <button
                                 type="submit"
-                                className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-xl transition-colors flex items-center justify-center gap-2"
+                                className="w-full py-3 bg-white text-black hover:bg-gray-200 font-semibold rounded-lg transition-colors flex items-center justify-center gap-2"
                             >
                                 View Shared Meetings
                                 <ExternalLink size={18} />
@@ -157,28 +157,21 @@ const CollaborateDashboard = () => {
     }
 
     return (
-        <div className="min-h-screen text-slate-100">
+        <div className="max-w-[1400px] mx-auto w-full px-6 py-8">
             {/* Header */}
-            <header className="sticky top-0 z-50 bg-black/80 backdrop-blur-xl border-b border-white/5">
-                <div className="container mx-auto px-6 h-16 flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                        <h1 className="text-lg font-bold text-white flex items-center gap-2">
-                            <Users size={20} className="text-emerald-400" />
-                            Collaborate Dashboard
-                        </h1>
-                    </div>
+            <header className="flex items-center justify-between gap-8 mb-10">
+                <div className="flex items-center gap-4">
+                    <h1 className="text-3xl font-bold tracking-tight text-white">Collaborate</h1>
+                    <div className="h-6 w-px bg-white/10"></div>
+                    <p className="text-gray-400 font-medium flex items-center gap-2 text-sm">
+                        <Users size={16} className="text-white" />
+                        Shared Meetings
+                    </p>
                 </div>
             </header>
 
             {/* Main Content */}
-            <main className="container mx-auto px-6 py-8">
-                <div className="mb-6">
-                    <h2 className="text-2xl font-bold text-white mb-2">Meetings Shared With You</h2>
-                    <p className="text-gray-400">
-                        View and access meeting dashboards that have been shared with you
-                    </p>
-                </div>
-
+            <main>
                 {loading ? (
                     <div className="flex items-center justify-center py-20">
                         <Loader2 size={40} className="animate-spin text-emerald-400" />
@@ -187,7 +180,7 @@ const CollaborateDashboard = () => {
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="bg-[#1C1F2E] rounded-3xl p-12 border border-white/5 text-center"
+                        className="bg-white/5 rounded-2xl p-12 border border-white/10 text-center backdrop-blur-sm"
                     >
                         <Users size={64} className="mx-auto mb-4 text-gray-600" />
                         <h3 className="text-xl font-bold text-white mb-2">No Shared Meetings</h3>
@@ -209,19 +202,16 @@ const CollaborateDashboard = () => {
                                 onClick={() => navigate(`/dashboard/${meeting._id}`)}
                                 className="group relative cursor-pointer"
                             >
-                                {/* Glow Effect */}
-                                <div className="absolute -inset-0.5 rounded-2xl bg-gradient-to-br from-emerald-500 to-green-900 opacity-0 group-hover:opacity-50 blur transition duration-500"></div>
-
-                                <div className="relative bg-[#0B0E14] rounded-2xl overflow-hidden border border-white/10 group-hover:border-white/20 transition-colors">
+                                <div className="relative bg-white/5 rounded-xl overflow-hidden border border-white/10 group-hover:border-white/30 transition-all backdrop-blur-sm">
                                     {/* Header */}
-                                    <div className="p-6">
+                                    <div className="p-5">
                                         <div className="flex items-start justify-between mb-4">
                                             <div className="flex items-center gap-3 flex-1">
-                                                <div className="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
-                                                    <Users size={24} className="text-emerald-400" />
+                                                <div className="w-10 h-10 rounded-lg bg-white/10 border border-white/20 flex items-center justify-center">
+                                                    <Users size={20} className="text-white" />
                                                 </div>
                                                 <div className="flex-1">
-                                                    <h3 className="font-bold text-white text-lg leading-tight line-clamp-2 group-hover:text-emerald-400 transition-colors">
+                                                    <h3 className="font-semibold text-white text-base leading-tight line-clamp-2">
                                                         {meeting.meetingName || 'Meeting'}
                                                     </h3>
                                                     <p className="text-xs text-gray-500 mt-1">
@@ -229,44 +219,42 @@ const CollaborateDashboard = () => {
                                                     </p>
                                                 </div>
                                             </div>
-                                            <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${
+                                            <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase tracking-wider border ${
                                                 meeting.status === 'completed'
-                                                    ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'
-                                                    : 'bg-blue-500/10 text-blue-500 border-blue-500/20'
+                                                    ? 'bg-white/10 text-white border-white/20'
+                                                    : 'bg-white/10 text-white border-white/20'
                                             }`}>
-                                                <div className={`w-1.5 h-1.5 rounded-full ${
-                                                    meeting.status === 'completed' ? 'bg-emerald-500' : 'bg-blue-500'
-                                                }`} />
+                                                <div className="w-1.5 h-1.5 rounded-full bg-white" />
                                                 {meeting.status}
                                             </div>
                                         </div>
 
                                         {/* Meeting Details */}
-                                        <div className="space-y-2.5 mb-4">
-                                            <div className="flex items-center gap-2 text-sm">
-                                                <Calendar size={14} className="text-emerald-400" />
-                                                <span className="text-gray-400">{formatDate(meeting.createdAt)}</span>
+                                        <div className="space-y-2 mb-4">
+                                            <div className="flex items-center gap-2 text-xs text-gray-400">
+                                                <Calendar size={12} />
+                                                <span>{formatDate(meeting.createdAt)}</span>
                                             </div>
-                                            <div className="flex items-center gap-2 text-sm">
-                                                <Clock size={14} className="text-blue-400" />
-                                                <span className="text-gray-400">{formatTime(meeting.createdAt)}</span>
+                                            <div className="flex items-center gap-2 text-xs text-gray-400">
+                                                <Clock size={12} />
+                                                <span>{formatTime(meeting.createdAt)}</span>
                                             </div>
                                         </div>
 
                                         {/* AI Analysis Badge */}
                                         {meeting.analysis && (
-                                            <div className="flex items-center gap-2 text-xs text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-lg px-3 py-2.5 mb-4">
-                                                <Sparkles size={14} />
-                                                <span className="font-medium">AI Analysis Available</span>
+                                            <div className="flex items-center gap-2 text-xs text-white bg-white/10 border border-white/20 rounded-lg px-2.5 py-1.5 mb-4">
+                                                <Sparkles size={12} />
+                                                <span className="font-medium">AI Analysis</span>
                                             </div>
                                         )}
 
                                         {/* Footer */}
-                                        <div className="pt-4 border-t border-white/5 flex items-center justify-between">
-                                            <span className="text-xs text-gray-500 font-medium">
-                                                Click to view dashboard
+                                        <div className="pt-3 border-t border-white/5 flex items-center justify-between">
+                                            <span className="text-xs text-gray-500">
+                                                Click to view
                                             </span>
-                                            <ExternalLink size={14} className="text-gray-500 group-hover:text-emerald-400 transition-colors" />
+                                            <ExternalLink size={12} className="text-gray-500 group-hover:text-white transition-colors" />
                                         </div>
                                     </div>
                                 </div>

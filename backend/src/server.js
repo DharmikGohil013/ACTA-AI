@@ -11,13 +11,13 @@ const crypto = require('crypto');
 const puppeteer = require('puppeteer');
 const multer = require('multer');
 const fs = require('fs').promises;
-const { GoogleGenerativeAI } = require("@google/generative-ai");
+const Groq = require('groq-sdk');
 
 // Load environment variables FIRST
 dotenv.config();
 
-// Initialize Gemini AI
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+// Initialize Groq AI
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY || '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' });
 
 // Import passport AFTER env vars are loaded
 const passport = require('./config/passport');
@@ -1354,19 +1354,21 @@ Format: ["meetingId1", "meetingId2", ...]
 
 Do not include any explanation, just the JSON array.`;
 
-        // Call Gemini AI
-        const model = genAI.getGenerativeModel({ 
-            model: "gemini-2.0-flash-exp",
-            generationConfig: {
-                temperature: 0.3,
-                topP: 0.8,
-                topK: 40,
-                maxOutputTokens: 500,
-            }
+        // Call Groq AI
+        const completion = await groq.chat.completions.create({
+            messages: [
+                {
+                    role: "user",
+                    content: prompt
+                }
+            ],
+            model: "llama-3.3-70b-versatile",
+            temperature: 0.3,
+            max_tokens: 500,
+            top_p: 0.8
         });
 
-        const result = await model.generateContent(prompt);
-        const responseText = result.response.text().trim();
+        const responseText = completion.choices[0]?.message?.content?.trim() || '[]';
 
         // Parse the JSON response
         let relevantMeetingIds = [];

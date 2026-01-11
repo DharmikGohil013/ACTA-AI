@@ -218,33 +218,33 @@ const ScheduledMeetings = () => {
                 return {
                     name: 'Zoom',
                     logo: zoomLogo,
-                    color: 'text-blue-400',
-                    bgColor: 'bg-blue-500/10',
-                    borderColor: 'border-blue-500/20'
+                    color: 'text-white',
+                    bgColor: 'bg-white/5',
+                    borderColor: 'border-white/10'
                 };
             case 'meet':
                 return {
                     name: 'Google Meet',
                     logo: googleMeetLogo,
-                    color: 'text-emerald-400',
-                    bgColor: 'bg-emerald-500/10',
-                    borderColor: 'border-emerald-500/20'
+                    color: 'text-white',
+                    bgColor: 'bg-white/5',
+                    borderColor: 'border-white/10'
                 };
             case 'teams':
                 return {
                     name: 'Microsoft Teams',
                     logo: teamsLogo,
-                    color: 'text-indigo-400',
-                    bgColor: 'bg-indigo-500/10',
-                    borderColor: 'border-indigo-500/20'
+                    color: 'text-white',
+                    bgColor: 'bg-white/5',
+                    borderColor: 'border-white/10'
                 };
             default:
                 return {
                     name: 'Meeting',
                     logo: null,
-                    color: 'text-gray-400',
-                    bgColor: 'bg-gray-500/10',
-                    borderColor: 'border-gray-500/20'
+                    color: 'text-white',
+                    bgColor: 'bg-white/5',
+                    borderColor: 'border-white/10'
                 };
         }
     };
@@ -269,23 +269,19 @@ const ScheduledMeetings = () => {
     }
 
     return (
-        <div className="min-h-screen bg-[#050505] text-slate-100" style={{
-            backgroundImage: 'radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.03) 0%, transparent 80%), radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px)',
-            backgroundSize: '100% 100%, 24px 24px',
-            backgroundAttachment: 'fixed'
-        }}>
+        <div className="min-h-[calc(100vh-64px)] text-slate-100">
             {/* Header */}
             <header className="sticky top-0 z-50 bg-[#0B0E14]/80 backdrop-blur-xl border-b border-white/5">
                 <div className="container mx-auto px-6 h-16 flex items-center justify-between">
                     <div className="flex items-center gap-4">
                         <h1 className="text-lg font-bold text-white flex items-center gap-2">
-                            <Calendar size={20} className="text-emerald-400" />
+                            <Calendar size={20} className="text-slate-400" />
                             Scheduled Meetings
                         </h1>
                         {schedulerStatus && (
                             <div className="flex items-center gap-2 px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full">
-                                <div className={`w-2 h-2 rounded-full ${schedulerStatus.running ? 'bg-emerald-400 animate-pulse' : 'bg-gray-500'}`} />
-                                <span className="text-xs text-emerald-400 font-medium">
+                                <div className={`w-2 h-2 rounded-full ${schedulerStatus.running ? 'bg-white animate-pulse' : 'bg-gray-500'}`} />
+                                <span className="text-xs text-white/70 font-medium">
                                     {schedulerStatus.running ? 'Auto-Join Active' : 'Scheduler Offline'}
                                 </span>
                             </div>
@@ -294,11 +290,14 @@ const ScheduledMeetings = () => {
                     <div className="flex items-center gap-3">
                         <button
                             onClick={() => setShowGeminiModal(true)}
-                            className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 text-white rounded-md transition-all font-medium text-sm"
+                            className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center transition-all ${
+                                showGeminiModal 
+                                    ? 'bg-purple-500/20 border-2 border-purple-500/50 text-purple-400 shadow-[0_0_20px_rgba(168,85,247,0.2)]' 
+                                    : 'bg-white/5 border border-white/10 text-gray-400 hover:bg-white/10 hover:text-white'
+                            }`}
                             title="Generate with Gemini AI"
                         >
-                            <Sparkles size={18} className="text-slate-400" />
-                            <span className="hidden sm:inline">AI Bot</span>
+                            <Sparkles size={16} className={showGeminiModal ? 'animate-pulse' : ''} />
                         </button>
                         <button
                             onClick={() => setShowCreateForm(true)}
@@ -317,11 +316,11 @@ const ScheduledMeetings = () => {
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="bg-[#1C1F2E] rounded-3xl p-12 border border-white/5 text-center"
+                        className="bg-white/5 rounded-3xl p-12 border border-white/10 text-center hover:bg-white/[0.07] transition-all"
                     >
-                        <Calendar size={64} className="mx-auto mb-4 text-gray-600" />
+                        <Calendar size={64} className="mx-auto mb-4 text-white/50" />
                         <h3 className="text-xl font-bold text-white mb-2">No Scheduled Meetings</h3>
-                        <p className="text-gray-400 mb-4">
+                        <p className="text-white/60 mb-4">
                             Create your first scheduled meeting to get started.
                         </p>
                         <button
@@ -344,7 +343,7 @@ const ScheduledMeetings = () => {
                                     initial={{ opacity: 0, y: 20 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     transition={{ delay: index * 0.05 }}
-                                    className={`bg-[#1C1F2E] rounded-2xl p-6 border ${details.borderColor} hover:border-emerald-500/30 transition-all group`}
+                                    className="bg-white/5 rounded-2xl p-6 border border-white/10 hover:bg-white/[0.07] hover:border-white/20 transition-all group"
                                 >
                                     <div className="flex items-start justify-between mb-4">
                                         <div className={`w-12 h-12 rounded-xl ${details.bgColor} border ${details.borderColor} flex items-center justify-center`}>
@@ -370,29 +369,29 @@ const ScheduledMeetings = () => {
                                         <p className={`text-sm ${details.color}`}>{details.name}</p>
                                         {/* Status Badge */}
                                         {meeting.status === 'completed' && (
-                                            <span className="px-2 py-0.5 text-xs font-semibold bg-green-500/20 text-green-400 rounded-full border border-green-500/30">
+                                            <span className="px-2 py-0.5 text-xs font-semibold bg-white/10 text-white rounded-full border border-white/20">
                                                 Completed
                                             </span>
                                         )}
                                         {meeting.status === 'cancelled' && (
-                                            <span className="px-2 py-0.5 text-xs font-semibold bg-red-500/20 text-red-400 rounded-full border border-red-500/30">
+                                            <span className="px-2 py-0.5 text-xs font-semibold bg-white/10 text-white/60 rounded-full border border-white/20">
                                                 Cancelled
                                             </span>
                                         )}
                                         {meeting.status === 'scheduled' && (
-                                            <span className="px-2 py-0.5 text-xs font-semibold bg-blue-500/20 text-blue-400 rounded-full border border-blue-500/30">
+                                            <span className="px-2 py-0.5 text-xs font-semibold bg-white/10 text-white rounded-full border border-white/20">
                                                 Scheduled
                                             </span>
                                         )}
                                     </div>
 
                                     <div className="space-y-2 mb-4">
-                                        <div className="flex items-center gap-2 text-sm text-gray-400">
-                                            <Calendar size={14} className="text-emerald-400" />
+                                        <div className="flex items-center gap-2 text-sm text-white/60">
+                                            <Calendar size={14} className="text-white/60" />
                                             {date}
                                         </div>
-                                        <div className="flex items-center gap-2 text-sm text-gray-400">
-                                            <Clock size={14} className="text-blue-400" />
+                                        <div className="flex items-center gap-2 text-sm text-white/60">
+                                            <Clock size={14} className="text-white/60" />
                                             {time}
                                         </div>
                                     </div>
@@ -412,7 +411,7 @@ const ScheduledMeetings = () => {
                                             href={meeting.meetingLink}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            className={`flex items-center justify-center gap-2 w-full py-2 ${details.bgColor} ${details.color} border ${details.borderColor} rounded-lg hover:opacity-80 transition-opacity text-sm font-medium`}
+                                            className="flex items-center justify-center gap-2 w-full py-2 bg-white/5 text-white border border-white/10 rounded-lg hover:bg-white/10 transition-all text-sm font-medium"
                                         >
                                             <ExternalLink size={14} />
                                             Join Meeting
@@ -443,11 +442,10 @@ const ScheduledMeetings = () => {
                             onClick={(e) => e.stopPropagation()}
                             className="max-w-md w-full relative group"
                         >
-                            {/* Gradient Glow Effect */}
-                            <div className="absolute -inset-1 bg-gradient-to-r from-blue-500 via-emerald-500 to-blue-500 rounded-2xl blur opacity-25 group-hover:opacity-40 transition duration-500"></div>
+
 
                             {/* Modal Content */}
-                            <div className="relative bg-gradient-to-br from-[#1C1F2E] to-[#252940] rounded-2xl p-6 border border-white/10 shadow-2xl">
+                            <div className="relative bg-[#12151C] rounded-xl p-6 border border-white/5 shadow-2xl">
                                 {/* Header */}
                                 <div className="flex items-center justify-between mb-6">
                                     <h2 className="text-xl font-bold text-white">Create Scheduled Meeting</h2>
@@ -465,14 +463,13 @@ const ScheduledMeetings = () => {
                                         <label className="block text-sm font-medium text-slate-300 mb-2">
                                             Meeting Title
                                         </label>
-                                        <div className="relative group/input">
-                                            <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-500 to-emerald-500 rounded-lg blur opacity-0 group-hover/input:opacity-10 group-focus-within/input:opacity-20 transition duration-300"></div>
+                                        <div className="relative">
                                             <input
                                                 type="text"
                                                 value={formData.title}
                                                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                                                 placeholder="e.g., Team Standup"
-                                                className="relative w-full px-4 py-3 bg-[#12151C] border border-white/10 rounded-lg text-white placeholder-slate-500 focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all duration-300"
+                                                className="w-full px-4 py-3 bg-[#0B0E14] border border-white/10 rounded-lg text-white placeholder-slate-500 focus:border-white/20 focus:outline-none transition-all duration-300"
                                             />
                                         </div>
                                     </div>
@@ -482,12 +479,11 @@ const ScheduledMeetings = () => {
                                         <label className="block text-sm font-medium text-slate-300 mb-2">
                                             Meeting Type * <span className="text-xs text-slate-500">(Auto-detected from link)</span>
                                         </label>
-                                        <div className="relative group/input">
-                                            <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-500 to-emerald-500 rounded-lg blur opacity-0 group-hover/input:opacity-10 group-focus-within/input:opacity-20 transition duration-300"></div>
+                                        <div className="relative">
                                             <select
                                                 value={formData.meetingType}
                                                 onChange={(e) => setFormData({ ...formData, meetingType: e.target.value })}
-                                                className="relative w-full px-4 py-3 bg-[#12151C] border border-white/10 rounded-lg text-white focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all duration-300 cursor-pointer"
+                                                className="w-full px-4 py-3 bg-[#0B0E14] border border-white/10 rounded-lg text-white focus:border-white/20 focus:outline-none transition-all duration-300 cursor-pointer"
                                                 required
                                             >
                                                 <option value="zoom">Zoom</option>
@@ -502,18 +498,17 @@ const ScheduledMeetings = () => {
                                         <label className="block text-sm font-medium text-slate-300 mb-2">
                                             Meeting Link *
                                         </label>
-                                        <div className="relative group/input">
-                                            <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-500 to-emerald-500 rounded-lg blur opacity-0 group-hover/input:opacity-10 group-focus-within/input:opacity-20 transition duration-300"></div>
+                                        <div className="relative">
                                             <input
                                                 type="url"
                                                 value={formData.meetingLink}
                                                 onChange={(e) => handleLinkChange(e.target.value)}
                                                 placeholder="https://zoom.us/j/... or https://meet.google.com/..."
-                                                className="relative w-full px-4 py-3 bg-[#12151C] border border-white/10 rounded-lg text-white placeholder-slate-500 focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all duration-300"
+                                                className="w-full px-4 py-3 bg-[#0B0E14] border border-white/10 rounded-lg text-white placeholder-slate-500 focus:border-white/20 focus:outline-none transition-all duration-300"
                                                 required
                                             />
                                         </div>
-                                        <p className="text-xs text-emerald-400 mt-1.5">Meeting type will be auto-detected from the link</p>
+                                        <p className="text-xs text-slate-400 mt-1.5">Meeting type will be auto-detected from the link</p>
                                     </div>
 
                                     {/* Scheduled Date & Time - Improved UI */}
@@ -521,19 +516,16 @@ const ScheduledMeetings = () => {
                                         <label className="block text-sm font-medium text-slate-300 mb-2">
                                             Scheduled Date & Time *
                                         </label>
-                                        <div className="relative group/input">
-                                            <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-500 to-emerald-500 rounded-lg blur opacity-0 group-hover/input:opacity-10 group-focus-within/input:opacity-20 transition duration-300"></div>
-                                            <div className="relative bg-[#12151C] border border-white/10 rounded-lg overflow-hidden">
-                                                <input
-                                                    type="datetime-local"
-                                                    value={formData.scheduledTime}
-                                                    onChange={(e) => setFormData({ ...formData, scheduledTime: e.target.value })}
-                                                    className="w-full px-4 py-3 bg-transparent text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all duration-300 cursor-pointer [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-70 [&::-webkit-calendar-picker-indicator]:hover:opacity-100 [&::-webkit-calendar-picker-indicator]:transition-opacity"
-                                                    required
-                                                    min={new Date().toISOString().slice(0, 16)}
-                                                />
-                                                <Clock size={18} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
-                                            </div>
+                                        <div className="relative bg-[#0B0E14] border border-white/10 rounded-lg overflow-hidden">
+                                            <input
+                                                type="datetime-local"
+                                                value={formData.scheduledTime}
+                                                onChange={(e) => setFormData({ ...formData, scheduledTime: e.target.value })}
+                                                className="w-full px-4 py-3 bg-transparent text-white focus:outline-none transition-all duration-300 cursor-pointer [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-70 [&::-webkit-calendar-picker-indicator]:hover:opacity-100 [&::-webkit-calendar-picker-indicator]:transition-opacity"
+                                                required
+                                                min={new Date().toISOString().slice(0, 16)}
+                                            />
+                                            <Clock size={18} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
                                         </div>
                                         <p className="text-xs text-slate-500 mt-1.5">Select the date and time for your meeting</p>
                                     </div>
@@ -591,17 +583,17 @@ const ScheduledMeetings = () => {
                             className="max-w-md w-full relative group"
                         >
                             {/* Gradient Glow Effect */}
-                            <div className="absolute -inset-1 bg-gradient-to-r from-purple-500 via-pink-500 to-purple-500 rounded-2xl blur opacity-30 group-hover:opacity-50 transition duration-500"></div>
+                            <div className="absolute -inset-1 bg-gradient-to-r from-white/20 via-white/10 to-white/20 rounded-2xl blur opacity-30 group-hover:opacity-50 transition duration-500"></div>
 
                             {/* Modal Content */}
-                            <div className="relative bg-gradient-to-br from-[#1C1F2E] to-[#252940] rounded-2xl p-6 border border-purple-500/20 shadow-2xl shadow-purple-500/10">
+                            <div className="relative bg-[#12151C] rounded-2xl p-6 border border-white/10 shadow-2xl">
                                 {/* Header */}
                                 <div className="flex items-center justify-between mb-6">
                                     <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shadow-lg shadow-purple-500/30">
-                                            <Sparkles size={20} className="text-white animate-pulse" />
+                                        <div className="w-10 h-10 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center">
+                                            <Sparkles size={20} className="text-slate-400" />
                                         </div>
-                                        <h2 className="text-xl font-bold text-white">AI Bot</h2>
+                                        <h2 className="text-xl font-bold text-white">Ask AI</h2>
                                     </div>
                                     <button
                                         onClick={() => setShowGeminiModal(false)}
@@ -618,8 +610,8 @@ const ScheduledMeetings = () => {
                                     </p>
 
                                     {/* Example Prompts */}
-                                    <div className="bg-purple-500/10 border border-purple-500/20 rounded-xl p-4 mb-5 backdrop-blur-sm">
-                                        <p className="text-xs text-purple-300 font-semibold mb-2.5 flex items-center gap-1.5">
+                                    <div className="bg-white/5 border border-white/10 rounded-xl p-4 mb-5 backdrop-blur-sm">
+                                        <p className="text-xs text-white/50 font-semibold mb-2.5 flex items-center gap-1.5">
                                             <span className="text-base">💡</span> Example prompts:
                                         </p>
                                         <ul className="text-xs text-slate-400 space-y-1.5">
@@ -633,13 +625,12 @@ const ScheduledMeetings = () => {
                                     <label className="block text-sm font-medium text-slate-300 mb-2.5">
                                         Your Prompt
                                     </label>
-                                    <div className="relative group/input">
-                                        <div className="absolute -inset-0.5 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg blur opacity-0 group-hover/input:opacity-20 group-focus-within/input:opacity-30 transition duration-300"></div>
+                                    <div className="relative">
                                         <textarea
                                             value={geminiPrompt}
                                             onChange={(e) => setGeminiPrompt(e.target.value)}
                                             placeholder="e.g., Schedule a team meeting tomorrow at 3 PM on Zoom to discuss Q1 goals"
-                                            className="relative w-full px-4 py-3 bg-[#12151C] border border-white/10 rounded-lg text-white placeholder-slate-500 focus:border-purple-500/50 focus:ring-2 focus:ring-purple-500/30 focus:outline-none transition-all duration-300 resize-none"
+                                            className="relative w-full px-4 py-3 bg-[#0B0E14] border border-white/10 rounded-lg text-white placeholder-slate-500 focus:border-white/20 focus:outline-none transition-all duration-300 resize-none"
                                             rows="4"
                                             disabled={generatingWithGemini}
                                         />
@@ -659,7 +650,7 @@ const ScheduledMeetings = () => {
                                     <button
                                         onClick={handleGenerateWithGemini}
                                         disabled={generatingWithGemini || !geminiPrompt.trim()}
-                                        className="flex-1 px-4 py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-semibold rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-purple-500/30 hover:shadow-purple-500/40 hover:scale-[1.02]"
+                                        className="flex-1 px-4 py-3 bg-white text-black hover:bg-slate-200 font-semibold rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg hover:scale-[1.02]"
                                     >
                                         {generatingWithGemini ? (
                                             <>
@@ -676,7 +667,7 @@ const ScheduledMeetings = () => {
                                 </div>
 
                                 {/* Footer */}
-                                <p className="text-xs text-center text-slate-500 mt-4">
+                                <p className="text-xs text-center text-white/50 mt-4">
                                     Powered by Google Gemini AI
                                 </p>
                             </div>

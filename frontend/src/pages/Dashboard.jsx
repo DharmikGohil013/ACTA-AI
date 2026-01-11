@@ -78,6 +78,7 @@ const Dashboard = () => {
     const [addedTasks, setAddedTasks] = useState({}); // Track which tasks have been added to Jira/Trello
     const [searchQuery, setSearchQuery] = useState(''); // Search functionality
     const [activeFilters, setActiveFilters] = useState([]); // Active filter tags
+    const [savingTranscript, setSavingTranscript] = useState({}); // Track saving state per meeting
     const audioRefs = useRef({});
     const socketRef = useRef(null);
 
@@ -96,16 +97,29 @@ const Dashboard = () => {
         });
 
         // Real-time meeting updates
-        socketRef.current.on('meetingUpdate', (data) => {
+        socketRef.current.on('meetingUpdate', async (data) => {
             console.log('Meeting update:', data);
             setLiveStatus(prev => ({
                 ...prev,
                 [data.meetingId]: { status: data.status, message: data.message, size: data.size }
             }));
 
-            // Refresh meetings list on completion
+            // Auto-save transcript when meeting completes
             if (data.status === 'completed') {
                 fetchMeetings();
+                
+                // Auto-save transcript data
+                setTimeout(async () => {
+                    try {
+                        const meetingToSave = meetings.find(m => m._id === data.meetingId);
+                        if (meetingToSave && (meetingToSave.transcription || meetingToSave.liveTranscriptFull)) {
+                            console.log('[Auto-Save] Saving transcript on completion:', data.meetingId);
+                            await autoSaveTranscript(data.meetingId);
+                        }
+                    } catch (err) {
+                        console.error('[Auto-Save] Error on completion:', err);
+                    }
+                }, 2000);
             }
         });
 
@@ -169,13 +183,24 @@ const Dashboard = () => {
             }));
         });
 
-        // Transcription complete
-        socketRef.current.on('transcription-complete', (data) => {
+        // Transcription complete - Auto-save to database
+        socketRef.current.on('transcription-complete', async (data) => {
             console.log('Transcription complete:', data);
             setLiveStatus(prev => ({
                 ...prev,
                 [data.meetingId]: { ...prev[data.meetingId], transcriptionComplete: true }
             }));
+
+            // Auto-save transcript to database when transcription completes
+            try {
+                const meetingToSave = meetings.find(m => m._id === data.meetingId);
+                if (meetingToSave) {
+                    console.log('[Auto-Save] Saving transcript for meeting:', data.meetingId);
+                    await autoSaveTranscript(data.meetingId);
+                }
+            } catch (err) {
+                console.error('[Auto-Save] Error:', err);
+            }
         });
 
         return () => {
@@ -228,6 +253,121 @@ const Dashboard = () => {
     const cancelEditingName = () => {
         setEditingMeeting(null);
         setNewMeetingName('');
+    };
+
+    // Auto-save function - called automatically when transcript is ready
+    const autoSaveTranscript = async (meetingId) => {
+        try {
+            const meeting = meetings.find(m => m._id === meetingId);
+            if (!meeting) {
+                console.log('[Auto-Save] Meeting not found:', meetingId);
+                return;
+            }
+
+            const transcriptData = liveTranscripts[meetingId] || [];
+            const fullTranscript = transcriptData
+                .filter(t => t.isFinal)
+                .map(t => t.text)
+                .join(' ');
+
+            const transcriptToSave = fullTranscript || meeting.liveTranscriptFull || meeting.transcription || '';
+            
+            if (!transcriptToSave) {
+                console.log('[Auto-Save] No transcript data to save');
+                return;
+            }
+
+            const saveData = {
+                liveTranscriptFull: transcriptToSave,
+                liveTranscriptSentences: transcriptData.filter(t => t.isFinal).map(t => ({
+                    text: t.text,
+                    confidence: t.confidence,
+                    timestamp: t.timestamp,
+                    wordCount: t.text.split(' ').length
+                })),
+                speakerSegments: meeting.speakerSegments || [],
+                totalSpeakers: meeting.totalSpeakers || 0,
+                transcription: transcriptToSave
+            };
+
+            console.log('[Auto-Save] Saving transcript automatically:', meetingId);
+
+            const response = await axios.put(
+                `${API_URL}/api/meetings/${meetingId}/save-transcript`, 
+                saveData
+            );
+
+            if (response.data.success) {
+                setMeetings(prev => prev.map(m =>
+                    m._id === meetingId ? response.data.meeting : m
+                ));
+                console.log('[Auto-Save] ✅ Transcript saved automatically');
+            }
+        } catch (err) {
+            console.error('[Auto-Save] Error:', err);
+        }
+    };
+
+    const saveLiveTranscript = async (meeting) => {
+        const meetingId = meeting._id;
+        
+        // Check if there's any transcript data to save (including regular transcription field)
+        const transcriptData = liveTranscripts[meetingId] || [];
+        const hasTranscriptData = transcriptData.length > 0 || meeting.liveTranscriptFull || meeting.transcription;
+
+        if (!hasTranscriptData) {
+            alert('No transcript data available to save');
+            return;
+        }
+
+        setSavingTranscript(prev => ({ ...prev, [meetingId]: true }));
+        
+        try {
+            // Compile full transcript from live segments
+            const fullTranscript = transcriptData
+                .filter(t => t.isFinal)
+                .map(t => t.text)
+                .join(' ');
+
+            // Use existing transcription as fallback
+            const transcriptToSave = fullTranscript || meeting.liveTranscriptFull || meeting.transcription || '';
+
+            // Prepare data to save
+            const saveData = {
+                liveTranscriptFull: transcriptToSave,
+                liveTranscriptSentences: transcriptData.filter(t => t.isFinal).map(t => ({
+                    text: t.text,
+                    confidence: t.confidence,
+                    timestamp: t.timestamp,
+                    wordCount: t.text.split(' ').length
+                })),
+                speakerSegments: meeting.speakerSegments || [],
+                totalSpeakers: meeting.totalSpeakers || 0,
+                transcription: transcriptToSave
+            };
+
+            console.log('[Dashboard] Saving transcript:', saveData);
+
+            const response = await axios.put(
+                `${API_URL}/api/meetings/${meetingId}/save-transcript`, 
+                saveData
+            );
+
+            if (response.data.success) {
+                // Update local state with saved meeting
+                setMeetings(prev => prev.map(m =>
+                    m._id === meetingId ? response.data.meeting : m
+                ));
+
+                alert('✅ Transcript saved to database successfully!');
+            }
+        } catch (err) {
+            console.error('Error saving transcript:', err);
+            const errorMsg = err.response?.data?.error || 'Failed to save transcript';
+            alert(`❌ Error: ${errorMsg}`);
+        } finally {
+            setSavingTranscript(prev => ({ ...prev, [meetingId]: false }));
+        }
     };
 
     const addTaskToJira = async (task, taskIndex) => {
@@ -730,6 +870,12 @@ const Dashboard = () => {
                                                     </div>
                                                     <div className="flex items-center gap-2 text-xs text-gray-400 mt-1">
                                                         <span>{new Date(meeting.createdAt).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                                                        {meeting.liveTranscriptUpdatedAt && (
+                                                            <span className="flex items-center gap-1 text-[10px] text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full" title={`Saved: ${new Date(meeting.liveTranscriptUpdatedAt).toLocaleString()}`}>
+                                                                <Download size={10} />
+                                                                Saved
+                                                            </span>
+                                                        )}
                                                     </div>
                                                 </div>
                                             </div>
@@ -783,40 +929,86 @@ const Dashboard = () => {
                                         {/* Action Button */}
                                         <div className="mb-4">
                                             {statusInfo.text === 'Live' ? (
-                                                <button
-                                                    onClick={() => openLiveOverlay(meeting)}
-                                                    className="w-full py-2.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 text-sm font-semibold transition-all flex items-center justify-center gap-2 group-hover:shadow-[0_0_20px_-5px_rgba(239,68,68,0.2)]"
-                                                >
-                                                    <div className="relative flex h-2 w-2">
-                                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                                                        <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
-                                                    </div>
-                                                    View Live Transcript
-                                                </button>
-                                            ) : (
-                                                <div className="flex gap-2">
+                                                <div className="space-y-2">
                                                     <button
-                                                        onClick={() => meeting.transcription ? navigate(`/dashboard/${meeting._id}`) : startTranscription(meeting)}
-                                                        className="flex-1 relative group py-2.5 rounded-lg bg-[#0B0E14] hover:bg-[#151820] border border-white/10 hover:border-white/20 text-white text-sm font-semibold transition-all shadow-lg flex items-center justify-center gap-2 overflow-hidden"
+                                                        onClick={() => openLiveOverlay(meeting)}
+                                                        className="w-full py-2.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 text-sm font-semibold transition-all flex items-center justify-center gap-2 group-hover:shadow-[0_0_20px_-5px_rgba(239,68,68,0.2)]"
                                                     >
-                                                        <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-lg blur opacity-0 group-hover:opacity-30 transition duration-500"></div>
-                                                        <span className="relative">{meeting.transcription ? 'View Dashboard' : 'Start Transcription'}</span>
+                                                        <div className="relative flex h-2 w-2">
+                                                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                                                            <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                                                        </div>
+                                                        View Live Transcript
                                                     </button>
-
-                                                    {meeting.transcription && (
+                                                    
+                                                    {/* Save Transcript Button - Only for live meetings with transcript data */}
+                                                    {(liveTranscripts[meeting._id]?.length > 0 || meeting.liveTranscriptFull) && (
                                                         <button
-                                                            onClick={() => {
-                                                                setSelectedTasksMeeting(meeting);
-                                                                loadTaskIntegrations(meeting);
-                                                            }}
-                                                            className="relative group px-4 py-2.5 rounded-lg bg-[#0B0E14] hover:bg-[#151820] border border-white/10 hover:border-white/20 text-white text-sm font-semibold transition-all shadow-lg flex items-center justify-center gap-2 overflow-hidden"
-                                                            title="View Action Items & Tasks"
+                                                            onClick={() => saveLiveTranscript(meeting)}
+                                                            disabled={savingTranscript[meeting._id]}
+                                                            className="w-full py-2.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 text-sm font-semibold transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                                                         >
-                                                            <div className="absolute -inset-0.5 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg blur opacity-0 group-hover:opacity-30 transition duration-500"></div>
-                                                            <div className="relative flex items-center gap-2">
-                                                                <CheckCircle2 size={16} />
-                                                                <span className="hidden xl:inline">Tasks</span>
-                                                            </div>
+                                                            {savingTranscript[meeting._id] ? (
+                                                                <>
+                                                                    <Loader2 size={16} className="animate-spin" />
+                                                                    Saving...
+                                                                </>
+                                                            ) : (
+                                                                <>
+                                                                    <Download size={16} />
+                                                                    Save Transcript to DB
+                                                                </>
+                                                            )}
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            ) : (
+                                                <div className="space-y-2">
+                                                    <div className="flex gap-2">
+                                                        <button
+                                                            onClick={() => meeting.transcription ? navigate(`/dashboard/${meeting._id}`) : startTranscription(meeting)}
+                                                            className="flex-1 relative group py-2.5 rounded-lg bg-[#0B0E14] hover:bg-[#151820] border border-white/10 hover:border-white/20 text-white text-sm font-semibold transition-all shadow-lg flex items-center justify-center gap-2 overflow-hidden"
+                                                        >
+                                                            <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-lg blur opacity-0 group-hover:opacity-30 transition duration-500"></div>
+                                                            <span className="relative">{meeting.transcription ? 'View Dashboard' : 'Start Transcription'}</span>
+                                                        </button>
+
+                                                        {meeting.transcription && (
+                                                            <button
+                                                                onClick={() => {
+                                                                    setSelectedTasksMeeting(meeting);
+                                                                    loadTaskIntegrations(meeting);
+                                                                }}
+                                                                className="relative group px-4 py-2.5 rounded-lg bg-[#0B0E14] hover:bg-[#151820] border border-white/10 hover:border-white/20 text-white text-sm font-semibold transition-all shadow-lg flex items-center justify-center gap-2 overflow-hidden"
+                                                                title="View Action Items & Tasks"
+                                                            >
+                                                                <div className="absolute -inset-0.5 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg blur opacity-0 group-hover:opacity-30 transition duration-500"></div>
+                                                                <div className="relative flex items-center gap-2">
+                                                                    <CheckCircle2 size={16} />
+                                                                    <span className="hidden xl:inline">Tasks</span>
+                                                                </div>
+                                                            </button>
+                                                        )}
+                                                    </div>
+
+                                                    {/* Save to Database button - Always visible when transcript exists */}
+                                                    {(meeting.transcription || meeting.liveTranscriptFull || liveTranscripts[meeting._id]?.length > 0) && (
+                                                        <button
+                                                            onClick={() => saveLiveTranscript(meeting)}
+                                                            disabled={savingTranscript[meeting._id]}
+                                                            className="w-full py-2 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 text-xs font-semibold transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                        >
+                                                            {savingTranscript[meeting._id] ? (
+                                                                <>
+                                                                    <Loader2 size={14} className="animate-spin" />
+                                                                    Saving...
+                                                                </>
+                                                            ) : (
+                                                                <>
+                                                                    <Download size={14} />
+                                                                    Save to Database
+                                                                </>
+                                                            )}
                                                         </button>
                                                     )}
                                                 </div>

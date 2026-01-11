@@ -1030,6 +1030,61 @@ app.put('/api/meetings/:id/name', optionalAuth, async (req, res) => {
     }
 });
 
+// 2.3 Save Transcript Data (from live transcription)
+app.put('/api/meetings/:id/save-transcript', optionalAuth, async (req, res) => {
+    try {
+        const meetingId = req.params.id;
+        const { 
+            liveTranscriptFull, 
+            liveTranscriptSentences,
+            speakerSegments, 
+            totalSpeakers,
+            transcription 
+        } = req.body;
+
+        console.log('[Server] Saving transcript for meeting:', meetingId);
+
+        const updateData = {
+            liveTranscriptUpdatedAt: new Date()
+        };
+
+        // Update fields if provided
+        if (liveTranscriptFull !== undefined) updateData.liveTranscriptFull = liveTranscriptFull;
+        if (liveTranscriptSentences !== undefined) updateData.liveTranscriptSentences = liveTranscriptSentences;
+        if (speakerSegments !== undefined) updateData.speakerSegments = speakerSegments;
+        if (totalSpeakers !== undefined) updateData.totalSpeakers = totalSpeakers;
+        if (transcription !== undefined) updateData.transcription = transcription;
+
+        const meeting = await Meeting.findByIdAndUpdate(
+            meetingId,
+            updateData,
+            { new: true }
+        );
+
+        if (!meeting) {
+            return res.status(404).json({ error: 'Meeting not found' });
+        }
+
+        console.log('[Server] Transcript saved successfully:', meetingId);
+        
+        // Emit update to connected clients
+        global.io.emit('meetingUpdate', { 
+            meetingId: meetingId.toString(), 
+            status: 'transcript-saved',
+            message: 'Transcript saved to database' 
+        });
+
+        res.json({ 
+            success: true, 
+            message: 'Transcript saved successfully',
+            meeting 
+        });
+    } catch (err) {
+        console.error('[Server] Save transcript error:', err);
+        res.status(500).json({ error: 'Failed to save transcript' });
+    }
+});
+
 // 3. Update Meeting
 app.patch('/api/meetings/:id', async (req, res) => {
     try {

@@ -19,12 +19,12 @@ const ScheduledMeetings = () => {
     const [showCreateForm, setShowCreateForm] = useState(false);
     const [creating, setCreating] = useState(false);
     const [schedulerStatus, setSchedulerStatus] = useState(null);
-    
+
     // Gemini AI state
     const [showGeminiModal, setShowGeminiModal] = useState(false);
     const [geminiPrompt, setGeminiPrompt] = useState('');
     const [generatingWithGemini, setGeneratingWithGemini] = useState(false);
-    
+
     // Form state
     const [formData, setFormData] = useState({
         meetingType: 'zoom',
@@ -36,13 +36,13 @@ const ScheduledMeetings = () => {
     useEffect(() => {
         fetchScheduledMeetings();
         fetchSchedulerStatus();
-        
+
         // Poll scheduler status every 30 seconds
         const statusInterval = setInterval(fetchSchedulerStatus, 30000);
-        
+
         // Refresh meetings list every 60 seconds to remove expired ones
         const meetingsInterval = setInterval(fetchScheduledMeetings, 60000);
-        
+
         return () => {
             clearInterval(statusInterval);
             clearInterval(meetingsInterval);
@@ -68,10 +68,10 @@ const ScheduledMeetings = () => {
                 const thirtyMinutesAgo = new Date(now.getTime() - 30 * 60000);
                 const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60000);
                 const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60000);
-                
+
                 const activeMeetings = res.data.meetings.filter(meeting => {
                     const scheduledTime = new Date(meeting.scheduledTime);
-                    
+
                     // Filter logic for all meeting types (Zoom, Meet, Teams)
                     if (meeting.status === 'scheduled') {
                         // Show scheduled meetings that are NOT expired (within 30 min grace period)
@@ -83,10 +83,10 @@ const ScheduledMeetings = () => {
                         // Show cancelled meetings for up to 1 day
                         return scheduledTime >= oneDayAgo;
                     }
-                    
+
                     return true; // Keep other statuses
                 });
-                
+
                 setScheduledMeetings(activeMeetings);
             }
         } catch (err) {
@@ -98,9 +98,9 @@ const ScheduledMeetings = () => {
 
     const detectMeetingType = (link) => {
         if (!link) return 'zoom'; // Default
-        
+
         const lowerLink = link.toLowerCase();
-        
+
         if (lowerLink.includes('zoom.us') || lowerLink.includes('zoom.')) {
             return 'zoom';
         } else if (lowerLink.includes('meet.google.com') || lowerLink.includes('meet.')) {
@@ -108,7 +108,7 @@ const ScheduledMeetings = () => {
         } else if (lowerLink.includes('teams.microsoft.com') || lowerLink.includes('teams.')) {
             return 'teams';
         }
-        
+
         return formData.meetingType; // Keep current if not detected
     };
 
@@ -123,7 +123,7 @@ const ScheduledMeetings = () => {
 
     const handleCreateMeeting = async (e) => {
         e.preventDefault();
-        
+
         if (!formData.meetingLink || !formData.scheduledTime) {
             alert('Please fill in all required fields');
             return;
@@ -163,7 +163,7 @@ const ScheduledMeetings = () => {
 
             if (res.data.success) {
                 const generatedMeeting = res.data.meeting;
-                
+
                 // Directly create the meeting without showing the form
                 const createRes = await axios.post(`${API_URL}/api/scheduled-meetings`, {
                     title: generatedMeeting.title || 'Scheduled Meeting',
@@ -269,7 +269,7 @@ const ScheduledMeetings = () => {
     }
 
     return (
-        <div className="min-h-screen text-slate-100">
+        <div className="min-h-screen bg-[#0B0E14] text-slate-100">
             {/* Header */}
             <header className="sticky top-0 z-50 bg-[#0B0E14]/80 backdrop-blur-xl border-b border-white/5">
                 <div className="container mx-auto px-6 h-16 flex items-center justify-between">
@@ -333,7 +333,7 @@ const ScheduledMeetings = () => {
                         {scheduledMeetings.map((meeting, index) => {
                             const details = getMeetingTypeDetails(meeting.meetingType);
                             const { date, time } = formatDateTime(meeting.scheduledTime);
-                            
+
                             return (
                                 <motion.div
                                     key={meeting._id}
@@ -547,88 +547,107 @@ const ScheduledMeetings = () => {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+                        className="fixed inset-0 bg-black/70 backdrop-blur-lg z-50 flex items-center justify-center p-4"
                         onClick={() => setShowGeminiModal(false)}
                     >
                         <motion.div
-                            initial={{ scale: 0.9, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            exit={{ scale: 0.9, opacity: 0 }}
+                            initial={{ scale: 0.9, opacity: 0, y: 20 }}
+                            animate={{ scale: 1, opacity: 1, y: 0 }}
+                            exit={{ scale: 0.9, opacity: 0, y: 20 }}
+                            transition={{ duration: 0.3, ease: "easeOut" }}
                             onClick={(e) => e.stopPropagation()}
-                            className="bg-gradient-to-br from-[#1C1F2E] to-[#252940] rounded-2xl p-6 border border-purple-500/20 max-w-md w-full shadow-2xl shadow-purple-500/10"
+                            className="max-w-md w-full relative group"
                         >
-                            <div className="flex items-center justify-between mb-6">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
-                                        <Sparkles size={20} className="text-white" />
+                            {/* Gradient Glow Effect */}
+                            <div className="absolute -inset-1 bg-gradient-to-r from-purple-500 via-pink-500 to-purple-500 rounded-2xl blur opacity-30 group-hover:opacity-50 transition duration-500"></div>
+
+                            {/* Modal Content */}
+                            <div className="relative bg-gradient-to-br from-[#1C1F2E] to-[#252940] rounded-2xl p-6 border border-purple-500/20 shadow-2xl shadow-purple-500/10">
+                                {/* Header */}
+                                <div className="flex items-center justify-between mb-6">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shadow-lg shadow-purple-500/30">
+                                            <Sparkles size={20} className="text-white animate-pulse" />
+                                        </div>
+                                        <h2 className="text-xl font-bold text-white">AI Bot</h2>
                                     </div>
-                                    <h2 className="text-xl font-bold text-white">AI Bot</h2>
+                                    <button
+                                        onClick={() => setShowGeminiModal(false)}
+                                        className="p-2 hover:bg-white/10 rounded-lg transition-all hover:rotate-90 duration-300"
+                                    >
+                                        <X size={20} className="text-gray-400 hover:text-white transition-colors" />
+                                    </button>
                                 </div>
-                                <button
-                                    onClick={() => setShowGeminiModal(false)}
-                                    className="p-2 hover:bg-white/10 rounded-lg transition-colors"
-                                >
-                                    <X size={20} className="text-gray-400" />
-                                </button>
-                            </div>
 
-                            <div className="mb-6">
-                                <p className="text-gray-300 text-sm mb-4">
-                                    Describe the meeting you want to schedule, and I'll generate it for you!
+                                {/* Content */}
+                                <div className="mb-6">
+                                    <p className="text-slate-300 text-sm mb-4 leading-relaxed">
+                                        Describe the meeting you want to schedule, and I'll generate it for you!
+                                    </p>
+
+                                    {/* Example Prompts */}
+                                    <div className="bg-purple-500/10 border border-purple-500/20 rounded-xl p-4 mb-5 backdrop-blur-sm">
+                                        <p className="text-xs text-purple-300 font-semibold mb-2.5 flex items-center gap-1.5">
+                                            <span className="text-base">💡</span> Example prompts:
+                                        </p>
+                                        <ul className="text-xs text-slate-400 space-y-1.5">
+                                            <li className="hover:text-slate-300 transition-colors cursor-default">• "Schedule a team standup tomorrow at 10 AM on Zoom"</li>
+                                            <li className="hover:text-slate-300 transition-colors cursor-default">• "Create a client review meeting on Google Meet in 2 hours"</li>
+                                            <li className="hover:text-slate-300 transition-colors cursor-default">• "Set up a project kickoff on Teams next Monday at 2 PM"</li>
+                                        </ul>
+                                    </div>
+
+                                    {/* Input Field */}
+                                    <label className="block text-sm font-medium text-slate-300 mb-2.5">
+                                        Your Prompt
+                                    </label>
+                                    <div className="relative group/input">
+                                        <div className="absolute -inset-0.5 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg blur opacity-0 group-hover/input:opacity-20 group-focus-within/input:opacity-30 transition duration-300"></div>
+                                        <textarea
+                                            value={geminiPrompt}
+                                            onChange={(e) => setGeminiPrompt(e.target.value)}
+                                            placeholder="e.g., Schedule a team meeting tomorrow at 3 PM on Zoom to discuss Q1 goals"
+                                            className="relative w-full px-4 py-3 bg-[#12151C] border border-white/10 rounded-lg text-white placeholder-slate-500 focus:border-purple-500/50 focus:ring-2 focus:ring-purple-500/30 focus:outline-none transition-all duration-300 resize-none"
+                                            rows="4"
+                                            disabled={generatingWithGemini}
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Action Buttons */}
+                                <div className="flex gap-3">
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowGeminiModal(false)}
+                                        className="flex-1 px-4 py-3 bg-white/5 hover:bg-white/10 text-white rounded-lg transition-all font-medium"
+                                        disabled={generatingWithGemini}
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        onClick={handleGenerateWithGemini}
+                                        disabled={generatingWithGemini || !geminiPrompt.trim()}
+                                        className="flex-1 px-4 py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-semibold rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-purple-500/30 hover:shadow-purple-500/40 hover:scale-[1.02]"
+                                    >
+                                        {generatingWithGemini ? (
+                                            <>
+                                                <Loader2 size={18} className="animate-spin" />
+                                                Generating...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Sparkles size={18} />
+                                                Generate
+                                            </>
+                                        )}
+                                    </button>
+                                </div>
+
+                                {/* Footer */}
+                                <p className="text-xs text-center text-slate-500 mt-4">
+                                    Powered by Google Gemini AI
                                 </p>
-                                <div className="bg-purple-500/10 border border-purple-500/20 rounded-lg p-3 mb-4">
-                                    <p className="text-xs text-purple-300 font-medium mb-2">💡 Example prompts:</p>
-                                    <ul className="text-xs text-gray-400 space-y-1">
-                                        <li>• "Schedule a team standup tomorrow at 10 AM on Zoom"</li>
-                                        <li>• "Create a client review meeting on Google Meet in 2 hours"</li>
-                                        <li>• "Set up a project kickoff on Teams next Monday at 2 PM"</li>
-                                    </ul>
-                                </div>
-                                
-                                <label className="block text-sm font-medium text-gray-400 mb-2">
-                                    Your Prompt
-                                </label>
-                                <textarea
-                                    value={geminiPrompt}
-                                    onChange={(e) => setGeminiPrompt(e.target.value)}
-                                    placeholder="e.g., Schedule a team meeting tomorrow at 3 PM on Zoom to discuss Q1 goals"
-                                    className="w-full px-4 py-3 bg-[#0B0E14] border border-purple-500/20 rounded-lg text-white placeholder:text-gray-500 focus:outline-none focus:border-purple-500/50 transition-colors resize-none"
-                                    rows="4"
-                                    disabled={generatingWithGemini}
-                                />
                             </div>
-
-                            <div className="flex gap-3">
-                                <button
-                                    type="button"
-                                    onClick={() => setShowGeminiModal(false)}
-                                    className="flex-1 px-4 py-3 bg-white/5 hover:bg-white/10 text-white rounded-lg transition-colors"
-                                    disabled={generatingWithGemini}
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    onClick={handleGenerateWithGemini}
-                                    disabled={generatingWithGemini || !geminiPrompt.trim()}
-                                    className="flex-1 px-4 py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-semibold rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-purple-500/20"
-                                >
-                                    {generatingWithGemini ? (
-                                        <>
-                                            <Loader2 size={18} className="animate-spin" />
-                                            Generating...
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Sparkles size={18} />
-                                            Generate
-                                        </>
-                                    )}
-                                </button>
-                            </div>
-
-                            <p className="text-xs text-center text-gray-500 mt-4">
-                                Powered by Google Gemini AI
-                            </p>
                         </motion.div>
                     </motion.div>
                 )}

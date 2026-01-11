@@ -1473,12 +1473,12 @@ const SpeakerTimelineVisualization = ({ data }) => {
     // Assign colors to speakers - using the same 6-color palette
     const speakerColors = {};
     const colorPalette = [
-        '#000000', // Black
-        '#1F3345', // Navy
-        '#B54745', // Red
-        '#C78F57', // Gold
-        '#85ABAB', // Sea Green
-        '#F0EDE5'  // Beige
+        '#8B5CF6', // Bright Purple
+        '#10B981', // Bright Green
+        '#F59E0B', // Bright Amber
+        '#3B82F6', // Bright Blue
+        '#EC4899', // Bright Pink
+        '#14B8A6'  // Bright Teal
     ];
     speakers.forEach((speaker, idx) => {
         // If 7th+ speaker, choose a random color from the palette

@@ -2334,6 +2334,70 @@ app.post('/api/meetings/:id/translate', async (req, res) => {
     }
 });
 
+// Admin routes for .env management
+app.get('/api/admin/env', async (req, res) => {
+    try {
+        const envPath = path.join(__dirname, '../.env');
+        const envContent = await fs.readFile(envPath, 'utf8');
+        res.json({ content: envContent });
+    } catch (err) {
+        console.error('Error reading .env:', err);
+        res.status(500).json({ error: 'Failed to read .env file' });
+    }
+});
+
+app.post('/api/admin/env', async (req, res) => {
+    try {
+        const { content } = req.body;
+        if (!content) {
+            return res.status(400).json({ error: 'Content is required' });
+        }
+        const envPath = path.join(__dirname, '../.env');
+        await fs.writeFile(envPath, content, 'utf8');
+        res.json({ success: true, message: 'Environment variables updated successfully' });
+    } catch (err) {
+        console.error('Error writing .env:', err);
+        res.status(500).json({ error: 'Failed to update .env file' });
+    }
+});
+
+// Count routes for admin dashboard
+app.get('/api/users/count', async (req, res) => {
+    try {
+        const count = await User.countDocuments();
+        res.json({ count });
+    } catch (err) {
+        console.error('Error counting users:', err);
+        res.status(500).json({ error: 'Failed to count users' });
+    }
+});
+
+app.get('/api/meetings/count', async (req, res) => {
+    try {
+        const count = await Meeting.countDocuments();
+        res.json({ count });
+    } catch (err) {
+        console.error('Error counting meetings:', err);
+        res.status(500).json({ error: 'Failed to count meetings' });
+    }
+});
+
+app.get('/api/analysis', async (req, res) => {
+    try {
+        const totalMeetings = await Meeting.countDocuments();
+        const totalUsers = await User.countDocuments();
+        const recentMeetings = await Meeting.find().sort({ createdAt: -1 }).limit(5);
+        res.json({
+            totalMeetings,
+            totalUsers,
+            recentMeetings: recentMeetings.map(m => ({ id: m._id, title: m.title, createdAt: m.createdAt }))
+        });
+    } catch (err) {
+        console.error('Error fetching analysis:', err);
+        res.status(500).json({ error: 'Failed to fetch analysis data' });
+    }
+});
+
 // Start Server
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {

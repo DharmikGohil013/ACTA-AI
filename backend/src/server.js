@@ -41,7 +41,7 @@ const server = http.createServer(app);
 // Socket.IO for real-time updates
 const io = new Server(server, {
     cors: {
-        origin: ["http://localhost:5173", "http://localhost:5174", "http://localhost:3000"],
+        origin: ["https://acta-ai.onrender.com"],
         methods: ["GET", "POST"]
     }
 });
@@ -50,7 +50,7 @@ const io = new Server(server, {
 global.io = io;
 
 app.use(cors({
-    origin: ["http://localhost:5173", "http://localhost:5174", "http://localhost:3000"],
+    origin: ["https://acta-ai.onrender.com"],
     credentials: true
 }));
 app.use(express.json());
@@ -157,7 +157,7 @@ app.get('/api/auth/google',
 );
 
 app.get('/api/auth/google/callback',
-    passport.authenticate('google', { failureRedirect: 'http://localhost:5173' }),
+    passport.authenticate('google', { failureRedirect: 'https://acta-ai.onrender.com' }),
     (req, res) => {
         // Generate JWT token
         const token = generateToken(req.user);
@@ -171,7 +171,7 @@ app.get('/api/auth/google/callback',
         });
 
         // Redirect to frontend with token in URL (for localStorage)
-        res.redirect(`http://localhost:5173?token=${token}`);
+        res.redirect(`https://acta-ai.onrender.com?token=${token}`);
     }
 );
 

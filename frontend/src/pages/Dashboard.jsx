@@ -11,7 +11,7 @@ import googleMeetLogo from '../assets/google-meet.png';
 import teamsLogo from '../assets/teams.png';
 import zoomLogo from '../assets/zoom.png';
 
-const API_URL = 'http://localhost:3000';
+const API_URL = 'https://acta-ai.onrender.com';
 
 const getPlatformDetails = (link) => {
     if (!link) return { name: 'Meeting', logo: null, color: 'text-gray-400', border: 'from-gray-700 to-gray-800', shadow: 'shadow-gray-500/20' };

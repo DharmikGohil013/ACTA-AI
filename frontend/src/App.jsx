@@ -14,7 +14,7 @@ import Loader from './components/Loader';
 
 import axios from 'axios';
 
-const API_URL = 'http://localhost:3000';
+const API_URL = 'https://acta-ai.onrender.com';
 
 // Configure axios to send credentials
 axios.defaults.withCredentials = true;

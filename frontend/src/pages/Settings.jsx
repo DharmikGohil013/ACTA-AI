@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import axios from 'axios';
 
-const API_URL = 'http://localhost:3000';
+const API_URL = 'https://acta-ai.onrender.com';
 
 const Settings = () => {
     const navigate = useNavigate();

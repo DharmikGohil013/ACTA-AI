@@ -5,7 +5,7 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { ZoomLogo, TeamsLogo, MeetLogo } from '../components/Logos';
 
-const API_URL = 'http://localhost:3000';
+const API_URL = 'https://acta-ai.onrender.com';
 
 // Animated Text Component with letter-by-letter reveal
 const AnimatedText = ({ text, isVisible }) => {

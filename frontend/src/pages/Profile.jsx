@@ -4,7 +4,7 @@ import { LogOut, User, Mail, Shield } from 'lucide-react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
-const API_URL = 'http://localhost:3000';
+const API_URL = 'https://acta-ai.onrender.com';
 
 const Profile = () => {
     const [user, setUser] = useState(null);

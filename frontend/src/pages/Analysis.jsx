@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import Loader from '../components/Loader';
 
-const API_URL = 'http://localhost:3000';
+const API_URL = 'https://acta-ai.onrender.com';
 
 // Stat Card Component
 const StatCard = ({ icon, value, label, change, changeType = 'positive' }) => {

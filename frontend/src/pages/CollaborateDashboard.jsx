@@ -5,7 +5,7 @@ import { Users, Calendar, Clock, ExternalLink, Loader2, Mail, ArrowLeft, Sparkle
 import { motion, AnimatePresence } from 'framer-motion';
 import Loader from '../components/Loader';
 
-const API_URL = 'http://localhost:3000';
+const API_URL = 'https://acta-ai.onrender.com';
 
 const CollaborateDashboard = () => {
     const navigate = useNavigate();

@@ -157,7 +157,7 @@ app.get('/api/auth/google',
 );
 
 app.get('/api/auth/google/callback',
-    passport.authenticate('google', { failureRedirect: 'https://acta-ai.onrender.com' }),
+    passport.authenticate('google', { failureRedirect: 'https://actaai-five.vercel.app' }),
     (req, res) => {
         // Generate JWT token
         const token = generateToken(req.user);
@@ -171,7 +171,7 @@ app.get('/api/auth/google/callback',
         });
 
         // Redirect to frontend with token in URL (for localStorage)
-        res.redirect(`https://acta-ai.onrender.com?token=${token}`);
+        res.redirect(`https://actaai-five.vercel.app?token=${token}`);
     }
 );
 

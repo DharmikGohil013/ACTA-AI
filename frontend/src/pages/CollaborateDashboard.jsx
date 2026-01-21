@@ -157,12 +157,12 @@ const CollaborateDashboard = () => {
     }
 
     return (
-        <div className="max-w-[1400px] mx-auto w-full px-6 py-8">
+        <div className="max-w-[1400px] mx-auto w-full px-4 sm:px-6 py-8">
             {/* Header */}
-            <header className="flex items-center justify-between gap-8 mb-10">
+            <header className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 md:gap-8 mb-8 md:mb-10">
                 <div className="flex items-center gap-4">
-                    <h1 className="text-3xl font-bold tracking-tight text-white">Collaborate</h1>
-                    <div className="h-6 w-px bg-white/10"></div>
+                    <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-white">Collaborate</h1>
+                    <div className="h-6 w-px bg-white/10 hidden md:block"></div>
                     <p className="text-gray-400 font-medium flex items-center gap-2 text-sm">
                         <Users size={16} className="text-white" />
                         Shared Meetings
@@ -219,14 +219,12 @@ const CollaborateDashboard = () => {
                                                     </p>
                                                 </div>
                                             </div>
-                                            <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase tracking-wider border ${
-                                                meeting.status === 'completed'
+                                            <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase tracking-wider border ${meeting.status === 'completed'
                                                     ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
                                                     : 'bg-white/10 text-white border-white/20'
-                                            }`}>
-                                                <div className={`w-1.5 h-1.5 rounded-full ${
-                                                    meeting.status === 'completed' ? 'bg-emerald-400' : 'bg-white'
-                                                }`} />
+                                                }`}>
+                                                <div className={`w-1.5 h-1.5 rounded-full ${meeting.status === 'completed' ? 'bg-emerald-400' : 'bg-white'
+                                                    }`} />
                                                 {meeting.status}
                                             </div>
                                         </div>

@@ -10,7 +10,7 @@ const API_URL = 'https://acta-ai.onrender.com';
 // Animated Text Component with letter-by-letter reveal
 const AnimatedText = ({ text, isVisible }) => {
     const words = text.split(' ');
-    
+
     const containerVariants = {
         hidden: { opacity: 0 },
         visible: {
@@ -30,15 +30,15 @@ const AnimatedText = ({ text, isVisible }) => {
     };
 
     const wordVariants = {
-        hidden: { 
-            opacity: 0, 
+        hidden: {
+            opacity: 0,
             y: 40,
             rotateX: 90,
             scale: 0.5,
             filter: 'blur(10px)'
         },
-        visible: { 
-            opacity: 1, 
+        visible: {
+            opacity: 1,
             y: 0,
             rotateX: 0,
             scale: 1,
@@ -50,8 +50,8 @@ const AnimatedText = ({ text, isVisible }) => {
                 duration: 0.6
             }
         },
-        exit: { 
-            opacity: 0, 
+        exit: {
+            opacity: 0,
             y: -40,
             rotateX: -90,
             scale: 0.5,
@@ -76,7 +76,7 @@ const AnimatedText = ({ text, isVisible }) => {
                     key={index}
                     variants={wordVariants}
                     className="inline-block bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500 bg-clip-text text-transparent"
-                    style={{ 
+                    style={{
                         transformStyle: 'preserve-3d',
                         textShadow: '0 0 60px rgba(139, 92, 246, 0.4)'
                     }}
@@ -105,7 +105,6 @@ const Home = () => {
         'Strategic Insights',
         'Business Insights',
         'Smart Decisions',
-        'Clear Action Plans',
         'Powerful Analytics'
     ];
 
@@ -226,9 +225,9 @@ const Home = () => {
         }
     };
     return (
-        <div className="min-h-[calc(100vh-64px)] flex flex-col items-center pt-24 pb-12 relative overflow-hidden">
+        <div className="min-h-[calc(100vh-64px)] flex flex-col items-center pt-16 md:pt-24 pb-12 relative overflow-hidden px-4 md:px-0"> {/* Adjusted padding */}
 
-            <div className="relative z-10 w-full max-w-5xl mx-auto px-4 text-center">
+            <div className="relative z-10 w-full max-w-5xl mx-auto text-center">
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -243,7 +242,8 @@ const Home = () => {
                         <span className="text-xs font-medium text-slate-300 tracking-wide uppercase">AI-Powered Meeting Assistant</span>
                     </div>
 
-                    <h1 className="text-5xl md:text-7xl font-bold mb-6 tracking-tight text-white max-w-4xl leading-[1.1]">
+                    {/* Responsive Heading */}
+                    <h1 className="text-4xl sm:text-5xl md:text-7xl font-bold mb-6 tracking-tight text-white max-w-4xl leading-[1.1] px-2">
                         Turn Conversations into Clear Action Plans
                     </h1>
 
@@ -254,16 +254,16 @@ const Home = () => {
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -20 }}
                             transition={{ duration: 0.5 }}
-                            className="text-lg text-slate-400 mb-10 max-w-2xl mx-auto leading-relaxed"
+                            className="text-base md:text-lg text-slate-400 mb-10 max-w-2xl mx-auto leading-relaxed px-4"
                         >
                             {rotatingPhrases[currentPhraseIndex]}
                         </motion.p>
                     </AnimatePresence>
 
                     {/* Input Field - Professional */}
-                    <div className="w-full max-w-xl mx-auto mb-6 relative group">
+                    <div className="w-full max-w-xl mx-auto mb-6 relative group px-2 md:px-0">
                         <div className="absolute -inset-1 bg-gradient-to-r from-blue-500 via-purple-500 to-indigo-500 rounded-lg blur opacity-25 group-hover:opacity-50 transition duration-500"></div>
-                        <div className="relative flex items-center bg-[#0B0E14] border border-white/10 rounded-lg focus-within:border-white/20 transition-colors h-12 shadow-2xl p-1">
+                        <div className="relative flex items-center bg-[#0B0E14] border border-white/10 rounded-lg focus-within:border-white/20 transition-colors h-14 shadow-2xl p-1"> {/* Increased height for touch */}
                             <input
                                 type="text"
                                 placeholder="Paste Zoom, Teams, or Meet link..."
@@ -271,28 +271,29 @@ const Home = () => {
                                 onChange={handleLinkChange}
                                 onKeyDown={(e) => e.key === 'Enter' && handleJoin()}
                                 disabled={loading}
-                                className="flex-1 bg-transparent border-none outline-none text-white px-4 h-full text-lg placeholder-slate-600 font-light"
+                                className="flex-1 bg-transparent border-none outline-none text-white px-3 md:px-4 h-full text-base md:text-lg placeholder-slate-600 font-light w-full min-w-0" // min-w-0 to prevent flex overflow
                             />
-                            <button
+                            <motion.button
+                                whileTap={{ scale: 0.95 }}
                                 onClick={handleJoin}
                                 disabled={loading || !link}
-                                className="h-full px-4 bg-white text-black hover:bg-slate-200 rounded-md transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium text-xs flex items-center gap-1.5"
+                                className="h-full px-4 md:px-6 bg-white text-black hover:bg-slate-200 rounded-md transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium text-xs md:text-sm flex items-center gap-1.5 whitespace-nowrap"
                             >
                                 {loading ? <Loader size={14} className="animate-spin" /> :
                                     <>
-                                        <span>ANALYZE MEETING</span>
+                                        <span>ANALYZE</span>
                                         <ArrowRight size={13} />
                                     </>
                                 }
-                            </button>
+                            </motion.button>
                         </div>
                     </div>
 
                     {/* Advanced Options */}
-                    <div className="w-full max-w-xl mx-auto mb-16">
+                    <div className="w-full max-w-xl mx-auto mb-16 px-2 md:px-0">
                         <button
                             onClick={() => setShowAdvanced(!showAdvanced)}
-                            className="text-sm text-slate-400 hover:text-slate-300 transition-colors flex items-center gap-2 justify-center w-full mb-4"
+                            className="text-sm text-slate-400 hover:text-slate-300 transition-colors flex items-center gap-2 justify-center w-full mb-4 py-3" // Increased touch area
                         >
                             <span>{showAdvanced ? '▼' : '▶'}</span>
                             Meeting Details
@@ -307,41 +308,42 @@ const Home = () => {
                             >
                                 {/* Meeting Name Field */}
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-300 mb-2">Meeting Name</label>
+                                    <label className="block text-sm font-medium text-slate-300 mb-2 text-left">Meeting Name</label>
                                     <input
                                         type="text"
                                         placeholder="Enter meeting name..."
                                         value={meetingName}
                                         onChange={(e) => setMeetingName(e.target.value)}
-                                        className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-white placeholder-slate-500 focus:border-blue-500 focus:outline-none transition-colors"
+                                        className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white placeholder-slate-500 focus:border-blue-500 focus:outline-none transition-colors text-base"
                                     />
-                                    <div className="mt-2 flex flex-wrap gap-2">
+                                    <div className="mt-2 flex flex-wrap gap-2 justify-start">
                                         {defaultMeetingNames.map((name) => (
-                                            <button
+                                            <motion.button
+                                                whileTap={{ scale: 0.95 }}
                                                 key={name}
                                                 onClick={() => setMeetingName(name)}
-                                                className={`text-xs px-3 py-1.5 rounded-full transition-colors ${meetingName === name
+                                                className={`text-xs px-3 py-2 rounded-full transition-colors ${meetingName === name
                                                     ? 'bg-blue-600 text-white'
                                                     : 'bg-white/10 text-slate-300 hover:bg-white/20'
                                                     }`}
                                             >
                                                 {name}
-                                            </button>
+                                            </motion.button>
                                         ))}
                                     </div>
                                 </div>
 
                                 {/* Bot Name Field */}
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-300 mb-2">Bot Name</label>
+                                    <label className="block text-sm font-medium text-slate-300 mb-2 text-left">Bot Name</label>
                                     <input
                                         type="text"
                                         placeholder="Enter bot name..."
                                         value={botName}
                                         onChange={(e) => setBotName(e.target.value)}
-                                        className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-white placeholder-slate-500 focus:border-blue-500 focus:outline-none transition-colors"
+                                        className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white placeholder-slate-500 focus:border-blue-500 focus:outline-none transition-colors text-base"
                                     />
-                                    <p className="text-xs text-slate-500 mt-1">This is how the bot will appear in the meeting</p>
+                                    <p className="text-xs text-slate-500 mt-1 text-left">This is how the bot will appear in the meeting</p>
                                 </div>
                             </motion.div>
                         )}
@@ -372,12 +374,12 @@ const Home = () => {
                         <motion.div
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
-                            className="mb-8 max-w-md mx-auto"
+                            className="mb-8 max-w-md mx-auto px-4 w-full"
                         >
                             <div className="relative">
                                 <div className="absolute -inset-1 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-lg blur opacity-25"></div>
                                 <div className="relative bg-[#0B0E14] border border-yellow-500/30 rounded-lg p-6">
-                                    <div className="flex items-start gap-3 mb-4">
+                                    <div className="flex items-start gap-3 mb-4 text-left">
                                         <AlertCircle size={20} className="text-yellow-400 mt-0.5 flex-shrink-0" />
                                         <div>
                                             <h3 className="text-white font-semibold mb-1">Google Meet Setup Required</h3>
@@ -387,10 +389,11 @@ const Home = () => {
                                             </p>
                                         </div>
                                     </div>
-                                    <button
+                                    <motion.button
+                                        whileTap={{ scale: 0.98 }}
                                         onClick={setupBot}
                                         disabled={setupLoading}
-                                        className="w-full px-4 py-2.5 bg-yellow-500 hover:bg-yellow-400 text-black font-medium rounded-md transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                        className="w-full px-4 py-3 bg-yellow-500 hover:bg-yellow-400 text-black font-medium rounded-md transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                                     >
                                         {setupLoading ? (
                                             <>
@@ -403,7 +406,7 @@ const Home = () => {
                                                 <ArrowRight size={16} />
                                             </>
                                         )}
-                                    </button>
+                                    </motion.button>
                                 </div>
                             </div>
                         </motion.div>
@@ -419,7 +422,7 @@ const Home = () => {
                             <button
                                 onClick={setupBot}
                                 disabled={setupLoading}
-                                className="text-xs text-slate-500 hover:text-slate-300 transition-colors underline decoration-dotted"
+                                className="text-xs text-slate-500 hover:text-slate-300 transition-colors underline decoration-dotted p-3"
                             >
                                 {setupLoading ? 'Opening browser...' : 'Re-authenticate Google Meet Bot'}
                             </button>
@@ -429,18 +432,18 @@ const Home = () => {
                     {/* Supported Platforms */}
                     <div className="flex flex-col items-center gap-6">
                         <span className="text-xs font-semibold text-slate-500 uppercase tracking-widest">Works Seamlessly With</span>
-                        <div className="flex items-center gap-12 grayscale opacity-40 hover:grayscale-0 hover:opacity-100 transition-all duration-500">
+                        <div className="flex items-center gap-8 md:gap-12 opacity-60 md:grayscale md:opacity-40 hover:grayscale-0 hover:opacity-100 transition-all duration-500">
                             <div className="flex items-center gap-2">
-                                <ZoomLogo className="w-8 h-8" />
-                                <span className="font-semibold text-xl text-white hidden md:block">Zoom</span>
+                                <ZoomLogo className="w-8 h-8 md:w-10 md:h-10" />
+                                <span className="font-semibold text-lg md:text-xl text-white block">Zoom</span>
                             </div>
                             <div className="flex items-center gap-2">
-                                <TeamsLogo className="w-8 h-8" />
-                                <span className="font-semibold text-xl text-white hidden md:block">Teams</span>
+                                <TeamsLogo className="w-8 h-8 md:w-10 md:h-10" />
+                                <span className="font-semibold text-lg md:text-xl text-white block">Teams</span>
                             </div>
                             <div className="flex items-center gap-2">
-                                <MeetLogo className="w-8 h-8" />
-                                <span className="font-semibold text-xl text-white hidden md:block">Google Meet</span>
+                                <MeetLogo className="w-8 h-8 md:w-10 md:h-10" />
+                                <span className="font-semibold text-lg md:text-xl text-white block">Google Meet</span>
                             </div>
                         </div>
                     </div>

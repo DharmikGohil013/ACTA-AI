@@ -89,11 +89,11 @@ const MeetingDashboard = () => {
             const userRes = await axios.get(`${API_URL}/api/auth/user`);
             if (userRes.data.user && userRes.data.user.email) {
                 setCurrentUserEmail(userRes.data.user.email);
-                
+
                 // Get meeting data
                 const meetingRes = await axios.get(`${API_URL}/api/meetings/${id}`);
                 const meetingEmail = meetingRes.data.userEmail || '';
-                
+
                 // Check if current user is the owner
                 setIsOwner(userRes.data.user.email === meetingEmail);
             }
@@ -348,33 +348,40 @@ const MeetingDashboard = () => {
 
             {/* Header */}
             <header className="sticky top-0 z-50 bg-[#0B0E14]/80 backdrop-blur-xl border-b border-white/5">
-                <div className="px-6 h-16 flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                        <button
-                            onClick={() => navigate('/dashboard')}
-                            className="p-2 bg-white/5 rounded-xl hover:bg-white/10 transition-colors group"
-                        >
-                            <ArrowLeft size={20} className="text-gray-400 group-hover:text-white transition-colors" />
-                        </button>
-                        <div>
-                            <h1 className="text-lg font-bold text-white flex items-center gap-2">
-                                {data.title}
-                                <span className="px-2 py-0.5 bg-white/5 rounded text-[10px] text-gray-400 font-normal border border-white/5">
-                                    {data.date}
-                                </span>
-                            </h1>
+                <div className="px-4 md:px-6 h-auto md:h-16 py-3 md:py-0 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 md:gap-0">
+                    <div className="flex items-center gap-3 w-full md:w-auto justify-between md:justify-start">
+                        <div className="flex items-center gap-3">
+                            <button
+                                onClick={() => navigate('/dashboard')}
+                                className="p-2 bg-white/5 rounded-xl hover:bg-white/10 transition-colors group"
+                            >
+                                <ArrowLeft size={18} className="text-gray-400 group-hover:text-white transition-colors" />
+                            </button>
+                            <div>
+                                <h1 className="text-base md:text-lg font-bold text-white flex flex-col md:flex-row md:items-center gap-1 md:gap-2 leading-tight">
+                                    <span className="truncate max-w-[200px] md:max-w-md">{data.title}</span>
+                                    <span className="px-2 py-0.5 bg-white/5 rounded text-[10px] text-gray-400 font-normal border border-white/5 w-fit">
+                                        {data.date}
+                                    </span>
+                                </h1>
+                            </div>
                         </div>
+
+                        {/* Mobile Actions (visible on mobile next to title if needed, or keeping original structure) 
+                            Actually, let's keep common actions together. 
+                            If I move actions to the right on mobile, they might crowd the title.
+                            Let's keep them below title on mobile as per flex-col.
+                        */}
                     </div>
 
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 w-full md:w-auto justify-end">
                         <button
                             onClick={generateAnalysis}
                             disabled={generating}
-                            className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center transition-all ${
-                                generating 
-                                    ? 'bg-purple-500/20 border-2 border-purple-500/50 text-purple-400 shadow-[0_0_20px_rgba(168,85,247,0.2)]' 
+                            className={`flex-shrink-0 w-9 h-9 md:w-10 md:h-10 rounded-full flex items-center justify-center transition-all ${generating
+                                    ? 'bg-purple-500/20 border-2 border-purple-500/50 text-purple-400 shadow-[0_0_20px_rgba(168,85,247,0.2)]'
                                     : 'bg-white/5 border border-white/10 text-gray-400 hover:bg-white/10 hover:text-white'
-                            }`}
+                                }`}
                             title="Regenerate AI Analysis"
                         >
                             {generating ? (
@@ -386,17 +393,17 @@ const MeetingDashboard = () => {
                         <button
                             onClick={handleDownloadPDF}
                             disabled={downloadingPDF}
-                            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs md:text-sm font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-1 md:flex-none justify-center"
                             title="Download Dashboard as PDF"
                         >
                             {downloadingPDF ? (
                                 <>
-                                    <Loader2 size={16} className="animate-spin" />
+                                    <Loader2 size={14} className="animate-spin" />
                                     <span>Generating...</span>
                                 </>
                             ) : (
                                 <>
-                                    <FileDown size={16} />
+                                    <FileDown size={14} />
                                     <span>Download PDF</span>
                                 </>
                             )}
@@ -413,12 +420,12 @@ const MeetingDashboard = () => {
                 </div>
 
                 {/* Tabs */}
-                <div className="px-6 flex items-center gap-8 overflow-x-auto no-scrollbar border-b border-white/5">
+                <div className="px-4 md:px-6 flex items-center gap-6 md:gap-8 overflow-x-auto no-scrollbar border-b border-white/5">
                     {tabs.map((tab) => (
                         <button
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id)}
-                            className={`relative pb-4 pt-2 text-sm font-medium flex items-center gap-2 transition-colors whitespace-nowrap ${activeTab === tab.id ? 'text-white' : 'text-gray-500 hover:text-gray-300'
+                            className={`relative pb-3 md:pb-4 pt-2 text-sm font-medium flex items-center gap-2 transition-colors whitespace-nowrap ${activeTab === tab.id ? 'text-white' : 'text-gray-500 hover:text-gray-300'
                                 }`}
                         >
                             <tab.icon size={16} className={activeTab === tab.id ? 'text-emerald-400' : ''} />
@@ -435,7 +442,7 @@ const MeetingDashboard = () => {
             </header>
 
             {/* Content Content */}
-            <main className="flex-1 p-6 lg:p-8 overflow-y-auto custom-scrollbar">
+            <main className="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto custom-scrollbar">
                 <div className="max-w-7xl mx-auto">
                     <AnimatePresence mode="wait">
                         <motion.div
@@ -541,7 +548,7 @@ const OverviewTab = ({ data, meetingId }) => {
             if (res.data.success) {
                 setEmailExported(true);
                 alert(`✅ Dashboard successfully exported to ${recipientEmail}!\n\nCheck your Outlook inbox for the complete meeting summary.`);
-                
+
                 // Reset the exported state after 3 seconds
                 setTimeout(() => setEmailExported(false), 3000);
             }
@@ -655,7 +662,7 @@ const OverviewTab = ({ data, meetingId }) => {
                 // Reload full data from database to ensure consistency
                 await fetchDashboardData();
                 setEditingSpeaker(null);
-                
+
                 // Show success message
                 console.log('Speaker name updated successfully in database');
             }
@@ -820,13 +827,12 @@ const OverviewTab = ({ data, meetingId }) => {
                             </button>
                             <button
                                 onClick={handleTextToSpeech}
-                                className={`p-1.5 rounded-lg transition-colors ${
-                                    isSpeaking
+                                className={`p-1.5 rounded-lg transition-colors ${isSpeaking
                                         ? isPaused
                                             ? 'bg-amber-600/20 hover:bg-amber-600/40 text-amber-400'
                                             : 'bg-purple-600/20 hover:bg-purple-600/40 text-purple-400'
                                         : 'bg-blue-600/20 hover:bg-blue-600/40 text-blue-400'
-                                }`}
+                                    }`}
                                 title={isSpeaking ? (isPaused ? 'Resume' : 'Pause') : 'Listen to Summary'}
                             >
                                 {isSpeaking ? (isPaused ? <Volume2 size={12} /> : <Pause size={12} />) : <Volume2 size={12} />}
@@ -889,11 +895,10 @@ const OverviewTab = ({ data, meetingId }) => {
                                         <button
                                             onClick={handleExportToEmail}
                                             disabled={exportingEmail}
-                                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                                                emailExported 
-                                                    ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' 
+                                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${emailExported
+                                                    ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
                                                     : 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 border border-blue-500/30'
-                                            } disabled:opacity-50 disabled:cursor-not-allowed`}
+                                                } disabled:opacity-50 disabled:cursor-not-allowed`}
                                             title="Auto-export dashboard to your Outlook email"
                                         >
                                             {exportingEmail ? (
@@ -1577,7 +1582,7 @@ const SentimentAnalysisTab = ({ data }) => {
     const sentimentTimeline = data.sentimentTimeline || [];
 
     // Calculate overall metrics
-    const totalStatements = speakerSentiments.reduce((acc, s) => 
+    const totalStatements = speakerSentiments.reduce((acc, s) =>
         acc + (s.positiveCount || 0) + (s.neutralCount || 0) + (s.negativeCount || 0), 0);
     const totalPositive = speakerSentiments.reduce((acc, s) => acc + (s.positiveCount || 0), 0);
     const totalNeutral = speakerSentiments.reduce((acc, s) => acc + (s.neutralCount || 0), 0);
@@ -1676,26 +1681,26 @@ const SentimentAnalysisTab = ({ data }) => {
                                             <p className="text-xs text-gray-500">{getSentimentLabel(speaker.averageSentiment || 50)}</p>
                                         </div>
                                     </div>
-                                    
+
                                     {/* Sentiment distribution bar */}
                                     <div className="w-full h-2 bg-[#1C1F2E] rounded-full overflow-hidden flex">
-                                        <div 
+                                        <div
                                             className="h-full bg-white transition-all"
                                             style={{ width: `${posPercent}%` }}
                                             title={`Positive: ${posPercent.toFixed(1)}%`}
                                         />
-                                        <div 
+                                        <div
                                             className="h-full bg-white/60 transition-all"
                                             style={{ width: `${neuPercent}%` }}
                                             title={`Neutral: ${neuPercent.toFixed(1)}%`}
                                         />
-                                        <div 
+                                        <div
                                             className="h-full bg-white/30 transition-all"
                                             style={{ width: `${negPercent}%` }}
                                             title={`Negative: ${negPercent.toFixed(1)}%`}
                                         />
                                     </div>
-                                    
+
                                     <div className="flex gap-4 mt-2 text-xs">
                                         <span className="text-white">{speaker.positiveCount || 0} Pos</span>
                                         <span className="text-white/80">{speaker.neutralCount || 0} Neu</span>
@@ -1733,11 +1738,10 @@ const SentimentAnalysisTab = ({ data }) => {
                                                 <div className="flex-1">
                                                     <p className="text-gray-300 leading-relaxed">"{trend.text}"</p>
                                                     <div className="flex items-center gap-2 mt-1">
-                                                        <span className={`font-semibold ${
-                                                            trend.sentiment?.toLowerCase() === 'positive' ? 'text-white' :
-                                                            trend.sentiment?.toLowerCase() === 'negative' ? 'text-white/60' :
-                                                            'text-white/80'
-                                                        }`}>
+                                                        <span className={`font-semibold ${trend.sentiment?.toLowerCase() === 'positive' ? 'text-white' :
+                                                                trend.sentiment?.toLowerCase() === 'negative' ? 'text-white/60' :
+                                                                    'text-white/80'
+                                                            }`}>
                                                             {trend.sentiment}
                                                         </span>
                                                         {trend.score && (
@@ -1817,7 +1821,7 @@ const SentimentAnalysisTab = ({ data }) => {
                                         {moment.intensity && (
                                             <div className="flex items-center gap-1">
                                                 <div className="w-12 h-1.5 bg-[#1C1F2E] rounded-full overflow-hidden">
-                                                    <div 
+                                                    <div
                                                         className="h-full bg-white rounded-full"
                                                         style={{ width: `${moment.intensity}%` }}
                                                     />
@@ -1863,13 +1867,13 @@ const CopyButton = ({ text }) => {
     );
 }
 
-const CollaborationTab = ({ 
-    collaborators, 
-    newCollaboratorEmail, 
-    setNewCollaboratorEmail, 
-    handleAddCollaborator, 
-    handleRemoveCollaborator, 
-    addingCollaborator 
+const CollaborationTab = ({
+    collaborators,
+    newCollaboratorEmail,
+    setNewCollaboratorEmail,
+    handleAddCollaborator,
+    handleRemoveCollaborator,
+    addingCollaborator
 }) => {
     return (
         <div className="space-y-6">
@@ -1968,7 +1972,7 @@ const CollaborationTab = ({
                     <div>
                         <h4 className="text-white font-semibold text-sm mb-1">Sharing Information</h4>
                         <p className="text-gray-400 text-sm">
-                            Collaborators will be able to view all meeting details, transcripts, analytics, and AI insights. 
+                            Collaborators will be able to view all meeting details, transcripts, analytics, and AI insights.
                             They can access this dashboard using the shared link.
                         </p>
                     </div>

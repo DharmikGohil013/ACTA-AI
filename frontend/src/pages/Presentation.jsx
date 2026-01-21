@@ -46,7 +46,7 @@ const Presentation = () => {
       title: 'Technology Stack',
       type: 'tech',
       stacks: [
-        { 
+        {
           category: 'Frontend',
           color: 'from-blue-500 to-cyan-500',
           items: ['React', 'Vite', 'TailwindCSS', 'Socket.IO', 'Framer Motion']
@@ -161,11 +161,11 @@ const Presentation = () => {
               ))}
             </div>
             <div className="relative z-10 space-y-8">
-              <Bot className="w-32 h-32 mx-auto text-blue-400 animate-bounce" />
-              <h1 className="text-8xl font-black bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
+              <Bot className="w-20 h-20 md:w-32 md:h-32 mx-auto text-blue-400 animate-bounce" />
+              <h1 className="text-5xl md:text-8xl font-black bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
                 {slide.title}
               </h1>
-              <p className="text-3xl text-gray-300 font-light">{slide.subtitle}</p>
+              <p className="text-xl md:text-3xl text-gray-300 font-light px-4">{slide.subtitle}</p>
               <div className="flex items-center justify-center gap-4 mt-12">
                 <Play className="w-6 h-6 text-blue-400 animate-pulse" />
                 <span className="text-gray-400">Press → to start</span>
@@ -176,9 +176,9 @@ const Presentation = () => {
 
       case 'problem':
         return (
-          <div className="h-full flex flex-col justify-center px-16">
-            <h2 className="text-6xl font-bold text-white mb-16">{slide.title}</h2>
-            <div className="grid grid-cols-2 gap-8">
+          <div className="h-full flex flex-col justify-center px-6 md:px-16 overflow-y-auto py-8">
+            <h2 className="text-3xl md:text-6xl font-bold text-white mb-8 md:mb-16 text-center md:text-left">{slide.title}</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8">
               {slide.content.map((item, i) => (
                 <div
                   key={i}
@@ -195,9 +195,9 @@ const Presentation = () => {
 
       case 'features':
         return (
-          <div className="h-full flex flex-col justify-center px-16">
-            <h2 className="text-6xl font-bold text-white mb-16">{slide.title}</h2>
-            <div className="grid grid-cols-3 gap-6">
+          <div className="h-full flex flex-col justify-center px-6 md:px-16 overflow-y-auto py-8">
+            <h2 className="text-3xl md:text-6xl font-bold text-white mb-8 md:mb-16 text-center md:text-left">{slide.title}</h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
               {slide.features.map((feature, i) => {
                 const Icon = feature.icon;
                 return (
@@ -218,9 +218,9 @@ const Presentation = () => {
 
       case 'architecture':
         return (
-          <div className="h-full flex flex-col justify-center px-16">
-            <h2 className="text-6xl font-bold text-white mb-12">{slide.title}</h2>
-            <div className="flex items-center justify-between">
+          <div className="h-full flex flex-col justify-center px-6 md:px-16 overflow-y-auto py-8">
+            <h2 className="text-3xl md:text-6xl font-bold text-white mb-8 md:mb-12 text-center md:text-left">{slide.title}</h2>
+            <div className="flex flex-col md:flex-row items-center justify-between gap-8 md:gap-0">
               <div className="flex flex-col gap-6">
                 <div className="bg-blue-500/20 border border-blue-500 p-6 rounded-xl">
                   <Globe className="w-10 h-10 text-blue-400 mb-2" />
@@ -233,7 +233,7 @@ const Presentation = () => {
                   <div className="text-sm text-gray-400">Node.js + Express</div>
                 </div>
               </div>
-              
+
               <div className="flex flex-col items-center gap-4">
                 <ArrowRight className="w-12 h-12 text-gray-600" />
                 <ArrowRight className="w-12 h-12 text-gray-600" />
@@ -270,9 +270,9 @@ const Presentation = () => {
 
       case 'tech':
         return (
-          <div className="h-full flex flex-col justify-center px-16">
-            <h2 className="text-6xl font-bold text-white mb-16">{slide.title}</h2>
-            <div className="grid grid-cols-3 gap-8">
+          <div className="h-full flex flex-col justify-center px-6 md:px-16 overflow-y-auto py-8">
+            <h2 className="text-3xl md:text-6xl font-bold text-white mb-8 md:mb-16 text-center md:text-left">{slide.title}</h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
               {slide.stacks.map((stack, i) => (
                 <div key={i} className="space-y-4">
                   <div className={`text-2xl font-bold bg-gradient-to-r ${stack.color} bg-clip-text text-transparent`}>
@@ -296,9 +296,9 @@ const Presentation = () => {
 
       case 'flow':
         return (
-          <div className="h-full flex flex-col justify-center px-16">
-            <h2 className="text-6xl font-bold text-white mb-16">{slide.title}</h2>
-            <div className="flex items-center justify-between">
+          <div className="h-full flex flex-col justify-center px-6 md:px-16 overflow-y-auto py-8">
+            <h2 className="text-3xl md:text-6xl font-bold text-white mb-8 md:mb-16 text-center md:text-left">{slide.title}</h2>
+            <div className="flex flex-col md:flex-row items-center justify-between gap-6 md:gap-0">
               {slide.steps.map((step, i) => (
                 <React.Fragment key={i}>
                   <div className="flex flex-col items-center text-center max-w-[150px]">
@@ -319,9 +319,9 @@ const Presentation = () => {
 
       case 'demo':
         return (
-          <div className="h-full flex flex-col justify-center px-16">
-            <h2 className="text-6xl font-bold text-white mb-16">{slide.title}</h2>
-            <div className="bg-gradient-to-br from-gray-900 to-black rounded-3xl p-12 border border-gray-800">
+          <div className="h-full flex flex-col justify-center px-6 md:px-16 overflow-y-auto py-8">
+            <h2 className="text-3xl md:text-6xl font-bold text-white mb-8 md:mb-16 text-center md:text-left">{slide.title}</h2>
+            <div className="bg-gradient-to-br from-gray-900 to-black rounded-3xl p-6 md:p-12 border border-gray-800">
               <div className="space-y-8">
                 <div className="flex items-start gap-6">
                   <div className="w-16 h-16 rounded-full bg-blue-500/20 flex items-center justify-center flex-shrink-0">
@@ -363,9 +363,9 @@ const Presentation = () => {
 
       case 'impact':
         return (
-          <div className="h-full flex flex-col justify-center px-16">
-            <h2 className="text-6xl font-bold text-white mb-16">{slide.title}</h2>
-            <div className="grid grid-cols-4 gap-8">
+          <div className="h-full flex flex-col justify-center px-6 md:px-16 overflow-y-auto py-8">
+            <h2 className="text-3xl md:text-6xl font-bold text-white mb-8 md:mb-16 text-center md:text-left">{slide.title}</h2>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-8">
               {slide.metrics.map((metric, i) => (
                 <div
                   key={i}
@@ -386,12 +386,12 @@ const Presentation = () => {
           <div className="h-full flex flex-col items-center justify-center text-center relative overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-br from-blue-600/20 via-purple-600/20 to-pink-600/20" />
             <div className="relative z-10 space-y-8">
-              <Rocket className="w-32 h-32 mx-auto text-blue-400 animate-pulse" />
-              <h1 className="text-7xl font-black bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
+              <Rocket className="w-20 h-20 md:w-32 md:h-32 mx-auto text-blue-400 animate-pulse" />
+              <h1 className="text-4xl md:text-7xl font-black bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
                 {slide.title}
               </h1>
-              <p className="text-3xl text-gray-300 font-light">{slide.subtitle}</p>
-              <div className="flex gap-6 justify-center mt-12">
+              <p className="text-xl md:text-3xl text-gray-300 font-light px-4">{slide.subtitle}</p>
+              <div className="flex flex-col md:flex-row gap-4 md:gap-6 justify-center mt-8 md:mt-12">
                 <button className="px-8 py-4 bg-gradient-to-r from-blue-500 to-purple-500 rounded-xl text-xl font-bold hover:scale-105 transition-transform">
                   Get Started
                 </button>
@@ -418,7 +418,7 @@ const Presentation = () => {
           }
         `}
       </style>
-      
+
       <div className={`h-full transition-opacity duration-300 ${isAnimating ? 'opacity-0' : 'opacity-100'}`}>
         {renderSlide()}
       </div>
@@ -438,11 +438,10 @@ const Presentation = () => {
             <button
               key={i}
               onClick={() => goToSlide(i)}
-              className={`transition-all ${
-                i === currentSlide
+              className={`transition-all ${i === currentSlide
                   ? 'w-8 h-3 bg-blue-500'
                   : 'w-3 h-3 bg-gray-600 hover:bg-gray-500'
-              } rounded-full`}
+                } rounded-full`}
             />
           ))}
         </div>

@@ -24,6 +24,15 @@ body {
   background-image: var(--color-bg-spotlight), var(--color-bg-dots);
   background-size: 100% 100%, 20px 20px;
   background-attachment: fixed;
+  -webkit-tap-highlight-color: transparent; /* Remove tap highlight on mobile */
+  touch-action: manipulation; /* Improve touch response */
+}
+
+/* Mobile Typography Adjustments */
+@media (max-width: 640px) {
+  html {
+    font-size: 14px;
+  }
 }
 
 /* Glass Utilities - Refined */

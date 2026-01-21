@@ -35,7 +35,7 @@ const Upload = () => {
 
         socket.on('meetingUpdate', (data) => {
             console.log('[Upload] Meeting update:', data);
-            
+
             if (currentMeetingId && data.meetingId === currentMeetingId) {
                 if (data.status === 'processing') {
                     setProcessingStatus(data.message || 'Processing...');
@@ -167,13 +167,13 @@ const Upload = () => {
     };
 
     return (
-        <div className="max-w-4xl mx-auto w-full px-6 py-8">
-            <header className="mb-8">
-                <h1 className="text-4xl font-bold mb-2 flex items-center gap-3">
-                    <UploadIcon className="text-white" />
+        <div className="max-w-4xl mx-auto w-full px-4 sm:px-6 py-8">
+            <header className="mb-6 md:mb-8">
+                <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-2 flex items-center gap-3">
+                    <UploadIcon className="text-white w-8 h-8 md:w-10 md:h-10" />
                     Upload Recording
                 </h1>
-                <p className="text-gray-400 font-light">
+                <p className="text-gray-400 font-light text-sm md:text-base">
                     Upload your meeting audio or video for AI transcription and speaker identification
                 </p>
             </header>
@@ -314,7 +314,7 @@ const Upload = () => {
                             <CheckCircle2 size={60} className="text-green-400 mx-auto mb-4" />
                             <h2 className="text-2xl font-bold mb-2">Transcription Complete! 🎉</h2>
                             <p className="text-gray-400 mb-6">Your recording has been processed successfully</p>
-                            
+
                             <div className="grid grid-cols-2 gap-4 mb-6">
                                 <div className="p-4 bg-white/5 rounded-xl">
                                     <p className="text-sm text-gray-400 mb-1">Speakers Detected</p>

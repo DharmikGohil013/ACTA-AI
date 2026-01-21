@@ -269,12 +269,12 @@ const ScheduledMeetings = () => {
     }
 
     return (
-        <div className="max-w-[1400px] mx-auto w-full px-6 py-8">
+        <div className="max-w-[1400px] mx-auto w-full px-4 sm:px-6 py-8">
             {/* Header */}
-            <header className="flex items-center justify-between gap-8 mb-10">
-                <div className="flex items-center gap-4 flex-shrink-0">
-                    <h1 className="text-3xl font-bold tracking-tight text-white">Scheduled Meetings</h1>
-                    <div className="h-6 w-px bg-white/10"></div>
+            <header className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 md:gap-8 mb-8 md:mb-10">
+                <div className="flex flex-col md:flex-row items-start md:items-center gap-2 md:gap-4 flex-shrink-0">
+                    <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-white">Scheduled Meetings</h1>
+                    <div className="h-6 w-px bg-white/10 hidden md:block"></div>
                     <div className="flex items-center gap-3">
                         {schedulerStatus && (
                             <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 rounded-full">
@@ -286,25 +286,24 @@ const ScheduledMeetings = () => {
                         )}
                     </div>
                 </div>
-                <div className="flex items-center gap-3">
-                        <button
-                            onClick={() => setShowGeminiModal(true)}
-                            className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center transition-all ${
-                                showGeminiModal 
-                                    ? 'bg-purple-500/20 border-2 border-purple-500/50 text-purple-400 shadow-[0_0_20px_rgba(168,85,247,0.2)]' 
-                                    : 'bg-white/5 border border-white/10 text-gray-400 hover:bg-white/10 hover:text-white'
+                <div className="flex items-center gap-3 w-full md:w-auto">
+                    <button
+                        onClick={() => setShowGeminiModal(true)}
+                        className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center transition-all ${showGeminiModal
+                                ? 'bg-purple-500/20 border-2 border-purple-500/50 text-purple-400 shadow-[0_0_20px_rgba(168,85,247,0.2)]'
+                                : 'bg-white/5 border border-white/10 text-gray-400 hover:bg-white/10 hover:text-white'
                             }`}
-                            title="Generate with Gemini AI"
-                        >
-                            <Sparkles size={16} className={showGeminiModal ? 'animate-pulse' : ''} />
-                        </button>
-                        <button
-                            onClick={() => setShowCreateForm(true)}
-                            className="flex items-center gap-2 px-4 py-2.5 bg-white text-black hover:bg-slate-200 rounded-md transition-all font-semibold text-sm shadow-lg"
-                        >
-                            <Plus size={18} />
-                            Create Schedule
-                        </button>
+                        title="Generate with Gemini AI"
+                    >
+                        <Sparkles size={16} className={showGeminiModal ? 'animate-pulse' : ''} />
+                    </button>
+                    <button
+                        onClick={() => setShowCreateForm(true)}
+                        className="flex-1 md:flex-none items-center justify-center gap-2 px-4 py-2.5 bg-white text-black hover:bg-slate-200 rounded-md transition-all font-semibold text-sm shadow-lg flex"
+                    >
+                        <Plus size={18} />
+                        Create Schedule
+                    </button>
                 </div>
             </header>
 

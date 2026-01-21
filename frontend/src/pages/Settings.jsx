@@ -340,10 +340,10 @@ const Settings = () => {
     }
 
     return (
-        <div className="min-h-screen p-8 max-w-7xl mx-auto">
-            <div className="mb-10">
-                <h1 className="text-4xl font-bold mb-3">Settings & Integrations</h1>
-                <p className="text-gray-400 text-lg">Manage your external connections and bot status</p>
+        <div className="min-h-screen p-4 md:p-6 lg:p-8 max-w-7xl mx-auto">
+            <div className="mb-8 md:mb-10">
+                <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-2 md:mb-3">Settings & Integrations</h1>
+                <p className="text-gray-400 text-base md:text-lg">Manage your external connections and bot status</p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

@@ -12,9 +12,17 @@ const puppeteer = require('puppeteer');
 const multer = require('multer');
 const fs = require('fs').promises;
 const Groq = require('groq-sdk');
+const cloudinary = require('cloudinary').v2;
 
 // Load environment variables FIRST
 dotenv.config();
+
+// Configure Cloudinary
+cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET
+});
 
 // Initialize Groq AI
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY || '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' });
@@ -1210,19 +1218,30 @@ app.post('/api/meetings/upload', optionalAuth, upload.single('audio'), async (re
         const fileName = req.file.filename;
         const fileExt = path.extname(fileName).toLowerCase();
 
+        // Upload to Cloudinary
+        const cloudinaryResult = await cloudinary.uploader.upload(filePath, {
+            resource_type: 'video',
+            folder: 'acta-ai-recordings',
+            public_id: path.parse(fileName).name,
+            format: 'wav'
+        });
+
         // Create meeting record
         const meeting = new Meeting({
             userId,
             meetingLink: 'uploaded-recording',
             platform: 'upload',
             status: 'processing',
-            audioPath: `recordings/${fileName}`,
+            audioPath: cloudinaryResult.secure_url,
             title: req.body.title || `Uploaded Recording - ${new Date().toLocaleString()}`,
             createdAt: new Date()
         });
 
         await meeting.save();
         const meetingId = meeting._id.toString();
+        
+        // Delete local file after upload
+        await fs.unlink(filePath).catch(err => console.log('Error deleting local file:', err));
 
         // Send immediate response with meetingId
         res.json({
@@ -1256,10 +1275,21 @@ app.post('/api/meetings/upload', optionalAuth, upload.single('audio'), async (re
 
                     audioFilePath = audioPath;
 
+                    // Upload converted audio to Cloudinary
+                    const convertedCloudinaryResult = await cloudinary.uploader.upload(audioPath, {
+                        resource_type: 'video',
+                        folder: 'acta-ai-recordings',
+                        public_id: `converted-${path.parse(audioPath).name}`,
+                        format: 'wav'
+                    });
+
                     // Update meeting with new audio path
                     await Meeting.findByIdAndUpdate(meetingId, {
-                        audioPath: `recordings/${path.basename(audioPath)}`
+                        audioPath: convertedCloudinaryResult.secure_url
                     });
+                    
+                    // Delete local converted file
+                    await fs.unlink(audioPath).catch(err => console.log('Error deleting converted file:', err));
                 }
 
                 emitStatus(meetingId, 'processing', { message: 'Transcribing audio...' });

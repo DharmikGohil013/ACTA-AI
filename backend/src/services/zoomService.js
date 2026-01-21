@@ -1,6 +1,7 @@
 const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
+const cloudinary = require('cloudinary').v2;
 
 class ZoomService {
     constructor() {
@@ -166,7 +167,18 @@ class ZoomService {
                 const ext = file.file_type.toLowerCase();
                 const filePath = path.join(recordingsDir, `${localMeetingId}.${ext}`);
                 await this.downloadRecording(file.download_url, filePath);
-                audioPath = `/recordings/${localMeetingId}.${ext}`;
+                
+                // Upload to Cloudinary
+                const cloudinaryResult = await cloudinary.uploader.upload(filePath, {
+                    resource_type: 'video',
+                    folder: 'acta-ai-recordings',
+                    public_id: `zoom-${localMeetingId}`,
+                    format: ext
+                });
+                audioPath = cloudinaryResult.secure_url;
+                
+                // Delete local file
+                fs.unlinkSync(filePath);
             }
 
             // Download transcript (VTT)

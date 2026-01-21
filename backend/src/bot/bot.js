@@ -2,6 +2,7 @@ const puppeteer = require('puppeteer');
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
+const cloudinary = require('cloudinary').v2;
 const { createDeepgramLiveTranscriber } = require('../services/deepgramLiveService');
 const meetService = require('../services/meetService');
 const { joinMSTeams, checkMeetingEnded: checkTeamsMeetingEnded } = require('./msteamsBot');
@@ -782,12 +783,23 @@ async function saveAudioFile(audioChunks, audioPath, meetingIdMongo) {
 
         if (fullBuffer.length > 1000) {
             try {
+                // Save locally first
                 fs.writeFileSync(audioPath, fullBuffer);
-                console.log(`[Bot] ✅ Audio saved to: ${audioPath} (${size} MB)`);
+                console.log(`[Bot] ✅ Audio saved locally to: ${audioPath} (${size} MB)`);
+
+                // Upload to Cloudinary
+                console.log(`[Bot] Uploading to Cloudinary...`);
+                const cloudinaryResult = await cloudinary.uploader.upload(audioPath, {
+                    resource_type: 'video',
+                    folder: 'acta-ai-recordings',
+                    public_id: meetingIdMongo,
+                    format: 'webm'
+                });
+                console.log(`[Bot] ✅ Uploaded to Cloudinary: ${cloudinaryResult.secure_url}`);
 
                 const Meeting = require('../models/Meeting');
                 const result = await Meeting.findByIdAndUpdate(meetingIdMongo, {
-                    audioPath: `/recordings/${meetingIdMongo}.webm`,
+                    audioPath: cloudinaryResult.secure_url,
                     status: 'completed'
                 });
 
@@ -796,11 +808,16 @@ async function saveAudioFile(audioChunks, audioPath, meetingIdMongo) {
 
                 emitStatus(meetingIdMongo, 'completed', {
                     message: `Audio saved! (${size} MB)`,
-                    audioPath: `/recordings/${meetingIdMongo}.webm`
+                    audioPath: cloudinaryResult.secure_url
                 });
+                
+                // Delete local file after successful upload
+                fs.unlinkSync(audioPath);
+                console.log(`[Bot] Local file deleted: ${audioPath}`);
+                
                 return true;
             } catch (error) {
-                console.error(`[Bot] Error saving audio or updating DB:`, error);
+                console.error(`[Bot] Error saving audio or uploading to Cloudinary:`, error);
                 return false;
             }
         } else {

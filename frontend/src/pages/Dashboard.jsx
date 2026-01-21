@@ -13,6 +13,17 @@ import zoomLogo from '../assets/zoom.png';
 
 const API_URL = 'https://acta-ai.onrender.com';
 
+// Helper function to get correct audio URL (supports both Cloudinary and local paths)
+const getAudioUrl = (audioPath) => {
+    if (!audioPath) return null;
+    // If it's already a full URL (Cloudinary), return as is
+    if (audioPath.startsWith('http://') || audioPath.startsWith('https://')) {
+        return audioPath;
+    }
+    // Otherwise, it's a local path, prepend API_URL
+    return `${API_URL}${audioPath}`;
+};
+
 const getPlatformDetails = (link) => {
     if (!link) return { name: 'Meeting', logo: null, color: 'text-gray-400', border: 'from-gray-700 to-gray-800', shadow: 'shadow-gray-500/20' };
 
@@ -1107,7 +1118,7 @@ const Dashboard = () => {
                                     {meeting.audioPath && (
                                         <audio
                                             ref={el => audioRefs.current[meeting._id] = el}
-                                            src={`${API_URL}${meeting.audioPath}`}
+                                            src={getAudioUrl(meeting.audioPath)}
                                             onEnded={() => setPlaying(null)}
                                             className="hidden"
                                         />
@@ -1341,7 +1352,7 @@ const Dashboard = () => {
 
                             {selectedMeeting.audioPath && (
                                 <div className="mb-4 p-3 bg-white/5 rounded-xl border border-white/5">
-                                    <audio controls className="w-full" src={`${API_URL}${selectedMeeting.audioPath}`} />
+                                    <audio controls className="w-full" src={getAudioUrl(selectedMeeting.audioPath)} />
                                 </div>
                             )}
 

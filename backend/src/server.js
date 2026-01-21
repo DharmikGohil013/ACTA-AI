@@ -41,8 +41,14 @@ const server = http.createServer(app);
 // Socket.IO for real-time updates
 const io = new Server(server, {
     cors: {
-        origin: ["https://acta-ai.onrender.com"],
-        methods: ["GET", "POST"]
+        origin: [
+            "https://acta-ai.onrender.com",
+            "https://actaai-five.vercel.app",
+            "http://localhost:3000",
+            "http://localhost:5173"
+        ],
+        methods: ["GET", "POST"],
+        credentials: true
     }
 });
 
@@ -50,8 +56,15 @@ const io = new Server(server, {
 global.io = io;
 
 app.use(cors({
-    origin: ["https://acta-ai.onrender.com"],
-    credentials: true
+    origin: [
+        "https://acta-ai.onrender.com",
+        "https://actaai-five.vercel.app",
+        "http://localhost:3000",
+        "http://localhost:5173"
+    ],
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"]
 }));
 app.use(express.json());
 app.use(cookieParser());

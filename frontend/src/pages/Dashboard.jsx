@@ -5,13 +5,12 @@ import { io } from 'socket.io-client';
 import { Play, Pause, Mic, X, Trash2, Calendar, Clock, ExternalLink, StopCircle, Loader2, Volume2, Download, FileAudio, Wifi, WifiOff, FileText, Sparkles, Users, MoreVertical, CheckCircle2, Search } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Loader from '../components/Loader';
+import API_URL from '../config/api';
 
 // Import Platform Logos
 import googleMeetLogo from '../assets/google-meet.png';
 import teamsLogo from '../assets/teams.png';
 import zoomLogo from '../assets/zoom.png';
-
-const API_URL = 'https://acta-ai.onrender.com';
 
 // Helper function to get correct audio URL (supports both Cloudinary and local paths)
 const getAudioUrl = (audioPath) => {

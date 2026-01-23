@@ -4,13 +4,12 @@ import axios from 'axios';
 import { Calendar, Clock, Plus, X, Trash2, ExternalLink, Video, Loader2, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Loader from '../components/Loader';
+import API_URL from '../config/api';
 
 // Import Platform Logos
 import googleMeetLogo from '../assets/google-meet.png';
 import teamsLogo from '../assets/teams.png';
 import zoomLogo from '../assets/zoom.png';
-
-const API_URL = 'https://acta-ai.onrender.com';
 
 const ScheduledMeetings = () => {
     const navigate = useNavigate();

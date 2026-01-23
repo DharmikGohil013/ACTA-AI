@@ -4,8 +4,7 @@ import { io } from 'socket.io-client';
 import { Upload as UploadIcon, File, FileAudio, FileVideo, X, Loader2, CheckCircle2, AlertCircle, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Loader from '../components/Loader';
-
-const API_URL = 'https://acta-ai.onrender.com';
+import API_URL from '../config/api';
 
 const Upload = () => {
     const [selectedFile, setSelectedFile] = useState(null);

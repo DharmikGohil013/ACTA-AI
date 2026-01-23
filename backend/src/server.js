@@ -50,8 +50,7 @@ const server = http.createServer(app);
 const io = new Server(server, {
     cors: {
         origin: [
-            "https://acta-ai.onrender.com",
-            "https://actaai-five.vercel.app",
+            process.env.FRONTEND_URL || "http://localhost:5173",
             "http://localhost:3000",
             "http://localhost:5173"
         ],
@@ -65,8 +64,7 @@ global.io = io;
 
 app.use(cors({
     origin: [
-        "https://acta-ai.onrender.com",
-        "https://actaai-five.vercel.app",
+        process.env.FRONTEND_URL || "http://localhost:5173",
         "http://localhost:3000",
         "http://localhost:5173"
     ],
@@ -178,7 +176,7 @@ app.get('/api/auth/google',
 );
 
 app.get('/api/auth/google/callback',
-    passport.authenticate('google', { failureRedirect: 'https://actaai-five.vercel.app' }),
+    passport.authenticate('google', { failureRedirect: process.env.FRONTEND_URL || 'http://localhost:5173' }),
     (req, res) => {
         // Generate JWT token
         const token = generateToken(req.user);
@@ -192,7 +190,7 @@ app.get('/api/auth/google/callback',
         });
 
         // Redirect to frontend with token in URL (for localStorage)
-        res.redirect(`https://actaai-five.vercel.app?token=${token}`);
+        res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}?token=${token}`);
     }
 );
 
@@ -654,6 +652,17 @@ app.put('/api/user/settings', async (req, res) => {
     }
 });
 
+// Helper to detect cloud environment
+const isCloudEnvironment = () => {
+    return process.env.RENDER === 'true' || 
+           process.env.RENDER_SERVICE_ID || 
+           process.env.HEROKU_APP_ID || 
+           process.env.VERCEL ||
+           process.env.AWS_LAMBDA_FUNCTION_NAME ||
+           process.env.CLOUD_DEPLOYMENT === 'true' ||
+           (process.env.NODE_ENV === 'production' && !process.env.DISPLAY);
+};
+
 // Launch browser for user to setup Google account
 app.post('/api/bot/setup/start', verifyToken, async (req, res) => {
     try {
@@ -668,9 +677,11 @@ app.post('/api/bot/setup/start', verifyToken, async (req, res) => {
         console.log('[Bot Setup] Launching browser for setup:', userId);
 
         // Launch browser with user data dir to save session
+        const useHeadless = isCloudEnvironment() || process.env.NODE_ENV === 'production';
         const browser = await puppeteer.launch({
-            headless: false,
+            headless: useHeadless ? 'new' : false,
             userDataDir: profilePath,
+            executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || puppeteer.executablePath(),
             args: [
                 '--no-sandbox',
                 '--disable-setuid-sandbox',
@@ -819,9 +830,11 @@ app.post('/api/bot/teams/setup/start', verifyToken, async (req, res) => {
         console.log('[Teams Bot Setup] Launching browser for setup:', userId);
 
         // Launch browser with user data dir to save session
+        const useHeadless = isCloudEnvironment() || process.env.NODE_ENV === 'production';
         const browser = await puppeteer.launch({
-            headless: false,
+            headless: useHeadless ? 'new' : false,
             userDataDir: profilePath,
+            executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || puppeteer.executablePath(),
             args: [
                 '--no-sandbox',
                 '--disable-setuid-sandbox',
@@ -918,6 +931,28 @@ app.delete('/api/bot/teams/setup', verifyToken, async (req, res) => {
     }
 });
 
+// Get deployment status and bot availability
+app.get('/api/deployment/status', (req, res) => {
+    const inCloud = isCloudEnvironment();
+    res.json({
+        isCloudDeployment: inCloud,
+        botAvailable: true,
+        headlessMode: inCloud,
+        features: {
+            liveMeetingBot: true,
+            audioUpload: true,
+            transcription: true,
+            aiAnalysis: true,
+            taskExtraction: true,
+            zoomApiIntegration: true,
+            scheduledMeetings: true
+        },
+        message: inCloud 
+            ? 'Running in cloud mode with headless browser. All features available.'
+            : 'Running in local mode. All features available.'
+    });
+});
+
 
 // Routes
 
@@ -963,7 +998,17 @@ app.post('/api/join', optionalAuth, async (req, res) => {
 
         emitStatus(newMeeting._id.toString(), 'joining', { message: 'Bot is starting...' });
 
-        runBot(link, newMeeting._id, userId, newMeeting.botName).then(({ browser }) => {
+        runBot(link, newMeeting._id, userId, newMeeting.botName).then(({ browser, cloudLimited }) => {
+            // Handle cloud-limited scenario
+            if (cloudLimited) {
+                console.log(`[Server] Bot running in cloud-limited mode for meeting ${newMeeting._id}`);
+                Meeting.findByIdAndUpdate(newMeeting._id, { 
+                    status: 'cloud-limited',
+                    cloudNote: 'Live meeting joining is not available in cloud deployment. Use audio upload or Zoom API integration.'
+                }).catch(err => console.error('[Server] Failed to update meeting status:', err));
+                return;
+            }
+            
             console.log(`[Server] Bot started for meeting ${newMeeting._id}`);
 
             // Only attach event listener if browser is not null

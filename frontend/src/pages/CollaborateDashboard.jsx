@@ -4,8 +4,7 @@ import axios from 'axios';
 import { Users, Calendar, Clock, ExternalLink, Loader2, Mail, ArrowLeft, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Loader from '../components/Loader';
-
-const API_URL = 'https://acta-ai.onrender.com';
+import API_URL from '../config/api';
 
 const CollaborateDashboard = () => {
     const navigate = useNavigate();

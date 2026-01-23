@@ -2,8 +2,7 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { Cloud, Download, Play, Calendar, Clock, FileText, Loader2, RefreshCw } from 'lucide-react';
 import { motion } from 'framer-motion';
-
-const API_URL = 'https://acta-ai.onrender.com';
+import API_URL from '../config/api';
 
 const ZoomRecordings = () => {
     const [recordings, setRecordings] = useState([]);

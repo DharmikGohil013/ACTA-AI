@@ -255,6 +255,100 @@ pydub                       # Audio manipulation
 
 ---
 
+## ☁️ Cloud Deployment
+
+### Deployment Architecture
+
+The ACTA-AI bot **works in cloud deployments** using headless browser mode with Puppeteer. When deployed to platforms like **Render**, **Heroku**, or similar environments, the bot automatically switches to headless mode.
+
+#### Cloud vs Local Modes
+
+| Feature | Cloud Mode (Render/Heroku) | Local Mode |
+|---------|---------------------------|------------|
+| Live Meeting Bot | ✅ Headless | ✅ Visible Browser |
+| Audio File Upload | ✅ | ✅ |
+| Zoom API Integration | ✅ | ✅ |
+| AI Transcription | ✅ | ✅ |
+| Speaker Diarization | ✅ | ✅ |
+| Task Extraction | ✅ | ✅ |
+| Analytics Dashboard | ✅ | ✅ |
+| Bot Setup | ✅ Headless | ✅ Visible Browser |
+
+#### Environment Variables for Cloud Deployment
+
+**Automatically Detected:**
+- Render: `RENDER=true` (auto-set)
+- Heroku: `HEROKU_APP_ID` (auto-set)
+- Vercel: `VERCEL` (auto-set)
+
+**Manual Configuration:**
+```bash
+# Force headless mode
+BOT_HEADLESS=true
+NODE_ENV=production
+
+# Optional: Specify Chromium path (if using custom installation)
+PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
+```
+
+#### Render Deployment Configuration
+
+Create a `render.yaml` or configure via dashboard:
+
+```yaml
+services:
+  - type: web
+    name: acta-ai-backend
+    env: node
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGO_URI
+        sync: false
+      - key: DEEPGRAM_API_KEY
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+    # Add these build commands for Puppeteer dependencies
+    buildCommand: |
+      npm install
+      apt-get update
+      apt-get install -y chromium
+```
+
+#### Required System Dependencies (Cloud)
+
+For Puppeteer to work on cloud platforms, these dependencies are needed:
+
+**Debian/Ubuntu (Render, most cloud platforms):**
+```bash
+chromium
+chromium-sandbox
+fonts-liberation
+libappindicator3-1
+libasound2
+libatk-bridge2.0-0
+libatk1.0-0
+libcups2
+libdbus-1-3
+libdrm2
+libgbm1
+libgtk-3-0
+libnspr4
+libnss3
+libx11-xcb1
+libxcomposite1
+libxdamage1
+libxrandr2
+xdg-utils
+```
+
+These are typically pre-installed on Render, but you may need to install them on other platforms.
+
+---
+
 ## 🏗️ System Architecture
 
 ```

@@ -12,10 +12,9 @@ import Analysis from './pages/Analysis';
 import Upload from './pages/Upload';
 import Presentation from './pages/Presentation';
 import Loader from './components/Loader';
+import API_URL from './config/api';
 
 import axios from 'axios';
-
-const API_URL = 'https://acta-ai.onrender.com';
 
 // Configure axios to send credentials
 axios.defaults.withCredentials = true;

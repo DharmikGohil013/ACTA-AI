@@ -14,8 +14,7 @@ import {
     Volume2, VolumeX, Pause, Edit2, Check, FileDown, TrendingUp, Smile, Frown, Meh, Heart, Target
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-
-const API_URL = 'https://acta-ai.onrender.com';
+import API_URL from '../config/api';
 
 const MeetingDashboard = () => {
     const { id } = useParams();

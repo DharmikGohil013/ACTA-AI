@@ -3,8 +3,7 @@ import { motion } from 'framer-motion';
 import { LogOut, User, Mail, Shield } from 'lucide-react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-
-const API_URL = 'https://acta-ai.onrender.com';
+import API_URL from '../config/api';
 
 const Profile = () => {
     const [user, setUser] = useState(null);

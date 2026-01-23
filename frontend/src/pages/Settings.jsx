@@ -7,8 +7,7 @@ import {
     ChevronRight, Globe, Lock, Key, Presentation as PresentationIcon
 } from 'lucide-react';
 import axios from 'axios';
-
-const API_URL = 'https://acta-ai.onrender.com';
+import API_URL from '../config/api';
 
 const Settings = () => {
     const navigate = useNavigate();

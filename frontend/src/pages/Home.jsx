@@ -4,8 +4,7 @@ import { ArrowRight, Loader, CheckCircle, AlertCircle } from 'lucide-react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { ZoomLogo, TeamsLogo, MeetLogo } from '../components/Logos';
-
-const API_URL = 'https://acta-ai.onrender.com';
+import API_URL from '../config/api';
 
 // Animated Text Component with letter-by-letter reveal
 const AnimatedText = ({ text, isVisible }) => {
@@ -98,6 +97,7 @@ const Home = () => {
     const [setupLoading, setSetupLoading] = useState(false);
     const [showAdvanced, setShowAdvanced] = useState(false);
     const [currentPhraseIndex, setCurrentPhraseIndex] = useState(0);
+    const [isCloudDeployment, setIsCloudDeployment] = useState(false);
     const navigate = useNavigate();
 
     const rotatingPhrases = [
@@ -123,6 +123,7 @@ const Home = () => {
 
     useEffect(() => {
         checkBotSetup();
+        checkDeploymentStatus();
     }, []);
 
     // Rotate phrases every 3.5 seconds
@@ -133,6 +134,17 @@ const Home = () => {
 
         return () => clearInterval(interval);
     }, []);
+
+    const checkDeploymentStatus = async () => {
+        try {
+            const res = await axios.get(`${API_URL}/api/deployment/status`);
+            setIsCloudDeployment(res.data.isCloudDeployment || false);
+        } catch (err) {
+            console.error('Error checking deployment status:', err);
+            // Assume cloud deployment if we can't check
+            setIsCloudDeployment(true);
+        }
+    };
 
     const checkBotSetup = async () => {
         try {

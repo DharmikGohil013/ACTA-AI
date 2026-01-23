@@ -11,6 +11,17 @@ const User = require('../models/User');
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 const activeBots = new Map();
 
+// Detect if running in cloud/production environment (Render, Heroku, etc.)
+const isCloudEnvironment = () => {
+    return process.env.RENDER === 'true' || 
+           process.env.RENDER_SERVICE_ID || 
+           process.env.HEROKU_APP_ID || 
+           process.env.VERCEL ||
+           process.env.AWS_LAMBDA_FUNCTION_NAME ||
+           process.env.CLOUD_DEPLOYMENT === 'true' ||
+           (process.env.NODE_ENV === 'production' && !process.env.DISPLAY);
+};
+
 // Password decryption helper (matches server.js)
 const ENCRYPTION_KEY = process.env.BOT_ENCRYPTION_KEY || 'default-key-please-change-in-production-32-chars-long!';
 const ENCRYPTION_ALGORITHM = 'aes-256-cbc';
@@ -44,6 +55,14 @@ const emitStatus = (meetingId, status, data = {}) => {
 async function runBot(meetingLink, meetingIdMongo, userId = null, botName = 'AI Bot') {
     console.log(`[Bot] Launching for meeting: ${meetingLink} with bot name: ${botName}`);
 
+    // Check if running in cloud environment
+    const inCloud = isCloudEnvironment();
+    if (inCloud) {
+        console.log('[Bot] Running in cloud/production mode - using headless browser');
+    } else {
+        console.log('[Bot] Running in local/development mode');
+    }
+
     emitStatus(meetingIdMongo, 'starting', { message: 'Launching browser...' });
 
     // Recording setup
@@ -53,26 +72,47 @@ async function runBot(meetingLink, meetingIdMongo, userId = null, botName = 'AI 
 
     // Detect platform and get browser profile if needed
     const platform = detectPlatform(meetingLink);
+    
+    // Always use headless in production/cloud, allow non-headless in local dev
+    const useHeadless = inCloud || process.env.BOT_HEADLESS === 'true' || process.env.NODE_ENV === 'production';
+    
+    console.log(`[Bot] Headless mode: ${useHeadless}`);
+    
     let browserOptions = {
-        headless: false,
-        defaultViewport: null,
+        headless: useHeadless ? 'new' : false,
+        defaultViewport: useHeadless ? { width: 1280, height: 720 } : null,
         args: [
             '--no-sandbox',
             '--disable-setuid-sandbox',
-            '--autoplay-policy=no-user-gesture-required',
-            '--use-fake-ui-for-media-stream',
-            '--start-maximized',
-            '--window-size=1280,720',
-            '--window-position=0,0',
-            '--disable-infobars',
+            '--disable-dev-shm-usage',
+            '--disable-gpu',
+            '--disable-software-rasterizer',
+            '--disable-extensions',
             '--disable-background-timer-throttling',
             '--disable-backgrounding-occluded-windows',
             '--disable-renderer-backgrounding',
+            '--disable-infobars',
+            '--autoplay-policy=no-user-gesture-required',
+            '--use-fake-ui-for-media-stream',
             '--enable-usermedia-screen-capturing',
             '--allow-http-screen-capture',
-            '--auto-select-desktop-capture-source=Zoom',
-            '--enable-features=GetDisplayMediaSet,GetDisplayMediaSetAutoSelectAllScreens',
+            '--window-size=1280,720',
+            '--disable-blink-features=AutomationControlled',
+            ...(useHeadless ? [
+                '--disable-accelerated-2d-canvas',
+                '--no-first-run',
+                '--no-zygote',
+                '--deterministic-fetch',
+                '--disable-features=IsolateOrigins',
+                '--disable-site-isolation-trials',
+            ] : [
+                '--start-maximized',
+                '--window-position=0,0',
+                '--auto-select-desktop-capture-source=Zoom',
+                '--enable-features=GetDisplayMediaSet,GetDisplayMediaSetAutoSelectAllScreens',
+            ]),
         ],
+        ignoreDefaultArgs: ['--enable-automation'],
     };
 
     // If Google Meet and user is logged in, try to use saved profile

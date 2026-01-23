@@ -4,7 +4,7 @@
 echo "Installing dependencies..."
 npm install
 
-echo "Installing Puppeteer browsers..."
-npx puppeteer browsers install chrome
+echo "Installing Chromium for Puppeteer..."
+node node_modules/puppeteer/install.js
 
 echo "Build complete!"

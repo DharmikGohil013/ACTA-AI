@@ -170,6 +170,29 @@ const emitStatus = (meetingId, status, data = {}) => {
     io.emit('meetingUpdate', { meetingId, status, ...data });
 };
 
+// Health Check Routes
+app.get('/', (req, res) => {
+    res.json({ 
+        status: 'ok', 
+        message: 'ACTA-AI Backend API',
+        version: '1.0.0',
+        endpoints: {
+            health: '/health',
+            api: '/api',
+            auth: '/api/auth/google'
+        }
+    });
+});
+
+app.get('/health', (req, res) => {
+    res.json({ 
+        status: 'healthy',
+        timestamp: new Date().toISOString(),
+        database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
+        uptime: process.uptime()
+    });
+});
+
 // Authentication Routes
 app.get('/api/auth/google',
     passport.authenticate('google', { scope: ['profile', 'email'] })

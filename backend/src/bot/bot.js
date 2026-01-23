@@ -81,6 +81,9 @@ async function runBot(meetingLink, meetingIdMongo, userId = null, botName = 'AI 
     let browserOptions = {
         headless: useHeadless ? 'new' : false,
         defaultViewport: useHeadless ? { width: 1280, height: 720 } : null,
+        // Use system Chrome on Render/cloud platforms
+        executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || 
+                       (inCloud ? '/usr/bin/google-chrome-stable' : undefined),
         args: [
             '--no-sandbox',
             '--disable-setuid-sandbox',
